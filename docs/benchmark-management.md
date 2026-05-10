@@ -18,6 +18,7 @@ How to add new eval tasks, new fixtures, and new run configs — without touchin
    - [Adding an MCP server config](#adding-an-mcp-server-config)
    - [How MCP tool permissions work](#how-mcp-tool-permissions-work)
    - [Adding a SAST command config](#adding-a-sast-command-config)
+   - [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings)
 7. [Run Config JSON Reference](#run-config-json-reference)
 8. [Worked Example: Adding a Ruby Fixture](#worked-example-adding-a-ruby-fixture)
 9. [Troubleshooting](#troubleshooting)
@@ -191,6 +192,8 @@ pnpm run benchmark -- --task ruby-find-vulns
 pnpm run benchmark -- --task ruby-fix-vulns
 ```
 
+If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF) command config, inspect the JSONL `details.agentFindings`: any finding whose `type` is `"other"` while Snyk clearly reported a real issue usually means **`mapRuleId` in `src/parsers/snyk-code.ts` needs extending** — see [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings).
+
 ---
 
 ## Task JSON Reference
@@ -317,6 +320,8 @@ if (/yourpattern|alternatepattern/.test(id)) return "your-new-type";
 The `id` is already lowercased before this function runs. Check Snyk Code's actual rule IDs for your vulnerability class to write an accurate pattern. If you're unsure, add a broad pattern and refine it after a test run.
 
 > If you add other SAST parsers in `src/parsers/`, update those too — each parser has its own rule ID mapping.
+
+If the `VulnType` already exists and you only need Snyk to recognise a **new or renamed Snyk `ruleId`** (abbreviated ids, new CLI rules, or a new fixture that surfaces a class you already model in ground truth), you still edit `mapRuleId()` — you do **not** need Steps 1–2 or the checklist rows for `types.ts` / `normalizeVulnType` unless the *wording* agents use changed. See [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings).
 
 ### Step 4 — Add to the valid types table in this doc
 
@@ -493,6 +498,32 @@ pnpm run benchmark -- --task js-find-vulns --config sonnet-4-6,snyk-code
 # Run SAST against all find-vulns tasks
 pnpm run benchmark -- --category find-vulns --config snyk-code
 ```
+
+### Maintaining Snyk Code ruleId mappings
+
+Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Scoring then matches findings to ground truth **by `type` only** — if `mapRuleId` returns `"other"` for a real Snyk rule, recall against `fixtures/<name>.json` will look artificially low even though the scanner found the issue.
+
+**Update `mapRuleId` whenever:**
+
+| Trigger | Why |
+|---|---|
+| **New fixture or new vulnerable code** in an existing fixture | Snyk may emit `ruleId`s you have never seen in this repo (including abbreviated ids such as `javascript/OR`, `javascript/PT`, `javascript/Sqli`). |
+| **Upgrading the Snyk CLI** or lockfile / ruleset | Rule ids or naming can shift; a previously matched id can change spelling. |
+| **`snyk-code` vs model comparison looks wrong** | e.g. many `details.agentFindings` with `"type": "other"`, or Snyk recall much lower than expected for a fixture you know Snyk flags. |
+| **New command config** that reuses the **`snyk-code`** parser | Same mapping file applies; no extra registration step beyond `run-configs.json`. |
+| **New SAST parser** (`"parser": "something-else"`) | Implement rule→`type` mapping in that parser’s module — not in `snyk-code.ts`. |
+
+**Workflow (recommended):**
+
+1. Run Snyk against the fixture directory (same as the benchmark):  
+   `snyk code test fixtures/<your-fixture>/ --json`  
+   (or save stdout from a failed-exit run — findings are still on stdout).
+2. Collect distinct `ruleId` values, e.g. **JSONPath** `$.runs[0].results[*].ruleId`, or `jq -r '.runs[0].results[]? | .ruleId' snyk-output.json` (dedupe with `sort -u` as needed).
+3. For each id, mentally lower-case it (that is what `mapRuleId` receives) and see which **`if (/…/)`** branch in `mapRuleId` should own it.
+4. Add or extend a regex (prefer a **comment** naming the canonical Snyk id, e.g. `javascript/DisablePoweredBy`, for the next maintainer). Match **before** overly broad patterns when order matters (e.g. `domxss` before generic `xss`).
+5. Re-run the benchmark with `--config snyk-code` (and your task filter) and confirm JSONL findings use the expected `type` strings aligned with **`fixtures/<name>.json`** `vulnerabilities[].type`.
+
+**New `VulnType`:** follow [Updating When You Add a New Vulnerability Type](#updating-when-you-add-a-new-vulnerability-type) (types, `normalizeVulnType`, `mapRuleId`, and this doc’s type table). **Existing type, new Snyk id:** usually **`src/parsers/snyk-code.ts` only** plus verification.
 
 ---
 
