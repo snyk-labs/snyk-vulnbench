@@ -1,0 +1,7 @@
+{
+  "id": "js-vulns-4-find-vulns",
+  "name": "JS Todo App (SQLite 4): Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "js-vulns-4",
+  "maxTurns": 20
+}

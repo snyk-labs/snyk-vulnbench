@@ -1,0 +1,94 @@
+{
+    "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+    "description": "Intentionally vulnerable Todo app with SQLite and file attachments",
+    "vulnerabilities": [
+      {
+        "id": "js-improper-type-validation-5",
+        "type": "improper-type-validation",
+        "severity": "low",
+        "file": "server.js",
+        "line": 85,
+        "description": "The type of this object, coming from body and the value of its trim property can be controlled by the user. An attacker may craft the properties of the object to crash the application or bypass its logic. Consider checking the type of the object."
+      },
+      {
+        "id": "js-cookie-secure-flag-false-5",
+        "type": "information-exposure",
+        "severity": "low",
+        "file": "server.js",
+        "line": 37,
+        "description": "Cookie has the Secure attribute set to false. Set it to true to protect the cookie from man-in-the-middle attacks."
+      },
+      {
+        "id": "js-xpowered-by-header-5",
+        "type": "information-exposure",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 17,
+        "description": "Disable X-Powered-By header for your Express app (consider using Helmet middleware), because it exposes information about the used framework to potential attackers."
+      },
+      {
+        "id": "js-alloc-without-limits-5a",
+        "type": "allocation-of-resources-without-limits-or-throttling",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 176,
+        "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+      },
+      {
+        "id": "js-alloc-without-limits-5b",
+        "type": "allocation-of-resources-without-limits-or-throttling",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 186,
+        "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+      },
+      {
+        "id": "js-alloc-without-limits-5c",
+        "type": "allocation-of-resources-without-limits-or-throttling",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 221,
+        "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+      },
+      {
+        "id": "js-open-redirect-5",
+        "type": "open-redirect",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 218,
+        "description": "Unsanitized input from an HTTP parameter flows into redirect, where it is used as input for request redirection. This may result in an Open Redirect vulnerability."
+      },
+      {
+        "id": "js-csrf-missing-5",
+        "type": "csrf",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 17,
+        "description": "CSRF protection is disabled for your Express app. This allows the attackers to execute requests on a user's behalf."
+      },
+      {
+        "id": "js-command-injection-5",
+        "type": "command-injection",
+        "severity": "high",
+        "file": "server.js",
+        "line": 124,
+        "description": "Unsanitized input from the HTTP request body flows into promisified command execution function, where it is used to build a shell command. This may result in a Command Injection vulnerability."
+      },
+      {
+        "id": "js-hardcoded-secret-5",
+        "type": "hardcoded-credentials",
+        "severity": "high",
+        "file": "server.js",
+        "line": 33,
+        "description": "Avoid hardcoding values that are meant to be secret. Found a hardcoded string used in express-session."
+      },
+      {
+        "id": "js-ssrf-5",
+        "type": "ssrf",
+        "severity": "high",
+        "file": "server.js",
+        "line": 139,
+        "description": "Unsanitized input from the HTTP request body flows into fetch, where it is used as an URL to perform a request. This may result in a Server-Side Request Forgery vulnerability."
+      }
+    ]
+  }

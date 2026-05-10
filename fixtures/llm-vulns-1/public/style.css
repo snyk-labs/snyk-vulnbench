@@ -1,0 +1,10 @@
+/* Let's style the divs to give them space from one another */
+div {
+  margin: 10px;
+  padding: 10px;
+}
+
+/* Make the input text box wider */
+input[type="text"] {
+  width: 300px;
+}

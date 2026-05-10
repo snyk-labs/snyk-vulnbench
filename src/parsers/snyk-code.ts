@@ -24,10 +24,18 @@ interface SarifOutput {
 function mapRuleId(ruleId: string): string {
   const id = ruleId.toLowerCase();
   if (/sqli|sqlinjection/.test(id)) return "sql-injection";
+  if (/domxss|dom\.xss/.test(id)) return "xss";
   if (/xss/.test(id)) return "xss";
   // "PT" suffix pattern covers javascript/PT; "pathtraversal" covers longer names
   if (/pathtraversal|pt$/.test(id)) return "path-traversal";
   if (/commandinjection/.test(id)) return "command-injection";
+  if (/csrf/.test(id)) return "csrf";
+  if (/openredirect/.test(id)) return "open-redirect";
+  if (/ssrf/.test(id)) return "ssrf";
+  if (/xxe|xmlexternalentity/.test(id)) return "xxe";
+  if (/impropertype|typevalidation/.test(id)) return "improper-type-validation";
+  if (/cookie.*secure|sensitivecookie|insecurecookie/.test(id)) return "information-exposure";
+  if (/hardcodednoncryptographic|noncryptographicsecret/.test(id)) return "hardcoded-credentials";
   if (/hardcoded/.test(id)) return "hardcoded-credentials";
   if (/deserializ/.test(id)) return "insecure-deserialization";
   if (/idor|insecuredirectobject/.test(id)) return "idor";

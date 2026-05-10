@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}} · Uptime &amp; health</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 1.5rem; background: #f7f7f8; color: #1a1a1a; line-height: 1.5; }
+    main { max-width: 52rem; margin: 0 auto; background: #fff; padding: 1.5rem 1.75rem; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    nav { max-width: 52rem; margin: 0 auto 1rem; }
+    nav a { color: #0b57d0; margin-right: 1rem; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    pre { background: #f0f2f5; padding: 1rem; border-radius: 8px; overflow: auto; font-size: 0.875rem; }
+    label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+    input[type="text"] { width: 100%; max-width: 28rem; padding: 0.5rem 0.65rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+    button { margin-top: 0.75rem; padding: 0.5rem 1rem; border-radius: 6px; border: none; background: #0b57d0; color: #fff; font-size: 1rem; cursor: pointer; }
+    button:hover { background: #0842a0; }
+    .muted { color: #555; font-size: 0.9rem; }
+    .pill { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; background: #e8f0fe; color: #0b57d0; }
+    h1 { margin-top: 0; font-size: 1.5rem; }
+    section { margin-top: 1.25rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #e8e8ea; vertical-align: top; }
+    th { width: 12rem; color: #444; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="{{navAccountHref}}">Account / session</a>
+  </nav>
+  <main>
+    {{{body}}}
+  </main>
+</body>
+</html>

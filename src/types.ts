@@ -9,8 +9,10 @@ export type VulnType =
   | "xxe"
   | "ssrf"
   | "open-redirect"
+  | "csrf"
   | "information-exposure"
   | "allocation-of-resources-without-limits-or-throttling"
+  | "improper-type-validation"
   | "other";
 
 export type Severity = "critical" | "high" | "medium" | "low";
@@ -48,7 +50,7 @@ FINDINGS_JSON:
 \`\`\`json
 [
   {
-    "type": "sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|insecure-deserialization|idor|other",
+    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|improper-type-validation|insecure-deserialization|idor|xxe|other>",
     "file": "filename.ext",
     "line": <line number or null>,
     "severity": "critical|high|medium|low",

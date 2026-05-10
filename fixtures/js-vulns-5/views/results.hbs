@@ -1,0 +1,48 @@
+<h1>Check results</h1>
+
+{{#if error}}
+  <p class="muted"><strong>Error:</strong> {{error}}</p>
+  {{#if displayTarget}}
+    <p>Target: <code>{{displayTarget}}</code></p>
+  {{/if}}
+{{else}}
+
+  <p>Target: <code>{{displayTarget}}</code></p>
+  <p class="muted">Ping host: <code>{{pingHost}}</code></p>
+
+  <section>
+    <h2>Ping</h2>
+    <p><span class="pill">{{#if pingResult.ok}}success{{else}}failed{{/if}}</span></p>
+    <pre>{{pingResult.output}}</pre>
+  </section>
+
+  {{#if isHttps}}
+    <section>
+      <h2><code>/.well-known/security.txt</code></h2>
+      {{#if securityTxt.fetchError}}
+        <p class="muted">Fetch error: {{securityTxt.fetchError}}</p>
+      {{else}}
+        <p><span class="pill">{{securityTxt.status}} {{securityTxt.statusText}}</span>
+          {{#if securityTxt.ok}} — body retrieved{{else}} — no usable body (non-2xx){{/if}}</p>
+        <p class="muted">URL: <code>{{securityTxt.url}}</code></p>
+
+        <h3>Response headers</h3>
+        <table>
+          <tbody>
+            {{#each securityTxt.headers}}
+              <tr><th>{{@key}}</th><td><pre style="margin:0;white-space:pre-wrap;">{{this}}</pre></td></tr>
+            {{/each}}
+          </tbody>
+        </table>
+
+        {{#if securityTxt.ok}}
+          <h3>Body</h3>
+          <pre>{{securityTxt.bodyPreview}}</pre>
+        {{/if}}
+      {{/if}}
+    </section>
+  {{/if}}
+
+{{/if}}
+
+<p><a href="/">← New check</a> · <a href="{{navAccountHref}}">Session</a></p>

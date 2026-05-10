@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todos</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Todo list</h1>
+
+      <section class="card" aria-labelledby="form-heading">
+        <h2 id="form-heading" class="sr-only">Add or edit todo</h2>
+        <form id="todo-form">
+          <input type="hidden" id="edit-id" value="" />
+
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" required maxlength="500" />
+
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="3" maxlength="4000"></textarea>
+
+          <label for="completed">
+            <input id="completed" name="completed" type="checkbox" />
+            Completed
+          </label>
+
+          <label for="attachment">Attachment (optional)</label>
+          <input id="attachment" name="attachment" type="file" />
+
+          <label id="remove-attachment-label" class="hidden">
+            <input id="remove-attachment" type="checkbox" />
+            Remove current attachment
+          </label>
+
+          <div class="actions">
+            <button type="submit" id="submit-btn">Add todo</button>
+            <button type="button" id="cancel-edit" class="secondary hidden">Cancel edit</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="list-heading">
+        <h2 id="list-heading">Your todos</h2>
+        <ul id="todo-list" class="todo-list"></ul>
+        <p id="empty-state" class="muted hidden">No todos yet — add one above.</p>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
