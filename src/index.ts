@@ -96,7 +96,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       };
     }
 
-    if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id) {
+    if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.LLM_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.APP_FIND_VULNS.id) {
       const details = scoreFindVulns(finalText, task);
       const score = findVulnsScore(details);
       return { ...base, score, metrics, details };
