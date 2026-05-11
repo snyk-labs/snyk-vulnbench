@@ -7,7 +7,7 @@
    - [The Three Questions This Benchmark Answers](#the-three-questions-this-benchmark-answers)
    - [The Full Pipeline — Flowchart](#the-full-pipeline--flowchart)
    - [How Tasks and Configs Combine](#how-tasks-and-configs-combine)
-   - [The Two Eval Categories](#the-two-eval-categories)
+   - [Eval Categories](#eval-categories)
 3. [Detailed Component Reference](#detailed-component-reference)
    - [Fixtures — The Test Cases](#fixtures--the-test-cases)
    - [EvalTask — What to Do](#evaltask--what-to-do)
@@ -169,25 +169,53 @@ Each cell in this matrix is one independent `EvalResult`. After all runs complet
 
 ---
 
-### The Two Eval Categories (and How They Relate to Eval Tasks)
+### Eval Categories
 
 An **Eval Category** (`EvalCategory`) is a first-class data structure that determines the agent's goal and the scoring strategy. Each **Eval Task** carries a `category` field pointing to one of the entries in the `EVAL_CATEGORIES` registry — so the category both groups tasks and carries its own metadata.
 
+The `--category` CLI flag filters the task list by category id (e.g. `--category find-vulns` runs only tasks in that category). Adding a new category means adding one entry to `EVAL_CATEGORIES` in `src/types.ts` — `EvalCategoryId` expands automatically.
+
+#### Category Quick Reference
+
+| Category ID | Name | Scoring | Description |
+|---|---|---|---|
+| `find-vulns` | Find Vulnerabilities | F1 (precision + recall) | General vulnerability finding in code snippets/small apps |
+| `llm-find-vulns` | Find LLM Integration Vulnerabilities | F1 (precision + recall) | Vulnerability finding in LLM integration code (prompt injection, unsafe output handling, insecure API integrations) |
+| `app-find-vulns` | Find App Vulnerabilities | F1 (precision + recall) | Vulnerability finding in full application codebases (multi-file, larger scope) |
+| `fix-vulns` | Fix Vulnerabilities | LLM judge (fraction fixed) | Agent remediates vulnerabilities by editing source files |
+
+#### Category → Task Mapping
+
 ```
-EVAL_CATEGORIES.FIND_VULNS        EVAL_CATEGORIES.FIX_VULNS
-  { id: "find-vulns", name: ... }   { id: "fix-vulns", name: ... }
-         │                                    │
-         ├── EvalTask: js-find-vulns           └── EvalTask: js-fix-vulns
-         └── EvalTask: python-find-vulns
+EVAL_CATEGORIES.FIND_VULNS             EVAL_CATEGORIES.LLM_FIND_VULNS
+  { id: "find-vulns" }                   { id: "llm-find-vulns" }
+         │                                        │
+         ├── js-vulns-1-find-vulns                ├── llm-vulns-1-find-vulns
+         ├── js-vulns-2-find-vulns                └── llm-vulns-2-find-vulns
+         ├── js-vulns-3-find-vulns
+         ├── js-vulns-4-find-vulns         EVAL_CATEGORIES.APP_FIND_VULNS
+         ├── js-vulns-5-find-vulns           { id: "app-find-vulns" }
+         └── python-find-vulns                    │
+                                                  └── app-js-1-find-vulns
+EVAL_CATEGORIES.FIX_VULNS
+  { id: "fix-vulns" }
+         │
+         ├── js-vulns-2-fix-vulns
+         ├── js-vulns-3-fix-vulns
+         ├── js-vulns-4-fix-vulns
+         ├── js-vulns-5-fix-vulns
+         ├── app-js-1-fix-vulns
+         ├── llm-vulns-1-fix-vulns
+         └── llm-vulns-2-fix-vulns
 ```
 
-The `--category` CLI flag filters the task list by category id (e.g. `--category find-vulns` runs only the first group above). Adding a new category means adding one entry to `EVAL_CATEGORIES` in `src/types.ts` — `EvalCategoryId` expands automatically.
+#### Scoring Pipelines
 
-The type also governs two other things beyond grouping:
+All three find-* categories (`find-vulns`, `llm-find-vulns`, `app-find-vulns`) share the same scoring pipeline — they differ only in prompt emphasis and task grouping. The `fix-vulns` category uses a separate judge-based pipeline.
 
 ```mermaid
 flowchart LR
-    subgraph FV["find-vulns"]
+    subgraph findCategories["find-vulns / llm-find-vulns / app-find-vulns"]
         direction TB
         FV1["Agent reads\nvulnerable code"] --> FV2
         FV2["Agent lists\nvulnerabilities found"] --> FV3
@@ -201,12 +229,18 @@ flowchart LR
         FX3["Score: Haiku judges\neach fix"]
     end
 
-    FV -. "same fixture, different goal" .-> FX
+    findCategories -. "same fixture, different goal" .-> FX
 ```
 
-**find-vulns** is like an exam where you're asked to *identify* problems. The agent reads the code and reports what it finds.
+#### What Each Category Does
 
-**fix-vulns** is like an exam where you're asked to *solve* problems. The agent not only identifies but also edits the source files. We work on a copy of the fixture so the originals are never changed.
+**find-vulns** — The general-purpose vulnerability finding category. The agent reads code and reports what it finds. Used for JS snippet fixtures and other straightforward code audit tasks.
+
+**llm-find-vulns** — Specialized for LLM integration code. The system prompt emphasizes LLM-specific risks (prompt injection, unsafe output handling, insecure API integrations). Used for fixtures that test LLM-aware security reasoning.
+
+**app-find-vulns** — Targets full application codebases (multi-file, larger scope). The system prompt instructs the agent to scan all files across the project. Used for realistic application-level audit tasks.
+
+**fix-vulns** — The agent not only identifies but also edits the source files to remediate vulnerabilities. We work on a copy of the fixture so the originals are never changed. Scored by an LLM judge (Claude Haiku) that evaluates whether each known vulnerability was successfully fixed.
 
 ---
 
@@ -1125,28 +1159,36 @@ pnpm run benchmark
 
 # Filter by category — run every task in that category across all configs
 pnpm run benchmark -- --category find-vulns
+pnpm run benchmark -- --category llm-find-vulns
+pnpm run benchmark -- --category app-find-vulns
 pnpm run benchmark -- --category fix-vulns
 
-# Shorthand scripts for the above two
-pnpm run benchmark:find
-pnpm run benchmark:fix
+# Shorthand scripts for common categories
+pnpm run benchmark:find    # equivalent to --category find-vulns
+pnpm run benchmark:fix     # equivalent to --category fix-vulns
 
 # Filter by a specific task (one row of the matrix), across all configs
-pnpm run benchmark -- --task js-find-vulns
+pnpm run benchmark -- --task js-vulns-1-find-vulns
 
 # Filter by a specific config (one column of the matrix), across all tasks
 pnpm run benchmark -- --config opus-4-6
 
 # Select multiple configs by comma-separating them (no spaces)
-pnpm run benchmark -- --task js-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-4-6,snyk-code
 
 # Combine filters — one task against one config (a single cell)
-pnpm run benchmark -- --task js-find-vulns --config sonnet-with-snyk
+pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-with-snyk
 
 # Combine category + config — all find-vulns tasks against one config
 pnpm run benchmark -- --category find-vulns --config opus-4-6
 
+# Run only LLM-specific tasks against a specific model
+pnpm run benchmark -- --category llm-find-vulns --config sonnet-4-6
+
+# Run only full-app tasks
+pnpm run benchmark -- --category app-find-vulns
+
 # Preview what would run without actually running anything
 pnpm run benchmark -- --dry-run
-pnpm run benchmark -- --category fix-vulns --dry-run
+pnpm run benchmark -- --category llm-find-vulns --dry-run
 ```
