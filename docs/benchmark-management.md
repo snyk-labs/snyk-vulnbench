@@ -187,6 +187,9 @@ pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6
 # Against multiple specific configs (comma-separated, no spaces)
 pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6,snyk-code
 
+# Both find and fix tasks in one run (comma-separated, no spaces)
+pnpm run benchmark -- --task ruby-find-vulns,ruby-fix-vulns
+
 # Both tasks across all configs
 pnpm run benchmark -- --task ruby-find-vulns
 pnpm run benchmark -- --task ruby-fix-vulns
@@ -200,9 +203,9 @@ If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF
 
 | Field | Required | Type | Description |
 |---|---|---|---|
-| `id` | Yes | `string` | Unique identifier. Used in `--task` CLI filter and in result files. |
+| `id` | Yes | `string` | Unique identifier. Used in `--task` CLI filter (supports comma-separated lists) and in result files. |
 | `name` | Yes | `string` | Human-readable label shown in console output. |
-| `category` | Yes | `"find-vulns"` \| `"fix-vulns"` | Which eval category this task belongs to. |
+| `category` | Yes | `"find-vulns"` \| `"llm-find-vulns"` \| `"app-find-vulns"` \| `"fix-vulns"` | Which eval category this task belongs to. |
 | `fixture` | Yes | `string` | Subdirectory name under `fixtures/`. A sibling `fixtures/<name>.json` ground-truth file must exist. |
 | `maxTurns` | No | `number` | Max agent conversation turns. Defaults to the run config's `maxTurns`. Recommended: 20 for find-vulns, 30 for fix-vulns. |
 | `systemPrompt` | No | `string` | Overrides the category's default system prompt. Omit to use the default. |
@@ -495,7 +498,7 @@ The `{fixturePath}` placeholder is substituted at runtime with the absolute path
 
 ```bash
 # Compare Snyk Code SAST against Sonnet on the same task
-pnpm run benchmark -- --task js-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-4-6,snyk-code
 
 # Run SAST against all find-vulns tasks
 pnpm run benchmark -- --category find-vulns --config snyk-code
@@ -637,9 +640,8 @@ pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6
 # Compare model against SAST on the same fixture (comma-separated, no spaces)
 pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6,snyk-code
 
-# Run the full matrix for your new fixture only
-pnpm run benchmark -- --task ruby-find-vulns
-pnpm run benchmark -- --task ruby-fix-vulns
+# Run both tasks for your new fixture in one run (comma-separated)
+pnpm run benchmark -- --task ruby-find-vulns,ruby-fix-vulns
 ```
 
 That's it. No source code changes required.
@@ -672,7 +674,7 @@ That's it. No source code changes required.
 - Check that the `type` values in `vulns.json` exactly match the valid `VulnType` strings — a typo here means no match.
 
 **"No matching tasks found. Available: ..."**
-- The `--task` id you passed doesn't match any loaded task. Run `--dry-run` to see what ids are loaded.
+- The `--task` id(s) you passed don't match any loaded task. Multiple tasks are comma-separated: `--task js-vulns-1-find-vulns,js-vulns-2-find-vulns` (no spaces around the comma). Run `--dry-run` to see what ids are loaded.
 
 **"No matching configs found for '...'. Available: ..."**
 - The `--config` value(s) you passed don't match any entry in `evals/run-configs.json`. Multiple configs are comma-separated: `--config sonnet-4-6,snyk-code` (no spaces around the comma).

@@ -1170,11 +1170,17 @@ pnpm run benchmark:fix     # equivalent to --category fix-vulns
 # Filter by a specific task (one row of the matrix), across all configs
 pnpm run benchmark -- --task js-vulns-1-find-vulns
 
+# Select multiple tasks by comma-separating them (no spaces)
+pnpm run benchmark -- --task js-vulns-1-find-vulns,js-vulns-2-find-vulns
+
 # Filter by a specific config (one column of the matrix), across all tasks
 pnpm run benchmark -- --config opus-4-6
 
 # Select multiple configs by comma-separating them (no spaces)
 pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-4-6,snyk-code
+
+# Combine multiple tasks and multiple configs
+pnpm run benchmark -- --task js-vulns-1-find-vulns,js-vulns-2-find-vulns --config sonnet-4-6,snyk-code
 
 # Combine filters — one task against one config (a single cell)
 pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-with-snyk
