@@ -12,6 +12,7 @@ import {
 } from "./scorer.js";
 import { printResult, printSummaryTable, saveResults } from "./reporter.js";
 import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
+import { runPreflight } from "./preflight.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig } from "./types.js";
 
@@ -30,7 +31,8 @@ function parseArgs() {
     tasks?: string[]; // comma-separated list of task IDs
     configs?: string[]; // comma-separated list of config IDs
     dryRun: boolean;
-  } = { dryRun: false };
+    skipPreflight: boolean;
+  } = { dryRun: false, skipPreflight: false };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--category" && args[i + 1]) {
@@ -43,6 +45,7 @@ function parseArgs() {
     } else if (args[i] === "--task" && args[i + 1]) opts.tasks = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--config" && args[i + 1]) opts.configs = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--dry-run") opts.dryRun = true;
+    else if (args[i] === "--skip-preflight") opts.skipPreflight = true;
   }
   return opts;
 }
@@ -162,6 +165,10 @@ async function main() {
   if (opts.dryRun) {
     console.log("\nDry run — exiting.");
     return;
+  }
+
+  if (!opts.skipPreflight) {
+    runPreflight(configs);
   }
 
   mkdirSync(TMP_DIR, { recursive: true });
