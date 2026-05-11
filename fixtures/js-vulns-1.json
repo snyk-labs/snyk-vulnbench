@@ -27,6 +27,14 @@
       "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
     },
     {
+      "id": "js-allocation-of-resources-without-limits-or-throttling-2",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 43,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
       "id": "js-xss-1",
       "type": "xss",
       "severity": "high",
