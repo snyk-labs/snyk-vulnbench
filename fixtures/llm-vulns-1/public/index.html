@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat with AI</title>
+    <link rel="stylesheet" href="/style.css" />
+
+    <!-- import the lodash library from JS cdn: -->
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.16.4/lodash.min.js"></script>
+  </head>
+  <body>
+    <h1>Chat with AI</h1>
+    <div id="chat-box"></div>
+    <form onsubmit="sendMessage(event)">
+      <input
+        type="text" id="message-input" placeholder="Type your message..."
+        autocomplete="off"
+        />
+      <button type="submit">Send</button>
+    </form>
+
+    <script>
+      async function sendMessage(event) {
+
+        event.preventDefault();
+
+        const messageInput = document.getElementById("message-input");
+        const message = messageInput.value;
+
+        // Clear the message input after sending
+        // messageInput.value = "";
+
+        const response = await fetch("/converse", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message }),
+        });
+
+        const data = await response.text();
+        displayMessage(message, "Human");
+        displayMessage(data, "AI");
+      }
+
+      function displayMessage(message, sender) {
+        const chatBox = document.getElementById("chat-box");
+        const messageElement = document.createElement("div");
+        messageElement.innerHTML = `${sender}: ${message}`;
+        chatBox.appendChild(messageElement);
+      }
+    </script>
+  </body>
+</html>

@@ -168,6 +168,9 @@ function normalizeVulnType(raw: string): VulnType {
     "sqli": "sql-injection",
     "cross-site scripting": "xss",
     "xss": "xss",
+    "dom xss": "xss",
+    "dom-xss": "xss",
+    "dom based xss": "xss",
     "path traversal": "path-traversal",
     "path-traversal": "path-traversal",
     "directory traversal": "path-traversal",
@@ -177,22 +180,53 @@ function normalizeVulnType(raw: string): VulnType {
     "hardcoded credentials": "hardcoded-credentials",
     "hardcoded-credentials": "hardcoded-credentials",
     "hardcoded secret": "hardcoded-credentials",
+    "hardcoded non-cryptographic secret": "hardcoded-credentials",
+    "hardcoded-non-cryptographic-secret": "hardcoded-credentials",
     "insecure deserialization": "insecure-deserialization",
     "insecure-deserialization": "insecure-deserialization",
     "idor": "idor",
     "broken object level authorization": "idor",
+    "xxe": "xxe",
+    "xml external entity": "xxe",
+    "ssrf": "ssrf",
+    "server-side request forgery": "ssrf",
+    "server side request forgery": "ssrf",
+    "open redirect": "open-redirect",
+    "open-redirect": "open-redirect",
+    "csrf": "csrf",
+    "cross-site request forgery": "csrf",
+    "cross site request forgery": "csrf",
     "information-exposure": "information-exposure",
     "information exposure": "information-exposure",
     "information disclosure": "information-exposure",
     "info leak": "information-exposure",
     "sensitive data exposure": "information-exposure",
     "allocation-of-resources-without-limits-or-throttling": "allocation-of-resources-without-limits-or-throttling",
+    "allocation-of-resources-without-limits": "allocation-of-resources-without-limits-or-throttling",
     "allocation of resources without limits or throttling": "allocation-of-resources-without-limits-or-throttling",
     "missing rate limiting": "allocation-of-resources-without-limits-or-throttling",
     "no rate limit": "allocation-of-resources-without-limits-or-throttling",
     "resource exhaustion": "allocation-of-resources-without-limits-or-throttling",
     "denial of service": "allocation-of-resources-without-limits-or-throttling",
     "dos": "allocation-of-resources-without-limits-or-throttling",
+    "improper type validation": "improper-type-validation",
+    "improper-type-validation": "improper-type-validation",
+    "type confusion": "improper-type-validation",
+    "sensitive cookie with secure flag false": "information-exposure",
+    "sensitive-cookie-with-secure-flag-false": "information-exposure",
+    "insecure cookie": "information-exposure",
+    "missing secure cookie": "information-exposure",
+    "prototype pollution": "prototype-pollution",
+    "prototype-pollution": "prototype-pollution",
+    "prototype pollution vulnerability": "prototype-pollution",
+    "origin validation error": "origin-validation-error",
+    "origin-validation-error": "origin-validation-error",
+    "cors misconfiguration": "origin-validation-error",
+    "permissive cors": "origin-validation-error",
+    "insecure cors": "origin-validation-error",
+    "too permissive cors": "origin-validation-error",
+    "overly permissive cors": "origin-validation-error",
+    "other": "other",
   };
   const key = raw.toLowerCase().trim();
   return map[key] ?? "other";
@@ -214,23 +248,31 @@ function vulnTypesMatch(known: VulnType, found: VulnType): boolean {
 }
 
 function gatherSourceFiles(dir: string): Array<{ path: string; content: string }> {
-  const sourceExtensions = [".js", ".ts", ".py", ".rb", ".php", ".java", ".go"];
+  const sourceExtensions = [".js", ".ts", ".py", ".rb", ".php", ".java", ".go", ".html", ".hbs"];
   const results: Array<{ path: string; content: string }> = [];
 
-  try {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile() && sourceExtensions.some((ext) => entry.name.endsWith(ext))) {
-        const fullPath = join(dir, entry.name);
-        try {
-          results.push({ path: entry.name, content: readFileSync(fullPath, "utf-8") });
-        } catch {
-          // skip unreadable files
+  function walk(currentDir: string, relativePrefix: string): void {
+    try {
+      const entries = readdirSync(currentDir, { withFileTypes: true });
+      for (const entry of entries) {
+        const rel = relativePrefix ? `${relativePrefix}/${entry.name}` : entry.name;
+        const fullPath = join(currentDir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === "node_modules") continue;
+          walk(fullPath, rel);
+        } else if (entry.isFile() && sourceExtensions.some((ext) => entry.name.endsWith(ext))) {
+          try {
+            results.push({ path: rel, content: readFileSync(fullPath, "utf-8") });
+          } catch {
+            // skip unreadable files
+          }
         }
       }
+    } catch {
+      // directory not accessible
     }
-  } catch {
-    // directory not accessible
   }
+
+  walk(dir, "");
   return results;
 }

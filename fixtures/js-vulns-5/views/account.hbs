@@ -1,0 +1,29 @@
+<h1>Account / session</h1>
+
+{{#if visitPageHref}}
+  <p class="muted">This page was opened with a <code>referer</code> query parameter. Follow the link below to go back through <code>GET /visitPage</code> (302 redirect).</p>
+  <p>
+    <a href="{{visitPageHref}}" style="display:inline-block;padding:0.5rem 1rem;border-radius:6px;background:#0b57d0;color:#fff;text-decoration:none;font-size:1rem;">Return to <code style="color:inherit;background:rgba(255,255,255,.2);padding:0 .2rem;border-radius:4px;">{{refererTarget}}</code></a>
+  </p>
+{{/if}}
+
+<dl>
+  <dt>Session ID</dt>
+  <dd><code>{{sessionID}}</code></dd>
+  <dt>Requests counted in session</dt>
+  <dd>{{visits}}</dd>
+  <dt>Last checked target</dt>
+  <dd>{{#if lastTarget}}<code>{{lastTarget}}</code>{{else}}<span class="muted">none yet</span>{{/if}}</dd>
+  <dt>Last ping succeeded</dt>
+  <dd>{{lastPingLabel}}</dd>
+  <dt>Server</dt>
+  <dd><code>{{serverHostname}}</code></dd>
+</dl>
+
+<p>
+  {{#if visitPageHref}}
+    <a href="{{visitPageHref}}">← Back (via visitPage)</a>
+    ·
+  {{/if}}
+  <a href="/">Home</a>
+</p>

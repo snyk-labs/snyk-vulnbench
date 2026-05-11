@@ -1,0 +1,7 @@
+{
+  "id": "llm-vulns-1-find-vulns",
+  "name": "LLM Integration App 1: Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "llm-vulns-1",
+  "maxTurns": 20
+}

@@ -1,0 +1,14 @@
+{
+  "name": "finserv-banking",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "concurrently --names client,server \"cd frontend && npm run dev\" \"cd backend && op run --env-file=../.env -- npm run dev\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

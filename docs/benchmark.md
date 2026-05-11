@@ -19,6 +19,8 @@
    - [EvalResult — The Final Record](#evalresult--the-final-record)
 4. [Worked Example: A Single Run](#worked-example-a-single-run)
 5. [Scoring Deep-Dive](#scoring-deep-dive)
+   - [Command configs and Snyk Code (SAST)](#command-configs-and-snyk-code-sast)
+   - [When to update `mapRuleId` (Snyk)](#when-to-update-mapruleid-snyk)
 6. [Metrics Deep-Dive](#metrics-deep-dive)
    - [Metrics Quick Reference](#metrics-quick-reference)
    - [Session-Level Token Accounting](#session-level-token-accounting)
@@ -98,7 +100,7 @@ flowchart TD
 
     subgraph SCORE["④ Score the Output"]
         Q --> R{task.type?}
-        R -->|find-vulns| S["Parse FINDINGS_JSON\nfrom agent output"]
+        R -->|find-vulns| S["Parse FINDINGS_JSON\nfrom agent or SAST output"]
         S --> T["Compare found vulns\nagainst vulns.json\nground truth"]
         T --> U["Calculate\nprecision + recall\n→ F1 score"]
         R -->|fix-vulns| V["Read modified\nfiles from temp dir"]
@@ -340,6 +342,8 @@ Example comparisons enabled by this design:
 ```
 
 The `parser` key must match a registered parser in `src/parsers/index.ts`. Adding a new SAST tool means adding one parser file and registering it there — no changes to the runner or scorer.
+
+For how Snyk (and any command config) output is turned into findings and matched to `fixtures/<name>.json` ground truth, see [Command configs and Snyk Code (SAST)](#command-configs-and-snyk-code-sast) under **Scoring Deep-Dive**.
 
 ---
 
@@ -680,13 +684,81 @@ Scenario B is the better result — and F1 correctly ranks it higher.
 
 ### How Vuln Type Matching Works
 
-The scorer matches agent findings to known vulnerabilities by their **type**, not by file and line. This is intentional:
+The scorer (`scoreFindVulns` in `src/scorer.ts`) matches **parsed findings** (from an LLM or from a SAST command config — see below) to known vulnerabilities by their **normalized type**, not by file, line, Snyk rule id, or description. This is intentional:
 
 - An agent might say "line 29" instead of "line 28" — exact line matching would unfairly penalize this
-- An agent might phrase it as "SQL injection" or "SQLi" or "SQL Injection" — the scorer normalizes all of these to `"sql-injection"` before comparing
+- An agent might phrase it as "SQL injection" or "SQLi" or "SQL Injection" — `normalizeVulnType` maps these to the same `VulnType` string (e.g. `"sql-injection"`) before comparing
 - Each known vuln can only be matched once (no double-counting)
 
-If you add a fixture with two different SQL injections in the same file, give them different IDs (`sqli-1`, `sqli-2`) and the scorer will correctly track them separately.
+**Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file` and `line` on findings are stored in `details.agentFindings` for inspection and JSONL output but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
+
+If you add a fixture with two different SQL injections in the same file, give them different IDs (`sqli-1`, `sqli-2`) so they appear as two ground-truth rows. The scorer will match **at most two** `sql-injection` findings to them, in **pairing order**: the *i*-th reported `sql-injection` finding in the parsed array pairs with the *i*-th still-unmatched `sql-injection` in `knownVulns` order — not by comparing line numbers to the JSON `line` fields.
+
+### Command configs and Snyk Code (SAST)
+
+Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an external CLI against the fixture directory, parse **stdout** into the same finding shape as the LLM path, then reuse **identical** find-vulns scoring. This section is the reference for “how do Snyk’s results line up with `fixtures/js-vulns-1.json` (or any ground-truth file)?”
+
+#### 1. Where the run is dispatched
+
+**`src/index.ts`** — If `config.type === "command"`, the harness calls `runCommandTask` from `src/command-runner.ts` instead of `runTask` from `src/runner.ts`. The fixture path passed in is the task’s `fixture` directory (same as for find-vulns agents). Command configs are skipped with an error when paired with fix-vulns tasks (see [RunConfig](#runconfig--who-does-it)).
+
+#### 2. Command execution and stdout
+
+**`src/command-runner.ts`**
+
+- Substitutes the token `{fixturePath}` in the config’s `command` string with the actual fixture directory path (split on spaces; paths with spaces are handled because substitution replaces a whole token).
+- Runs `execFile(program, args, …)` with a large `maxBuffer` so big SARIF payloads fit.
+- **`snyk code test` exits non-zero when issues are found** — that is expected. On failure, if `err.stdout` is present, the runner treats it as success and uses that stdout (the JSON/SARIF body). If there is no stdout, it returns an `error` result.
+
+#### 3. Parser: SARIF → `FindingRecord[]`
+
+**`src/parsers/index.ts`** registers parsers by string key (`"snyk-code"` → `parseSnykCodeOutput`). A **`FindingRecord`** has `type`, `file`, `line`, `severity`, and `description` — the same fields the scorer expects inside `FINDINGS_JSON`.
+
+**`src/parsers/snyk-code.ts`** — `parseSnykCodeOutput(stdout)`:
+
+- Parses stdout as JSON and reads SARIF-ish structure: `runs[0].results[]` (as emitted by `snyk code test --json`).
+- **`ruleId` is the sourced field:** Each item is a SARIF **`result`** object. Vulnerability-kind mapping uses the standard SARIF string property **`ruleId`** — `runs[0].results[i].ruleId` — passed to `mapRuleId()` (see the `parseSnykCodeOutput` docblock). For spot-checks on captured stdout: JSONPath **`$.runs[0].results[*].ruleId`**, or **`$.runs[*].results[*].ruleId`** when multiple runs exist; JSON Pointer to the first finding’s rule id: **`/runs/0/results/0/ruleId`**.
+- For each result that includes **`ruleId`**, builds one finding:
+  - **`type`:** from `mapRuleId(ruleId)` — regex heuristics on the lowercase `ruleId` string (e.g. `javascript/SqlInjection` → `"sql-injection"`, `javascript/PrototypePollution` → `"prototype-pollution"`, `javascript/TooPermissiveCorsHeader` → `"origin-validation-error"`). The SARIF log also includes per-rule **`shortDescription.text`** in `runs[0].tool.driver.rules` for human-readable labels (e.g. “Origin Validation Error”). Anything that does not match maps to **`"other"`**.
+  - **`file`:** `locations[0].physicalLocation.artifactLocation.uri` (may be a relative path or a `file://` URI depending on Snyk output).
+  - **`line`:** `locations[0].physicalLocation.region.startLine` if present.
+  - **`severity`:** `mapLevel` maps SARIF `level` (`error` → `"high"`, `warning` → `"medium"`, `note` → `"low"`).
+  - **`description`:** `message.text`.
+
+Alignment with a ground-truth row such as those in **`fixtures/js-vulns-1.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
+
+#### 4. Bridging to the scorer: synthetic `FINDINGS_JSON`
+
+Still in **`src/command-runner.ts`**: after `parser(stdout)` returns `FindingRecord[]`, the runner sets `finalText` to the `FINDINGS_JSON:` marker, a newline, a Markdown `json` fenced block, and `JSON.stringify(findings, null, 2)` inside it — the same outer shape as the LLM contract described under [find-vulns Scoring](#find-vulns-scoring) (**Why structured output (`FINDINGS_JSON`)?**). No separate code path in the scorer is required.
+
+So `scoreFindVulns` in **`src/scorer.ts`** runs unchanged: `parseFindings` extracts the JSON array, `normalizeFindings` assigns synthetic ids `found-0`, `found-1`, … and normalizes types/severities.
+
+**`metrics.filesScanned`** for command runs is derived from the **unique `file` strings** in the parsed findings (not from the Agent SDK), as noted in `command-runner.ts`.
+
+#### 5. Matching to ground truth (same as LLM)
+
+Scoring uses **`scoreFindVulns(finalText, task)`** — the same type-only greedy matching described in [How Vuln Type Matching Works](#how-vuln-type-matching-works). There is **no** secondary matcher that lines up Snyk SARIF rule ids or line numbers to `fixtures/<name>.json` **`id`** fields. A Snyk result “counts” toward `js-xss-1` only if:
+
+1. `mapRuleId` produced `"xss"`, and  
+2. That finding is paired by the greedy walk with that ground-truth row (i.e. it is the first unmatched `"xss"` in `knownVulns` order when this finding is processed, given earlier findings already consumed other `"xss"` slots).
+
+So two XSSes in the fixture are distinguished only by **order of unmatched `xss` rows in the JSON** vs **order of `xss` findings in Snyk’s results array** — not by verifying that Snyk’s line matches the `"line"` in the answer key.
+
+#### 6. Implications for benchmark authors
+
+- Keep **`type`** in `fixtures/<name>.json` consistent with `mapRuleId` in `src/parsers/snyk-code.ts` when you care about Snyk parity for that rule family.
+- When multiple known vulns share a type, **ordering** in the ground-truth file and **ordering** of Snyk results affect which ID is credited; consider ordering `vulnerabilities[]` to match typical Snyk emission order if you want stable pairing, or plan for a future location-aware matcher if you need strict line-to-id alignment.
+- **`found === "other"`** does not match arbitrary known types (`vulnTypesMatch` returns false for `"other"` findings except when the known type is also `"other"`).
+
+#### When to update `mapRuleId` (Snyk)
+
+The SARIF → **`VulnType`** step is **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. You should extend it when:
+
+- You add or change **fixtures** and Snyk reports findings whose **`ruleId`** is not yet recognised (often showing up as parsed `"type": "other"` in JSONL `details.agentFindings`).
+- You **upgrade Snyk** or see **new / renamed `ruleId`s** in real SARIF (including abbreviated ids such as `javascript/OR`, `javascript/PT`, `javascript/Sqli`).
+- You add a **command config** that still uses the **`snyk-code`** parser — the same `mapRuleId` applies; wire the config in `evals/run-configs.json` only after the parser can map the rules you care about.
+
+Operational checklist, example `jq` invocations, and the distinction between “**new `VulnType`**” vs “**existing type, new Snyk id**” live in **`docs/benchmark-management.md`** → [Maintaining Snyk Code ruleId mappings](./benchmark-management.md#maintaining-snyk-code-ruleid-mappings).
 
 ---
 
@@ -1043,6 +1115,7 @@ No source code changes required — the benchmark uses a directory-scanning load
 - **New model config:** append a `ModelRunConfig` entry to `evals/run-configs.json` (or omit `"type"` — it defaults to model)
 - **New SAST config:** append a `CommandRunConfig` entry with `"type": "command"`, `"command"`, and `"parser"` fields
 - **New SAST parser:** add a file to `src/parsers/` and register it in `src/parsers/index.ts`
+- **Snyk `ruleId` → benchmark `type`:** when fixtures, Snyk versions, or comparisons suggest missing mappings, update **`mapRuleId()`** in **`src/parsers/snyk-code.ts`** (see [When to update `mapRuleId` (Snyk)](#when-to-update-mapruleid-snyk) and [`docs/benchmark-management.md`](./benchmark-management.md#maintaining-snyk-code-ruleid-mappings))
 
 ### Running a Specific Combination
 

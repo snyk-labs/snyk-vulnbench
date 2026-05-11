@@ -1,0 +1,21 @@
+<h1>Uptime &amp; host health</h1>
+<p class="muted">Enter an IP address, hostname, or an <code>https://</code> site URL. Plain hosts are pinged; HTTPS URLs also probe <code>/.well-known/security.txt</code> when the server responds.</p>
+
+<dl>
+  <dt>Process uptime</dt>
+  <dd><span class="pill">{{serverUptimeSec}} s</span></dd>
+  <dt>Server host</dt>
+  <dd><code>{{serverHostname}}</code></dd>
+  <dt>App started</dt>
+  <dd><code>{{startedAtIso}}</code></dd>
+  <dt>Session requests (this browser)</dt>
+  <dd>{{visits}}</dd>
+</dl>
+
+<section>
+  <form method="post" action="/check" autocomplete="off">
+    <label for="target">Target</label>
+    <input id="target" name="target" type="text" required placeholder="e.g. 1.1.1.1, example.com, https://example.com">
+    <div><button type="submit">Ping{{!-- and optionally fetch security.txt --}}</button></div>
+  </form>
+</section>

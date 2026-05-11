@@ -1,0 +1,7 @@
+{
+  "id": "js-vulns-3-fix-vulns",
+  "name": "JS App (Knex/Postgres 3): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-vulns-3",
+  "maxTurns": 30
+}

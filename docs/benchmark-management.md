@@ -18,6 +18,7 @@ How to add new eval tasks, new fixtures, and new run configs — without touchin
    - [Adding an MCP server config](#adding-an-mcp-server-config)
    - [How MCP tool permissions work](#how-mcp-tool-permissions-work)
    - [Adding a SAST command config](#adding-a-sast-command-config)
+   - [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings)
 7. [Run Config JSON Reference](#run-config-json-reference)
 8. [Worked Example: Adding a Ruby Fixture](#worked-example-adding-a-ruby-fixture)
 9. [Troubleshooting](#troubleshooting)
@@ -116,7 +117,7 @@ Create `fixtures/<your-fixture>.json` as a **sibling** to the fixture directory 
 }
 ```
 
-**The `id` field is what the scorer tracks.** Make it unique, descriptive, and stable — if you change an id after running benchmarks, historical results won't match.
+**The `id` field is what the scorer tracks.** Make each id **unique across the whole repo**, not only within one `fixtures/<name>.json` file. Benchmark results and spreadsheets often aggregate rows from many tasks; duplicate ids (e.g. the same `llm-xpowered-by-header` in two different fixtures) make history ambiguous and harder to join to ground truth. Prefer a **fixture-scoped prefix**: shorten the fixture directory name if needed (`llm-vulns-2` → `llm2-`, `js-vulns-5` → `js5-`) so every id is globally distinctive. Keep ids descriptive and stable — if you rename an id after runs, historical JSONL will no longer line up.
 
 See the [Ground-Truth JSON Reference](#ground-truth-json-reference) for the full field list and valid values.
 
@@ -164,17 +165,18 @@ Use `--dry-run` to confirm the loader picks up your new task without running the
 pnpm run benchmark -- --dry-run
 ```
 
-Expected output:
+Expected output (exact counts depend on how many task JSON files exist):
 ```
-Benchmark: 5 task(s) × 2 config(s) = 10 run(s)
+Benchmark: N task(s) × M config(s) = N×M run(s)
   • js-find-vulns [find-vulns]
-  • js-fix-vulns [fix-vulns]
-  • python-find-vulns [find-vulns]
+  • …
   • ruby-find-vulns [find-vulns]      ← your new task
   • ruby-fix-vulns [fix-vulns]        ← your new task
   • opus-4-6: claude-opus-4-6
   • sonnet-4-6: claude-sonnet-4-6
 ```
+
+Run `pnpm run benchmark -- --dry-run` locally for current task and config counts.
 
 If your task appears, run it for real:
 
@@ -189,6 +191,8 @@ pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6,snyk-code
 pnpm run benchmark -- --task ruby-find-vulns
 pnpm run benchmark -- --task ruby-fix-vulns
 ```
+
+If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF) command config, inspect the JSONL `details.agentFindings`: any finding whose `type` is `"other"` while Snyk clearly reported a real issue usually means **`mapRuleId` in `src/parsers/snyk-code.ts` needs extending** — see [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings).
 
 ---
 
@@ -238,7 +242,7 @@ Each entry in `vulnerabilities`:
 
 | Field | Required | Type | Valid Values |
 |---|---|---|---|
-| `id` | Yes | `string` | Unique ID, stable across runs. Convention: `<lang prefix>-<type>-<number>` e.g. `rb-sqli-1` |
+| `id` | Yes | `string` | **Globally unique** id, stable across runs (unique across every `fixtures/*.json`, not just within one file). Convention: `<fixture-scoped-prefix>-<type-or-role>-<number>` e.g. `rb-sqli-1` for a single Ruby fixture, or `llm2-sql-injection` / `js5-command-injection-5` when several fixtures share a language or theme so plain `llm-*` / `js-*` would collide. |
 | `type` | Yes | `VulnType` | See table below |
 | `severity` | Yes | `Severity` | `"critical"`, `"high"`, `"medium"`, `"low"` |
 | `file` | Yes | `string` | Relative path from fixture root, e.g. `"app.rb"` or `"src/handlers/user.rb"` |
@@ -250,17 +254,21 @@ Each entry in `vulnerabilities`:
 | Value | When to use |
 |---|---|
 | `"sql-injection"` | User input embedded in a SQL query (string concatenation, template, format string) |
-| `"xss"` | Unsanitized user input reflected in HTML output |
+| `"xss"` | Cross-site scripting — reflected HTML, unsafe DOM sinks (e.g. `innerHTML`), or unsafe rendering of LLM/tool output |
 | `"path-traversal"` | User-controlled filename/path used to access files without sanitization |
 | `"command-injection"` | User input passed to a shell command, exec, eval, or similar |
-| `"hardcoded-credentials"` | API keys, passwords, tokens, or secrets embedded in source code |
+| `"hardcoded-credentials"` | API keys, passwords, DB credentials, session/signing secrets, or other embedded secrets |
 | `"insecure-deserialization"` | Deserializing untrusted data with unsafe formats (pickle, Java ObjectInputStream, etc.) |
 | `"idor"` | Insecure Direct Object Reference — accessing resources without authorization checks |
 | `"xxe"` | XML External Entity injection via an XML parser |
 | `"ssrf"` | Server-Side Request Forgery — user-controlled URL used in a server-side HTTP request |
 | `"open-redirect"` | User-controlled redirect target without validation |
-| `"information-exposure"` | Sensitive data or framework details leaked to clients (e.g. stack traces, version headers, verbose error messages) |
+| `"information-exposure"` | Framework fingerprinting, verbose errors/stack traces, or HTTP/session surface issues that weaken confidentiality (e.g. `X-Powered-By`, session cookies missing `Secure`) |
 | `"allocation-of-resources-without-limits-or-throttling"` | Endpoint performs expensive work without rate limiting, enabling DoS. Aliases: "resource exhaustion", "missing rate limiting", "denial of service" |
+| `"csrf"` | Cross-Site Request Forgery — state-changing requests accepted without anti-CSRF tokens or equivalent |
+| `"improper-type-validation"` | Untrusted input used as objects/properties without type checks (e.g. type confusion); distinct from prototype pollution |
+| `"prototype-pollution"` | Unsafe merge or dynamic property paths that can pollute `Object.prototype` (Snyk: `javascript/PrototypePollution`, CWE-1321) |
+| `"origin-validation-error"` | Overly permissive cross-origin policy (e.g. `Access-Control-Allow-Origin: *` with credentialed requests); Snyk labels this **Origin Validation Error** (`javascript/TooPermissiveCorsHeader`, CWE-942 / CWE-346) |
 | `"other"` | Any vulnerability that doesn't fit the above categories |
 
 **Scoring note:** The scorer matches findings by `type`. If your fixture has two SQL injections, give each its own entry with unique `id`s — they will be tracked and scored independently.
@@ -303,7 +311,7 @@ When in doubt, add more aliases rather than fewer — a false-positive match fro
 
 ### Step 3 — Add a pattern in `src/parsers/snyk-code.ts`
 
-The Snyk parser maps rule IDs (e.g. `javascript/CommandInjection`) to `VulnType`. Without this, Snyk findings for the new type fall to `"other"` and are never matched against ground truth, making Snyk appear to miss them even when it finds them.
+The Snyk parser maps SARIF **`ruleId`** strings (see `runs[].tool.driver.rules[]` and each `results[].ruleId` in `snyk code test --json`) to `VulnType`. Use the rule **`id`** (e.g. `javascript/PrototypePollution`) and, when helpful, the driver rule **`name`** or **`shortDescription.text`** to pick the benchmark type name. Without a matching pattern, Snyk findings for that rule fall to `"other"` and usually will not match ground truth, making Snyk recall look artificially low.
 
 Add a regex pattern in `mapRuleId()`:
 
@@ -315,6 +323,8 @@ The `id` is already lowercased before this function runs. Check Snyk Code's actu
 
 > If you add other SAST parsers in `src/parsers/`, update those too — each parser has its own rule ID mapping.
 
+If the `VulnType` already exists and you only need Snyk to recognise a **new or renamed Snyk `ruleId`** (abbreviated ids, new CLI rules, or a new fixture that surfaces a class you already model in ground truth), you still edit `mapRuleId()` — you do **not** need Steps 1–2 or the checklist rows for `types.ts` / `normalizeVulnType` unless the *wording* agents use changed. See [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings).
+
 ### Step 4 — Add to the valid types table in this doc
 
 Add a row to the **Valid `type` values** table in [Ground-Truth JSON Reference](#ground-truth-json-reference) so other contributors know when to use the new type.
@@ -324,7 +334,7 @@ Add a row to the **Valid `type` values** table in [Ground-Truth JSON Reference](
 ```
 □ src/types.ts          — added to VulnType union
 □ src/scorer.ts         — added exact match + common aliases to normalizeVulnType
-□ src/parsers/snyk-code.ts  — added regex pattern to mapRuleId()
+□ src/parsers/snyk-code.ts  — added or updated `mapRuleId()` pattern for each relevant Snyk `ruleId`
 □ docs/benchmark-management.md  — added row to valid type values table
 ```
 
@@ -491,6 +501,32 @@ pnpm run benchmark -- --task js-find-vulns --config sonnet-4-6,snyk-code
 pnpm run benchmark -- --category find-vulns --config snyk-code
 ```
 
+### Maintaining Snyk Code ruleId mappings
+
+Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Scoring then matches findings to ground truth **by `type` only** — if `mapRuleId` returns `"other"` for a real Snyk rule, recall against `fixtures/<name>.json` will look artificially low even though the scanner found the issue.
+
+**Update `mapRuleId` whenever:**
+
+| Trigger | Why |
+|---|---|
+| **New fixture or new vulnerable code** in an existing fixture | Snyk may emit `ruleId`s you have never seen in this repo (including abbreviated ids such as `javascript/OR`, `javascript/PT`, `javascript/Sqli`). |
+| **Upgrading the Snyk CLI** or lockfile / ruleset | Rule ids or naming can shift; a previously matched id can change spelling. |
+| **`snyk-code` vs model comparison looks wrong** | e.g. many `details.agentFindings` with `"type": "other"`, or Snyk recall much lower than expected for a fixture you know Snyk flags. |
+| **New command config** that reuses the **`snyk-code`** parser | Same mapping file applies; no extra registration step beyond `run-configs.json`. |
+| **New SAST parser** (`"parser": "something-else"`) | Implement rule→`type` mapping in that parser’s module — not in `snyk-code.ts`. |
+
+**Workflow (recommended):**
+
+1. Run Snyk against the fixture directory (same as the benchmark):  
+   `snyk code test fixtures/<your-fixture>/ --json`  
+   (or save stdout from a failed-exit run — findings are still on stdout).
+2. Collect distinct `ruleId` values, e.g. **JSONPath** `$.runs[0].results[*].ruleId`, or `jq -r '.runs[0].results[]? | .ruleId' snyk-output.json` (dedupe with `sort -u` as needed).
+3. For each id, mentally lower-case it (that is what `mapRuleId` receives) and see which **`if (/…/)`** branch in `mapRuleId` should own it.
+4. Add or extend a regex (prefer a **comment** naming the canonical Snyk id, e.g. `javascript/DisablePoweredBy`, for the next maintainer). Match **before** overly broad patterns when order matters (e.g. `domxss` before generic `xss`).
+5. Re-run the benchmark with `--config snyk-code` (and your task filter) and confirm JSONL findings use the expected `type` strings aligned with **`fixtures/<name>.json`** `vulnerabilities[].type`.
+
+**New `VulnType`:** follow [Updating When You Add a New Vulnerability Type](#updating-when-you-add-a-new-vulnerability-type) (types, `normalizeVulnType`, `mapRuleId`, and this doc’s type table). **Existing type, new Snyk id:** usually **`src/parsers/snyk-code.ts` only** plus verification.
+
 ---
 
 ## Run Config JSON Reference
@@ -627,6 +663,9 @@ That's it. No source code changes required.
 
 **"`vulnerabilities` must be an array"**
 - Your `vulns.json` is missing the top-level `"vulnerabilities"` key, or it's not an array.
+
+**Duplicate vulnerability `id`s in different fixture JSON files**
+- The loader does not enforce global uniqueness, but you should still use distinct ids across every `fixtures/*.json`. Reusing the same id in two fixtures (e.g. two apps both using `llm-xpowered-by-header`) confuses aggregated results and fix-judge notes. Prefix ids with a short fixture token (`llm2-`, `js5-`, etc.).
 
 **Task appears in dry-run but scores 0 / recall 0**
 - The agent ran but found nothing. Check that your fixture's vulnerable code is genuinely readable by the agent (no encoding issues, file permissions, etc.).
