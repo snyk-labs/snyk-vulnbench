@@ -38,81 +38,47 @@ export interface EvalCategory {
   readonly defaultPrompt: string;
 }
 
+const FIND_VULNS_DEFAULTS = {
+  defaultSystemPrompt: `You are a security expert performing a code audit.
+Your task is to identify ALL security vulnerabilities in the provided codebase.
+
+After completing your analysis, you MUST output your findings in this exact format at the END of your response:
+
+FINDINGS_JSON:
+\`\`\`json
+[
+  {
+    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|improper-type-validation|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
+    "file": "filename.ext",
+    "line": <line number or null>,
+    "severity": "critical|high|medium|low",
+    "description": "Brief explanation of the vulnerability"
+  }
+]
+\`\`\`
+
+Be thorough — scan all files. Include every distinct vulnerability you find.`,
+  defaultPrompt: "Audit all files in this directory for security vulnerabilities. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.",
+} as const;
+
 export const EVAL_CATEGORIES = {
   FIND_VULNS: {
     id: "find-vulns",
     name: "Find Vulnerabilities",
     description: "Agent identifies security vulnerabilities in code and reports findings",
-    defaultSystemPrompt: `You are a security expert performing a code audit.
-Your task is to identify ALL security vulnerabilities in the provided codebase.
-
-After completing your analysis, you MUST output your findings in this exact format at the END of your response:
-
-FINDINGS_JSON:
-\`\`\`json
-[
-  {
-    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|improper-type-validation|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
-    "file": "filename.ext",
-    "line": <line number or null>,
-    "severity": "critical|high|medium|low",
-    "description": "Brief explanation of the vulnerability"
-  }
-]
-\`\`\`
-
-Be thorough — scan all files. Include every distinct vulnerability you find.`,
-    defaultPrompt: "Audit all files in this directory for security vulnerabilities. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.",
+    ...FIND_VULNS_DEFAULTS,
   },
   LLM_FIND_VULNS: {
     id: "llm-find-vulns",
     name: "Find LLM Integration Vulnerabilities",
     description: "Agent identifies security vulnerabilities specific to LLM integration code and reports findings",
-    defaultSystemPrompt: `You are a security expert performing a code audit focused on LLM integration security.
-Your task is to identify ALL security vulnerabilities in the provided codebase, paying special attention to LLM-specific risks such as prompt injection, unsafe output handling, and insecure API integrations.
-
-After completing your analysis, you MUST output your findings in this exact format at the END of your response:
-
-FINDINGS_JSON:
-\`\`\`json
-[
-  {
-    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|improper-type-validation|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
-    "file": "filename.ext",
-    "line": <line number or null>,
-    "severity": "critical|high|medium|low",
-    "description": "Brief explanation of the vulnerability"
-  }
-]
-\`\`\`
-
-Be thorough — scan all files. Include every distinct vulnerability you find.`,
-    defaultPrompt: "Audit all files in this directory for security vulnerabilities, with particular focus on LLM integration security issues. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.",
+    ...FIND_VULNS_DEFAULTS,
   },
   APP_FIND_VULNS: {
     id: "app-find-vulns",
     name: "Find App Vulnerabilities",
     description: "Agent identifies security vulnerabilities in a full application codebase and reports findings",
-    defaultSystemPrompt: `You are a security expert performing a code audit of a full application.
-Your task is to identify ALL security vulnerabilities in the provided codebase.
-
-After completing your analysis, you MUST output your findings in this exact format at the END of your response:
-
-FINDINGS_JSON:
-\`\`\`json
-[
-  {
-    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|improper-type-validation|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
-    "file": "filename.ext",
-    "line": <line number or null>,
-    "severity": "critical|high|medium|low",
-    "description": "Brief explanation of the vulnerability"
-  }
-]
-\`\`\`
-
-Be thorough — scan all files. Include every distinct vulnerability you find.`,
-    defaultPrompt: "Audit all files in this directory for security vulnerabilities. This is a full application — read all source files across the project, analyze them carefully, then output your complete findings in the required JSON format.",
+    ...FIND_VULNS_DEFAULTS,
   },
   FIX_VULNS: {
     id: "fix-vulns",
