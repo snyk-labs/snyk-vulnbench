@@ -58,7 +58,7 @@ No source code changes required. Just:
 2. Drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture` fields
 3. Run — the loader picks it up automatically
 
-See TODO: `docs/benchmark-management.md` for a full guide.
+See [`docs/benchmark-management.md`](docs/benchmark-management.md) for step-by-step task and fixture setup. For how the benchmark pipeline, scoring (including Snyk/SAST and vuln-type matching), and metrics work, see [`docs/benchmark.md`](docs/benchmark.md).
 
 ## How the Agent SDK Is Used
 
@@ -121,7 +121,11 @@ Results are saved to `results/benchmark-<timestamp>.jsonl`.
 - The `fix-vulns` eval works on temp copies; original fixtures are never modified
 - **The agent runner (`src/runner.ts`) must always sandbox the agent to its fixture `cwd`.** `sandbox.filesystem.allowWrite: [cwd]` is a hard whitelist — the agent cannot write outside the fixture dir. `sandbox.filesystem.denyRead: [dirname(cwd)]` blocks reading the parent directory (which contains the ground-truth answer-key JSONs and other fixtures). Do not remove or loosen these restrictions: without them the agent can read the answer key and invalidate every score.
 
+## Benchmark Documentation and Guidelines
+
+- **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add eval tasks and fixtures without code changes: directory-scanning loader behavior, step-by-step fixture + ground-truth + task JSON workflow, task and ground-truth schema references, extending vulnerability types, run-config updates (models, MCP servers and permissions, SAST commands, Snyk ruleId mappings), worked example, troubleshooting.
+- **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, components (fixtures, tasks, run configs, runner, scorer, reporter, results), scoring deep-dive (command tools, Snyk Code and `mapRuleId`), metrics and token accounting, sample CLI/JSONL output, pointer to extending tasks via the management guide.
+
 ## TODO
 
-- [x] Create `docs/benchmark-management.md` — guide for adding new eval tasks (fixture layout, vulns.json schema, task JSON fields, step-by-step walkthrough) and updating run configs (fields reference, MCP server example)
 - [ ] **Explore replacing the Agent SDK with a direct Anthropic API agentic loop** — The current `src/runner.ts` uses `@anthropic-ai/claude-agent-sdk` which works by spawning the `claude` CLI binary as a subprocess. This creates a hard dependency on Claude Code CLI being installed and authenticated. An alternative is to build the agentic loop directly against `@anthropic-ai/sdk` (already a dependency): call `messages.create()` in a loop, manually execute tool calls (Read, Glob, Grep, Bash, Write, Edit) on the local filesystem, and feed results back as `tool_result` blocks — no CLI required. Key things to figure out: (1) whether the built-in Claude Code tools (Read, Glob, Grep, etc.) are available as server-side tools in the raw API or need to be reimplemented as local functions, (2) how to replicate the per-tool timing hooks currently done via `PreToolUse`/`PostToolUse`, (3) whether MCP server support is available without the CLI. See `src/runner.ts` for current implementation and `src/types.ts` for the `BenchmarkMetrics` shape that any new runner must produce.
