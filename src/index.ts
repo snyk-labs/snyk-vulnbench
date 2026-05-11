@@ -27,7 +27,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const opts: {
     category?: EvalCategoryId;
-    task?: string;
+    tasks?: string[]; // comma-separated list of task IDs
     configs?: string[]; // comma-separated list of config IDs
     dryRun: boolean;
   } = { dryRun: false };
@@ -40,7 +40,7 @@ function parseArgs() {
         process.exit(1);
       }
       opts.category = val as EvalCategoryId;
-    } else if (args[i] === "--task" && args[i + 1]) opts.task = args[++i];
+    } else if (args[i] === "--task" && args[i + 1]) opts.tasks = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--config" && args[i + 1]) opts.configs = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--dry-run") opts.dryRun = true;
   }
@@ -127,7 +127,10 @@ async function main() {
   // Filter tasks
   let tasks = EVAL_TASKS;
   if (opts.category) tasks = tasks.filter((t) => t.category.id === opts.category);
-  if (opts.task) tasks = tasks.filter((t) => t.id === opts.task);
+  if (opts.tasks) {
+    const ids = new Set(opts.tasks);
+    tasks = tasks.filter((t) => ids.has(t.id));
+  }
 
   // Filter configs — supports comma-separated list: --config sonnet-4-6,snyk-code
   let configs = DEFAULT_RUN_CONFIGS;

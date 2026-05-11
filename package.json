@@ -7,7 +7,9 @@
     "dev": "echo 'Use: pnpm run benchmark'",
     "benchmark": "tsx src/index.ts",
     "benchmark:find": "tsx src/index.ts --category find-vulns",
-    "benchmark:find:js": "tsx src/index.ts --task js-find-vulns-1 --config sonnet-4-6",
+    "benchmark:find:js": "tsx src/index.ts --task js-vulns-1-find-vulns --config sonnet-4-6",
+    "benchmark:find:js-1-2": "tsx src/index.ts --task js-vulns-1-find-vulns,js-vulns-2-find-vulns --config sonnet-4-6",
+    "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-vulns-1-find-vulns,js-vulns-2-find-vulns --config sonnet-4-6,snyk-code",
     "benchmark:fix": "tsx src/index.ts --category fix-vulns"
   },
   "dependencies": {
