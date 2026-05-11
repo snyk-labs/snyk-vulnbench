@@ -1,0 +1,7 @@
+{
+  "id": "app-js-1-fix-vulns",
+  "name": "App JS 1 (Express/TS): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-js-1",
+  "maxTurns": 40
+}

@@ -216,6 +216,17 @@ function normalizeVulnType(raw: string): VulnType {
     "sensitive-cookie-with-secure-flag-false": "information-exposure",
     "insecure cookie": "information-exposure",
     "missing secure cookie": "information-exposure",
+    "prototype pollution": "prototype-pollution",
+    "prototype-pollution": "prototype-pollution",
+    "prototype pollution vulnerability": "prototype-pollution",
+    "origin validation error": "origin-validation-error",
+    "origin-validation-error": "origin-validation-error",
+    "cors misconfiguration": "origin-validation-error",
+    "permissive cors": "origin-validation-error",
+    "insecure cors": "origin-validation-error",
+    "too permissive cors": "origin-validation-error",
+    "overly permissive cors": "origin-validation-error",
+    "other": "other",
   };
   const key = raw.toLowerCase().trim();
   return map[key] ?? "other";

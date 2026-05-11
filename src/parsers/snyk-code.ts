@@ -57,6 +57,10 @@ function mapRuleId(ruleId: string): string {
   // Snyk: javascript/NoRateLimitingForExpensiveWebOperation — substring "ratelimit" already matches; listed explicitly for discoverability
   if (/ratelimit|nothrottle|resourceexhaust|noratelimitingforexpensiveweboperation/.test(id))
     return "allocation-of-resources-without-limits-or-throttling";
+  // Snyk: javascript/PrototypePollution (CWE-1321)
+  if (/prototypepollution/.test(id)) return "prototype-pollution";
+  // Snyk: javascript/TooPermissiveCorsHeader — SARIF shortDescription "Origin Validation Error" (CWE-942 / CWE-346)
+  if (/toopermissivecorsheader|permissivecors/.test(id)) return "origin-validation-error";
   return "other";
 }
 

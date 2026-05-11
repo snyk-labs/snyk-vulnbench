@@ -266,7 +266,9 @@ Each entry in `vulnerabilities`:
 | `"information-exposure"` | Framework fingerprinting, verbose errors/stack traces, or HTTP/session surface issues that weaken confidentiality (e.g. `X-Powered-By`, session cookies missing `Secure`) |
 | `"allocation-of-resources-without-limits-or-throttling"` | Endpoint performs expensive work without rate limiting, enabling DoS. Aliases: "resource exhaustion", "missing rate limiting", "denial of service" |
 | `"csrf"` | Cross-Site Request Forgery — state-changing requests accepted without anti-CSRF tokens or equivalent |
-| `"improper-type-validation"` | Untrusted input used as objects/properties without type checks (prototype / type confusion style issues) |
+| `"improper-type-validation"` | Untrusted input used as objects/properties without type checks (e.g. type confusion); distinct from prototype pollution |
+| `"prototype-pollution"` | Unsafe merge or dynamic property paths that can pollute `Object.prototype` (Snyk: `javascript/PrototypePollution`, CWE-1321) |
+| `"origin-validation-error"` | Overly permissive cross-origin policy (e.g. `Access-Control-Allow-Origin: *` with credentialed requests); Snyk labels this **Origin Validation Error** (`javascript/TooPermissiveCorsHeader`, CWE-942 / CWE-346) |
 | `"other"` | Any vulnerability that doesn't fit the above categories |
 
 **Scoring note:** The scorer matches findings by `type`. If your fixture has two SQL injections, give each its own entry with unique `id`s — they will be tracked and scored independently.
@@ -309,7 +311,7 @@ When in doubt, add more aliases rather than fewer — a false-positive match fro
 
 ### Step 3 — Add a pattern in `src/parsers/snyk-code.ts`
 
-The Snyk parser maps rule IDs (e.g. `javascript/CommandInjection`) to `VulnType`. Without this, Snyk findings for the new type fall to `"other"` and are never matched against ground truth, making Snyk appear to miss them even when it finds them.
+The Snyk parser maps SARIF **`ruleId`** strings (see `runs[].tool.driver.rules[]` and each `results[].ruleId` in `snyk code test --json`) to `VulnType`. Use the rule **`id`** (e.g. `javascript/PrototypePollution`) and, when helpful, the driver rule **`name`** or **`shortDescription.text`** to pick the benchmark type name. Without a matching pattern, Snyk findings for that rule fall to `"other"` and usually will not match ground truth, making Snyk recall look artificially low.
 
 Add a regex pattern in `mapRuleId()`:
 
@@ -332,7 +334,7 @@ Add a row to the **Valid `type` values** table in [Ground-Truth JSON Reference](
 ```
 □ src/types.ts          — added to VulnType union
 □ src/scorer.ts         — added exact match + common aliases to normalizeVulnType
-□ src/parsers/snyk-code.ts  — added regex pattern to mapRuleId()
+□ src/parsers/snyk-code.ts  — added or updated `mapRuleId()` pattern for each relevant Snyk `ruleId`
 □ docs/benchmark-management.md  — added row to valid type values table
 ```
 
