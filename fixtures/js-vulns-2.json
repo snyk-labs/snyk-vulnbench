@@ -1,6 +1,6 @@
 {
   "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-  "description": "Intentionally vulnerable Express.js app with Knex.js and PostgreSQL",
+  "description": "Intentionally vulnerable Express.js app with Knex.js and PostgreSQL. Scaffolded from Cursor's Auto MAX mode.",
   "vulnerabilities": [
     {
       "id": "js-xpowered-by-header-2",

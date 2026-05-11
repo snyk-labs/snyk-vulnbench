@@ -1,6 +1,6 @@
 {
     "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-    "description": "Intentionally vulnerable Todo app with SQLite and file attachments",
+    "description": "Intentionally vulnerable Todo app with SQLite and file attachments. Scaffolded from Cursor's Auto MAX mode.",
     "vulnerabilities": [
       {
         "id": "js-improper-type-validation-5",

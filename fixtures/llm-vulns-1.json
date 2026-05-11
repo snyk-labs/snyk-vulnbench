@@ -1,6 +1,6 @@
 {
   "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-  "description": "Intentionally vulnerable Express.js app integrating with LLM APIs and exposing jokes via a conversational AI assistant. Demonstrates common LLM-driven web integration security issues.",
+  "description": "Intentionally vulnerable Express.js app integrating with LLM APIs and exposing jokes via a conversational AI assistant. Demonstrates common LLM-driven web integration security issues, based on Liran Tal's llm-ai-security repo.",
   "vulnerabilities": [
     {
       "id": "llm-dom-xss-chatbox",

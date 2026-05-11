@@ -1,6 +1,6 @@
 {
   "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-  "description": "Intentionally vulnerable Express.js app that integrates LLM outputs into a multi-user banking scenario. Demonstrates common LLM-driven web integration issues such as SQL injection and server-side XSS. All vulnerabilities listed are present for security benchmarking purposes only.",
+  "description": "Intentionally vulnerable Express.js app that integrates LLM outputs into a multi-user banking scenario. Demonstrates common LLM-driven web integration issues such as SQL injection and server-side XSS. All vulnerabilities listed are present for security benchmarking purposes only. Based on Liran Tal's llm-ai-security repo.",
   "vulnerabilities": [
     {
       "id": "llm2-xpowered-by-header",
