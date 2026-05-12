@@ -15,7 +15,7 @@ import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -53,6 +53,19 @@ function parseArgs() {
 
 // ─── Task Runner ──────────────────────────────────────────────────────────────
 
+function emptyFindVulnsDetails(task: EvalTask): FindVulnsDetails {
+  const falseNegatives = task.knownVulns.map((v) => ({ id: v.id, type: v.type, severity: v.severity }));
+  const byType: Record<string, { total: number; found: number; precision: number; recall: number; f1: number }> = {};
+  const bySeverity: Record<string, { total: number; found: number; precision: number; recall: number; f1: number }> = {};
+  for (const v of task.knownVulns) {
+    byType[v.type] = byType[v.type] ?? { total: 0, found: 0, precision: 0, recall: 0, f1: 0 };
+    byType[v.type].total++;
+    bySeverity[v.severity] = bySeverity[v.severity] ?? { total: 0, found: 0, precision: 0, recall: 0, f1: 0 };
+    bySeverity[v.severity].total++;
+  }
+  return { agentFindings: [], truePositives: [], falsePositives: [], falseNegatives, precision: 0, recall: 0, byType, bySeverity };
+}
+
 async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const timestamp = new Date().toISOString();
   const isCommand = config.type === "command";
@@ -67,7 +80,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       ...base,
       score: 0,
       metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [] },
-      details: { agentFindings: [], truePositives: [], falsePositives: 0, falseNegatives: task.knownVulns.map((v) => v.id), precision: 0, recall: 0 },
+      details: emptyFindVulnsDetails(task),
       error: `Command config "${config.id}" does not support fix-vulns tasks`,
     };
   }
@@ -93,7 +106,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
         ...base,
         score: 0,
         metrics,
-        details: { agentFindings: [], truePositives: [], falsePositives: 0, falseNegatives: task.knownVulns.map((v) => v.id), precision: 0, recall: 0 },
+        details: emptyFindVulnsDetails(task),
         error,
       };
     }

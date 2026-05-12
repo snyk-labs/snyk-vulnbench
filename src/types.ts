@@ -178,13 +178,29 @@ export interface RunOutput {
   error?: string;
 }
 
-export interface FindVulnsDetails {
-  agentFindings: Vulnerability[];
-  truePositives: string[]; // vuln IDs correctly found
-  falsePositives: number;
-  falseNegatives: string[]; // vuln IDs missed
+export interface VulnMatch {
+  id: string;
+  type: VulnType;
+  severity: Severity;
+}
+
+export interface BreakdownEntry {
+  total: number;
+  found: number;
   precision: number;
   recall: number;
+  f1: number;
+}
+
+export interface FindVulnsDetails {
+  agentFindings: Vulnerability[];
+  truePositives: VulnMatch[];
+  falsePositives: Vulnerability[];
+  falseNegatives: VulnMatch[];
+  precision: number;
+  recall: number;
+  byType: Record<string, BreakdownEntry>;
+  bySeverity: Record<string, BreakdownEntry>;
 }
 
 export interface FixVulnsDetails {

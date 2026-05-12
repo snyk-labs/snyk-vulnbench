@@ -621,13 +621,19 @@ interface EvalResult {
 For **find-vulns**:
 ```typescript
 {
-  agentFindings: Vulnerability[];   // what the agent actually reported
-  truePositives: string[];          // IDs of correctly identified vulns
-  falsePositives: number;           // count of spurious reports
-  falseNegatives: string[];         // IDs of missed vulns
-  precision: number;                // 0–1
-  recall: number;                   // 0–1
+  agentFindings: Vulnerability[];           // what the agent actually reported
+  truePositives: VulnMatch[];              // correctly identified vulns ({ id, type, severity })
+  falsePositives: Vulnerability[];         // agent findings with no matching ground-truth vuln
+  falseNegatives: VulnMatch[];             // missed vulns ({ id, type, severity })
+  precision: number;                        // 0–1
+  recall: number;                           // 0–1
+  byType: Record<VulnType, BreakdownEntry>; // per-vulnerability-type precision/recall/F1
+  bySeverity: Record<Severity, BreakdownEntry>; // per-severity precision/recall/F1
 }
+
+// Where:
+// VulnMatch  = { id: string; type: VulnType; severity: Severity }
+// BreakdownEntry = { total: number; found: number; precision: number; recall: number; f1: number }
 ```
 
 For **fix-vulns**:
@@ -817,9 +823,11 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **Score (F1)** | `Score (F1) :  X%` | `score` | Harmonic mean of precision and recall — the headline quality number |
 | **Recall** | `Recall      :  X%  (N/M known vulns found)` | `details.recall` | Fraction of real vulns the agent found |
 | **Precision** | `Precision   :  X%  (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
-| **True positives** | Implicit in recall line | `details.truePositives` | IDs of real vulns correctly identified |
-| **False positives** | `(N false positives)` | `details.falsePositives` | Count of agent findings with no matching ground-truth vuln |
-| **False negatives** | `Missed      :  id1, id2` | `details.falseNegatives` | IDs of real vulns the agent did not find |
+| **True positives** | Implicit in recall line | `details.truePositives` | Array of `{ id, type, severity }` for correctly identified vulns |
+| **False positives** | `(N false positives)` | `details.falsePositives` | Array of full `Vulnerability` objects for unmatched agent findings |
+| **False negatives** | `Missed      :  id1, id2` | `details.falseNegatives` | Array of `{ id, type, severity }` for missed vulns |
+| **By type** | — | `details.byType` | Per-vuln-type breakdown: `{ total, found, precision, recall, f1 }` |
+| **By severity** | — | `details.bySeverity` | Per-severity breakdown: `{ total, found, precision, recall, f1 }` |
 
 #### Quality metrics (fix-vulns)
 
@@ -1130,11 +1138,32 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
       { "type": "sql-injection", "file": "app.js", "line": 24, "severity": "critical", "description": "..." },
       { "type": "xss", "file": "app.js", "line": 31, "severity": "high", "description": "..." }
     ],
-    "truePositives": ["js-sqli-1", "js-xss-1", "js-path-traversal-1", "js-hardcoded-creds-1", "js-cmd-injection-1"],
-    "falsePositives": 3,
-    "falseNegatives": ["js-xpowered-by-header-1", "js-allocation-of-resources-without-limits-or-throttling-2"],
+    "truePositives": [
+      { "id": "js-sqli-1", "type": "sql-injection", "severity": "critical" },
+      { "id": "js-xss-1", "type": "xss", "severity": "high" },
+      { "id": "js-path-traversal-1", "type": "path-traversal", "severity": "high" },
+      { "id": "js-hardcoded-creds-1", "type": "hardcoded-credentials", "severity": "high" },
+      { "id": "js-cmd-injection-1", "type": "command-injection", "severity": "critical" }
+    ],
+    "falsePositives": [
+      { "id": "found-5", "type": "xss", "severity": "medium", "file": "app.js", "line": 47, "description": "..." }
+    ],
+    "falseNegatives": [
+      { "id": "js-xpowered-by-header-1", "type": "information-exposure", "severity": "medium" },
+      { "id": "js-allocation-of-resources-without-limits-or-throttling-2", "type": "allocation-of-resources-without-limits-or-throttling", "severity": "medium" }
+    ],
     "precision": 0.625,
-    "recall": 0.714
+    "recall": 0.714,
+    "byType": {
+      "sql-injection": { "total": 1, "found": 1, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "xss": { "total": 1, "found": 1, "precision": 0.5, "recall": 1.0, "f1": 0.667 },
+      "information-exposure": { "total": 1, "found": 0, "precision": 0, "recall": 0, "f1": 0 }
+    },
+    "bySeverity": {
+      "critical": { "total": 2, "found": 2, "precision": 1.0, "recall": 1.0, "f1": 1.0 },
+      "high": { "total": 3, "found": 3, "precision": 0.75, "recall": 1.0, "f1": 0.857 },
+      "medium": { "total": 2, "found": 0, "precision": 0, "recall": 0, "f1": 0 }
+    }
   }
 }
 ```

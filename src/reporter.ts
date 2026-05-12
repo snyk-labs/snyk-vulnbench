@@ -64,9 +64,9 @@ export function printResult(result: EvalResult): void {
     const d = result.details as FindVulnsDetails;
     const totalKnown = d.truePositives.length + d.falseNegatives.length;
     console.log(metricLine("Recall", coloredScore(d.recall, `(${d.truePositives.length}/${totalKnown} known vulns found)`)));
-    console.log(metricLine("Precision", coloredScore(d.precision, `(${d.falsePositives} false positives)`)));
+    console.log(metricLine("Precision", coloredScore(d.precision, `(${d.falsePositives.length} false positives)`)));
     const missedValue = d.falseNegatives.length > 0
-      ? s("red", d.falseNegatives.join(", "))
+      ? s("red", d.falseNegatives.map((v) => v.id).join(", "))
       : s("green", "none");
     console.log(metricLine("Missed", missedValue));
   } else {

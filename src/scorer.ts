@@ -8,6 +8,8 @@ import type {
   FixVulnsDetails,
   VulnType,
   Severity,
+  VulnMatch,
+  BreakdownEntry,
 } from "./types.js";
 
 const anthropic = new Anthropic();
@@ -26,34 +28,97 @@ export function scoreFindVulns(agentOutput: string, task: EvalTask): FindVulnsDe
   const agentFindings = parseFindings(agentOutput);
   const knownVulns = task.knownVulns;
 
-  // Match found vulns to known vulns by type (within same file)
-  const truePositives: string[] = [];
+  const truePositives: VulnMatch[] = [];
   const matchedKnownIds = new Set<string>();
+  const matchedFindingIdxs = new Set<number>();
 
-  for (const found of agentFindings) {
+  for (let i = 0; i < agentFindings.length; i++) {
+    const found = agentFindings[i];
     const match = knownVulns.find(
       (kv) => !matchedKnownIds.has(kv.id) && vulnTypesMatch(kv.type, found.type),
     );
     if (match) {
-      truePositives.push(match.id);
+      truePositives.push({ id: match.id, type: match.type, severity: match.severity });
       matchedKnownIds.add(match.id);
+      matchedFindingIdxs.add(i);
     }
   }
 
-  const falsePositives = agentFindings.length - truePositives.length;
-  const falseNegatives = knownVulns.filter((kv) => !matchedKnownIds.has(kv.id)).map((kv) => kv.id);
+  const falsePositives = agentFindings.filter((_, i) => !matchedFindingIdxs.has(i));
+  const falseNegatives: VulnMatch[] = knownVulns
+    .filter((kv) => !matchedKnownIds.has(kv.id))
+    .map((kv) => ({ id: kv.id, type: kv.type, severity: kv.severity }));
 
   const precision = agentFindings.length === 0 ? 0 : truePositives.length / agentFindings.length;
   const recall = knownVulns.length === 0 ? 1 : truePositives.length / knownVulns.length;
 
-  return { agentFindings, truePositives, falsePositives, falseNegatives, precision, recall };
+  const byType = computeBreakdown(knownVulns, truePositives, falsePositives, (v) => v.type);
+  const bySeverity = computeBreakdown(knownVulns, truePositives, falsePositives, (v) => v.severity);
+
+  return { agentFindings, truePositives, falsePositives, falseNegatives, precision, recall, byType, bySeverity };
 }
 
 export function findVulnsScore(details: FindVulnsDetails): number {
-  // F1 score: harmonic mean of precision and recall
   const { precision, recall } = details;
   if (precision + recall === 0) return 0;
   return (2 * precision * recall) / (precision + recall);
+}
+
+// ─── Per-type / Per-severity Breakdown ────────────────────────────────────────
+
+function f1(precision: number, recall: number): number {
+  if (precision + recall === 0) return 0;
+  return (2 * precision * recall) / (precision + recall);
+}
+
+/**
+ * Computes a breakdown of precision/recall/F1 grouped by an arbitrary key
+ * extracted from each vulnerability (e.g. `v => v.type` or `v => v.severity`).
+ *
+ * For each group:
+ * - total  = number of ground-truth vulns in that group
+ * - found  = number of those correctly identified (true positives)
+ * - recall = found / total
+ * - precision = found / (found + false positives in that group)
+ * - f1     = harmonic mean of precision and recall
+ */
+function computeBreakdown(
+  knownVulns: Vulnerability[],
+  truePositives: VulnMatch[],
+  falsePositives: Vulnerability[],
+  keyFn: (v: { type: VulnType; severity: Severity }) => string,
+): Record<string, BreakdownEntry> {
+  const result: Record<string, BreakdownEntry> = {};
+
+  const totalByKey = new Map<string, number>();
+  for (const kv of knownVulns) {
+    const key = keyFn(kv);
+    totalByKey.set(key, (totalByKey.get(key) ?? 0) + 1);
+  }
+
+  const foundByKey = new Map<string, number>();
+  for (const tp of truePositives) {
+    const key = keyFn(tp);
+    foundByKey.set(key, (foundByKey.get(key) ?? 0) + 1);
+  }
+
+  const fpByKey = new Map<string, number>();
+  for (const fp of falsePositives) {
+    const key = keyFn(fp);
+    fpByKey.set(key, (fpByKey.get(key) ?? 0) + 1);
+  }
+
+  const allKeys = new Set([...totalByKey.keys(), ...fpByKey.keys()]);
+  for (const key of allKeys) {
+    const total = totalByKey.get(key) ?? 0;
+    const found = foundByKey.get(key) ?? 0;
+    const fp = fpByKey.get(key) ?? 0;
+    const recall = total === 0 ? 0 : found / total;
+    const prec = (found + fp) === 0 ? 0 : found / (found + fp);
+    result[key] = { total, found, precision: prec, recall, f1: f1(prec, recall) };
+  }
+
+  return result;
 }
 
 // ─── Fix-Vulns Scoring ────────────────────────────────────────────────────────
