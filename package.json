@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "echo 'Use: pnpm run benchmark'",
-    "benchmark": "tsx src/index.ts",
-    "benchmark:find": "tsx src/index.ts --category find-vulns",
-    "benchmark:find:js": "tsx src/index.ts --task js-project-tigerteam-find-vulns --config sonnet-4-6",
-    "benchmark:find:js-1-2": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6",
-    "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6,snyk-code",
-    "benchmark:fix": "tsx src/index.ts --category fix-vulns"
+    "benchmark": "tsx src/index.ts --repetitions 1",
+    "benchmark:find": "tsx src/index.ts --category find-vulns --repetitions 1",
+    "benchmark:find:js": "tsx src/index.ts --task js-project-tigerteam-find-vulns --config sonnet-4-6 --repetitions 1",
+    "benchmark:find:js-1-2": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6 --repetitions 1",
+    "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6,snyk-code --repetitions 1",
+    "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.84",

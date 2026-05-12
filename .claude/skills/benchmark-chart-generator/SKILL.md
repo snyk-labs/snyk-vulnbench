@@ -37,22 +37,43 @@ Identify which JSONL file(s) to use:
 - If the user said "latest" or didn't specify, find the most recent file in `results/` by filename timestamp.
 - If multiple files are provided, read all of them and concatenate their rows.
 
-Read each JSONL file. Each line is one complete JSON object (one `EvalResult` row).
+Read each JSONL file. Each line is one complete JSON object. Lines have a `_type`
+field that determines what kind of row they are:
 
-### Step 2: Parse and validate
+- `"run"` -- a single raw `EvalResult` (one execution of one task+config)
+- `"task-aggregate"` -- mean scores for one (task, config) pair across repeated runs
+- `"config-aggregate"` -- headline numbers for one config, macro-averaged across all fixtures
 
-Parse each line as JSON. Validate that every row has these required fields:
+Lines without a `_type` field are legacy `"run"` rows (backward compatible).
+
+### Step 2: Parse, filter, and validate
+
+Parse each line as JSON. **Choose the right row type for the chart:**
+
+- **Headline comparison charts** (the most common request): use `_type === "config-aggregate"` rows. These give one number per config, macro-averaged across all fixtures.
+- **Per-fixture breakdown charts**: use `_type === "task-aggregate"` rows. These give one number per (task, config) pair, with repeated runs already averaged.
+- **Detailed per-run charts** (rare): use `_type === "run"` rows. These are the raw individual results.
+
+When in doubt, default to `"config-aggregate"` for headline charts and `"task-aggregate"` for per-fixture charts. If only `"run"` rows exist (legacy JSONL files or single-rep runs), use those directly.
+
+For `"run"` rows, validate that every row has these required fields:
 - `taskId`, `taskName`
 - `runConfigName`, `runConfigType` (must be `"model"` or `"command"`)
 - `score` (number 0-1)
 - `metrics.sessionDurationMs` (number)
 
-The `details.recall` and `details.precision` fields are required for `find-vulns` tasks
-but absent for `fix-vulns` tasks. The template handles this gracefully -- the
-recall/precision chart is only rendered when the data exists.
+For aggregate rows, validate:
+- `runConfigId`, `runConfigName`, `runConfigType`
+- `score` (number 0-1)
+- `sessionDurationMs` (number)
 
-If a row is missing critical fields (`score`, `metrics.sessionDurationMs`), warn the
-user and skip that row rather than failing entirely.
+The `details.recall` and `details.precision` fields are present on `"run"` rows for
+`find-vulns` tasks but absent for `fix-vulns` tasks. On aggregate rows, `recall` and
+`precision` are top-level fields (null for non-find-vulns tasks). The template handles
+this gracefully -- the recall/precision chart is only rendered when the data exists.
+
+If a row is missing critical fields (`score`, `metrics.sessionDurationMs` or
+`sessionDurationMs`), warn the user and skip that row rather than failing entirely.
 
 For the full EvalResult schema and all available fields, see
 [`docs/benchmark.md` — EvalResult](../../docs/benchmark.md#evalresult--the-final-record).
@@ -91,12 +112,20 @@ the user has been told where to find it.
 
 ## Available data fields for charting
 
-Every row in the JSONL file is an `EvalResult`. The default template only uses a subset
-of available fields (score, duration, recall, precision). When the user asks for custom
-charts, use any of the fields below. For the full schema and type definitions, see
+JSONL files contain three row types, distinguished by the `_type` field. The default
+template uses `"run"` rows. When the user asks for headline comparison charts, prefer
+aggregate rows. For the full schema see
 [`docs/benchmark.md`](../../docs/benchmark.md#evalresult--the-final-record).
 
-### Core fields (always present)
+### Row type discriminator
+
+| `_type` value | Description | When to use |
+|---|---|---|
+| `"run"` (or absent) | Raw `EvalResult` -- one execution | Per-run detail charts, legacy files |
+| `"task-aggregate"` | Mean across repeated runs for one (task, config) pair | Per-fixture breakdown charts |
+| `"config-aggregate"` | Macro-average across all fixtures for one config | Headline comparison charts |
+
+### Core fields on `"run"` rows
 
 | Field path | Type | Description |
 |---|---|---|
@@ -107,6 +136,8 @@ charts, use any of the fields below. For the full schema and type definitions, s
 | `thinking` | `ThinkingConfig\|null` | Extended thinking config: `{type:"adaptive"}`, `{type:"enabled",budgetTokens:N}`, or `{type:"disabled"}`. Null for command runs. |
 | `score` | number (0-1) | Overall F1 score (find-vulns) or fraction fixed (fix-vulns) |
 | `timestamp` | string (ISO 8601) | When this run happened |
+| `repetition` | number (1-indexed) | Which repetition this is (e.g. 2 of 3) |
+| `totalRepetitions` | number | Total repetitions requested for this task+config pair |
 
 ### Metrics (always present)
 
@@ -140,6 +171,35 @@ A `BreakdownEntry` has: `{ total: number, found: number, precision: number, reca
 `improper-type-validation`, `prototype-pollution`, `origin-validation-error`, `other`.
 
 `Severity` values: `critical`, `high`, `medium`, `low`.
+
+### Fields on `"task-aggregate"` rows
+
+| Field path | Type | Description |
+|---|---|---|
+| `taskId`, `taskName` | string | Task identifier and display name |
+| `runConfigId`, `runConfigName` | string | Config identifier and display name |
+| `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
+| `repetitions` | number | How many runs were averaged |
+| `score` | number (0-1) | Mean score across repetitions |
+| `recall` | number (0-1) or null | Mean recall (find-vulns only) |
+| `precision` | number (0-1) or null | Mean precision (find-vulns only) |
+| `sessionDurationMs` | number | Mean wall-clock time |
+| `totalTokens` | number | Mean total tokens (logical input + output) |
+| `totalCostUsd` | number or null | Mean cost in USD |
+
+### Fields on `"config-aggregate"` rows
+
+| Field path | Type | Description |
+|---|---|---|
+| `runConfigId`, `runConfigName` | string | Config identifier and display name |
+| `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
+| `fixtureCount` | number | How many distinct tasks contributed |
+| `score` | number (0-1) | Macro-averaged score across all fixtures |
+| `recall` | number (0-1) or null | Macro-averaged recall (find-vulns only) |
+| `precision` | number (0-1) or null | Macro-averaged precision (find-vulns only) |
+| `sessionDurationMs` | number | Macro-averaged wall-clock time |
+| `totalTokens` | number | Macro-averaged total tokens |
+| `totalCostUsd` | number or null | Macro-averaged cost in USD |
 
 ### Chart ideas by data field
 

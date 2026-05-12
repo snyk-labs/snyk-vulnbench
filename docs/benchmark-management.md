@@ -197,6 +197,9 @@ pnpm run benchmark -- --task ruby-find-vulns,ruby-fix-vulns
 # Both tasks across all configs
 pnpm run benchmark -- --task ruby-find-vulns
 pnpm run benchmark -- --task ruby-fix-vulns
+
+# Run with 3 repetitions to verify score stability
+pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6 --repetitions 3
 ```
 
 If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF) command config, inspect the JSONL `details.agentFindings`: any finding whose `type` is `"other"` while Snyk clearly reported a real issue usually means **`mapRuleId` in `src/parsers/snyk-code.ts` needs extending** — see [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings).
@@ -569,6 +572,8 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `parser` | Yes | `string` | Parser key from the registry in `src/parsers/index.ts` (e.g. `"snyk-code"`). |
 
 Command configs only support find-vulns tasks. They produce `"runConfigType": "command"` in JSONL output and have zeroed token/turn metrics (only `sessionDurationMs` and `filesScanned` are populated).
+
+**Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 
 ### MCPServerConfig fields
 

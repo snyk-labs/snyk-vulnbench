@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { styleText } from "node:util";
-import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig } from "./types.js";
+import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig, AggregatedTaskResult, AggregatedConfigResult } from "./types.js";
 
 // ─── Style Helpers ────────────────────────────────────────────────────────────
 
@@ -127,13 +127,24 @@ export function printResult(result: EvalResult): void {
 
 // ─── Save Results ─────────────────────────────────────────────────────────────
 
-export function saveResults(results: EvalResult[], outputDir: string): string {
+export function saveResults(
+  results: EvalResult[],
+  outputDir: string,
+  taskAggregates: AggregatedTaskResult[],
+  configAggregates: AggregatedConfigResult[],
+): string {
   mkdirSync(outputDir, { recursive: true });
   const filename = `benchmark-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`;
   const filepath = join(outputDir, filename);
 
   for (const result of results) {
-    appendFileSync(filepath, JSON.stringify(result) + "\n");
+    appendFileSync(filepath, JSON.stringify({ _type: "run", ...result }) + "\n");
+  }
+  for (const agg of taskAggregates) {
+    appendFileSync(filepath, JSON.stringify({ _type: "task-aggregate", ...agg }) + "\n");
+  }
+  for (const agg of configAggregates) {
+    appendFileSync(filepath, JSON.stringify({ _type: "config-aggregate", ...agg }) + "\n");
   }
 
   return filepath;
@@ -141,46 +152,7 @@ export function saveResults(results: EvalResult[], outputDir: string): string {
 
 // ─── Summary Table ────────────────────────────────────────────────────────────
 
-export function printSummaryTable(results: EvalResult[]): void {
-  if (results.length === 0) return;
-
-  const rule = "═".repeat(70);
-  console.log(`\n${s(["bold", "cyan"], rule)}`);
-  console.log(s(["bold", "cyan"], "  BENCHMARK SUMMARY"));
-  console.log(s(["bold", "cyan"], rule));
-
-  const hasFindVulns = results.some((r) => !r.error && "recall" in r.details);
-  const hasCost = results.some((r) => r.metrics.totalCostUsd != null);
-
-  const header = hasFindVulns
-    ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
-    : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
-
-  const rows = results.map((r) => {
-    const m = r.metrics;
-    const totalTokens = m.totalLogicalInputTokens + m.totalOutputTokens;
-    const base = [
-      r.taskId,
-      r.runConfigId,
-      r.error ? "ERROR" : `${(r.score * 100).toFixed(0)}%`,
-    ];
-
-    if (hasFindVulns) {
-      const isFV = !r.error && "recall" in r.details;
-      const d = isFV ? (r.details as FindVulnsDetails) : null;
-      base.push(d ? `${(d.recall * 100).toFixed(0)}%` : "-");
-      base.push(d ? `${(d.precision * 100).toFixed(0)}%` : "-");
-    }
-
-    base.push(totalTokens.toLocaleString());
-    if (hasCost) {
-      base.push(m.totalCostUsd != null ? `$${m.totalCostUsd.toFixed(4)}` : "-");
-    }
-    base.push(`${(m.sessionDurationMs / 1000).toFixed(1)}s`);
-    return base;
-  });
-
-  const leftAlignCols = new Set([0, 1]);
+function formatTable(header: string[], rows: string[][], leftAlignCols: Set<number>, scoreColIndex: number): void {
   const widths = header.map((h, i) =>
     Math.max(h.length, ...rows.map((r) => r[i].length)),
   );
@@ -189,7 +161,7 @@ export function printSummaryTable(results: EvalResult[]): void {
     "  " + row.map((cell, i) => {
       const padded = leftAlignCols.has(i) ? cell.padEnd(widths[i]) : cell.padStart(widths[i]);
       if (!colorize) return padded;
-      if (i === 2 && cell !== "ERROR" && cell !== "-") {
+      if (i === scoreColIndex && cell !== "ERROR" && cell !== "-") {
         const score = parseFloat(cell) / 100;
         return s(scoreColor(score), padded);
       }
@@ -203,23 +175,125 @@ export function printSummaryTable(results: EvalResult[]): void {
   for (const row of rows) {
     console.log(fmtRow(row, true));
   }
+}
 
-  // Per-config averages
-  const configScores = new Map<string, number[]>();
-  for (const r of results) {
-    if (r.error) continue;
-    const arr = configScores.get(r.runConfigId) ?? [];
-    arr.push(r.score);
-    configScores.set(r.runConfigId, arr);
+export function printSummaryTable(
+  results: EvalResult[],
+  taskAggregates: AggregatedTaskResult[],
+  configAggregates: AggregatedConfigResult[],
+): void {
+  if (results.length === 0) return;
+
+  const hasReps = results[0].totalRepetitions > 1;
+  const hasMultipleTasks = new Set(results.map((r) => r.taskId)).size > 1;
+
+  const rule = "═".repeat(70);
+  console.log(`\n${s(["bold", "cyan"], rule)}`);
+  console.log(s(["bold", "cyan"], "  BENCHMARK SUMMARY"));
+  console.log(s(["bold", "cyan"], rule));
+
+  // ── Section 1: Per-fixture table (from task aggregates when reps > 1, else raw results) ──
+
+  const hasFindVulns = taskAggregates.some((a) => a.recall != null);
+  const hasCost = taskAggregates.some((a) => a.totalCostUsd != null);
+
+  if (hasReps) {
+    const repLabel = `(mean of ${results[0].totalRepetitions})`;
+    console.log(`\n  ${s("dim", `Per-fixture scores ${repLabel}:`)}`);
+
+    const header = hasFindVulns
+      ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
+      : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
+
+    const rows = taskAggregates.map((a) => {
+      const base = [
+        a.taskId,
+        a.runConfigId,
+        `${(a.score * 100).toFixed(0)}%`,
+      ];
+      if (hasFindVulns) {
+        base.push(a.recall != null ? `${(a.recall * 100).toFixed(0)}%` : "-");
+        base.push(a.precision != null ? `${(a.precision * 100).toFixed(0)}%` : "-");
+      }
+      base.push(Math.round(a.totalTokens).toLocaleString());
+      if (hasCost) {
+        base.push(a.totalCostUsd != null ? `$${a.totalCostUsd.toFixed(4)}` : "-");
+      }
+      base.push(`${(a.sessionDurationMs / 1000).toFixed(1)}s`);
+      return base;
+    });
+
+    formatTable(header, rows, new Set([0, 1]), 2);
+  } else {
+    const header = hasFindVulns
+      ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
+      : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
+
+    const rows = results.map((r) => {
+      const m = r.metrics;
+      const totalTokens = m.totalLogicalInputTokens + m.totalOutputTokens;
+      const base = [
+        r.taskId,
+        r.runConfigId,
+        r.error ? "ERROR" : `${(r.score * 100).toFixed(0)}%`,
+      ];
+      if (hasFindVulns) {
+        const isFV = !r.error && "recall" in r.details;
+        const d = isFV ? (r.details as FindVulnsDetails) : null;
+        base.push(d ? `${(d.recall * 100).toFixed(0)}%` : "-");
+        base.push(d ? `${(d.precision * 100).toFixed(0)}%` : "-");
+      }
+      base.push(totalTokens.toLocaleString());
+      if (hasCost) {
+        base.push(m.totalCostUsd != null ? `$${m.totalCostUsd.toFixed(4)}` : "-");
+      }
+      base.push(`${(m.sessionDurationMs / 1000).toFixed(1)}s`);
+      return base;
+    });
+
+    formatTable(header, rows, new Set([0, 1]), 2);
   }
 
-  if (configScores.size > 0) {
-    console.log();
-    const avgParts = [...configScores.entries()].map(([id, scores]) => {
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      return `${s("dim", id)}  ${s(scoreColor(avg), `${(avg * 100).toFixed(0)}%`)}`;
+  // ── Section 2: Headline by config (macro-average across fixtures) ──
+
+  if (hasMultipleTasks || hasReps) {
+    const headlineLabel = hasMultipleTasks
+      ? "Headline scores (macro-avg across fixtures):"
+      : "Headline scores (mean across repetitions):";
+    console.log(`\n  ${s(["bold", "dim"], headlineLabel)}`);
+
+    const hdr = hasFindVulns
+      ? ["Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"]
+      : ["Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"];
+
+    const hRows = configAggregates.map((c) => {
+      const base = [
+        c.runConfigId,
+        `${(c.score * 100).toFixed(0)}%`,
+      ];
+      if (hasFindVulns) {
+        base.push(c.recall != null ? `${(c.recall * 100).toFixed(0)}%` : "-");
+        base.push(c.precision != null ? `${(c.precision * 100).toFixed(0)}%` : "-");
+      }
+      base.push(Math.round(c.totalTokens).toLocaleString());
+      if (hasCost) {
+        base.push(c.totalCostUsd != null ? `$${c.totalCostUsd.toFixed(4)}` : "-");
+      }
+      base.push(`${(c.sessionDurationMs / 1000).toFixed(1)}s`);
+      base.push(String(c.fixtureCount));
+      return base;
     });
-    console.log(`  ${s("dim", "Avg by config:")}  ${avgParts.join(s("dim", "   |   "))}`);
+
+    formatTable(hdr, hRows, new Set([0]), 1);
+  } else {
+    // Single task, single rep — just show the simple avg-by-config line like before
+    const avgParts = configAggregates.map((c) =>
+      `${s("dim", c.runConfigId)}  ${s(scoreColor(c.score), `${(c.score * 100).toFixed(0)}%`)}`,
+    );
+    if (avgParts.length > 0) {
+      console.log();
+      console.log(`  ${s("dim", "Avg by config:")}  ${avgParts.join(s("dim", "   |   "))}`);
+    }
   }
 
   console.log();

@@ -66,6 +66,17 @@ Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" 
 
 - "dry run" or "preview" → add `--dry-run`
 - "skip preflight" → add `--skip-preflight`
+- "3 times", "repeat 3", "3 reps", "3 repetitions" → add `--repetitions 3`
+
+**Repetitions resolution rules:**
+
+| User says | Resolves to |
+|-----------|-------------|
+| "run 3 times" or "3 reps" | `--repetitions 3` |
+| "repeat 5 times" | `--repetitions 5` |
+| (not mentioned) | omit (defaults to 1) |
+
+When repetitions are used, the total run count is tasks x configs x repetitions. The summary table will show per-fixture means and macro-averaged headline scores per config.
 
 **Done when:** you have the full `tsx src/index.ts [flags]` command string.
 
@@ -73,7 +84,7 @@ Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" 
 
 ### Step 3: Confirm the command before executing
 
-Show the user the resolved command and a brief summary of what will run (number of tasks x configs = total runs). Ask for confirmation only if the run is large (> 6 runs) or the request was ambiguous. For clear, small requests, proceed directly.
+Show the user the resolved command and a brief summary of what will run (number of tasks x configs x repetitions = total runs). Ask for confirmation only if the run is large (> 6 runs) or the request was ambiguous. For clear, small requests, proceed directly.
 
 **Done when:** the user confirms, or the request was unambiguous and small.
 
@@ -167,6 +178,18 @@ Result: Benchmark runs for js-project-purplehaze across all configured models an
 
 ---
 
+**User says:** "benchmark js find vulns 1 to 3 with sonnet, 3 reps"
+
+Actions:
+1. List tasks → find `js-project-tigerteam-find-vulns`, `js-project-shadowfox-find-vulns`, `js-project-ironclad-find-vulns`
+2. Resolve config "sonnet" → `sonnet-4-6`
+3. Resolve "3 reps" → `--repetitions 3`
+4. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config sonnet-4-6 --repetitions 3`
+
+Result: 3 tasks x 1 config x 3 repetitions = 9 runs. Summary shows per-fixture means and a macro-averaged headline score for Sonnet.
+
+---
+
 ## Troubleshooting
 
 Error: `No matching tasks found. Available: ...`
@@ -195,4 +218,4 @@ Solution: This is a fixture setup issue, not a run issue. Suggest using the `ben
 
 Error: Command hangs or takes unexpectedly long
 Cause: Model-based configs (opus, sonnet) run Claude Code as a subprocess per task. Each task can take 1-5 minutes depending on fixture complexity and model speed.
-Solution: This is normal. A 5-task x 2-config matrix can take 10-50 minutes. Use `--dry-run` first to preview, and consider running fewer tasks or configs to iterate faster.
+Solution: This is normal. A 5-task x 2-config matrix can take 10-50 minutes. With `--repetitions 3` that multiplies to 30-150 minutes. Use `--dry-run` first to preview, and consider running fewer tasks, configs, or repetitions to iterate faster.

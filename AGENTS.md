@@ -92,6 +92,9 @@ From the chat-summary.txt context:
 - After the agent run, use Claude API directly to judge the fixes
 - Score = fraction of known vulns that were remediated
 
+### Aggregation
+When multiple fixtures run, per-fixture scores are **macro-averaged** (unweighted mean) into a single headline number per config. When `--repetitions N` is used, repeated runs of the same (task, config) pair are averaged before the macro-average. See `docs/benchmark.md` → [Aggregation and Headline Scores](docs/benchmark.md#aggregation-and-headline-scores).
+
 ## Authentication
 
 The Agent SDK works by spawning the `claude` CLI binary as a subprocess — it does not call the Anthropic API directly. Authentication therefore follows whatever the Claude Code CLI has configured, which can be either:
@@ -109,6 +112,7 @@ pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:fix                  # only fix-vulns tasks
 pnpm benchmark -- --config opus-only    # specific run config
 pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task
+pnpm benchmark -- --repetitions 3       # run each (task, config) pair 3 times
 ```
 
 Results are saved to `results/benchmark-<timestamp>.jsonl`.

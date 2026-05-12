@@ -13,6 +13,7 @@ import {
 import { printResult, printRunProgress, printConfigHeader, printSummaryTable, saveResults } from "./reporter.js";
 import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
+import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig } from "./types.js";
@@ -29,11 +30,12 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const opts: {
     category?: EvalCategoryId;
-    tasks?: string[]; // comma-separated list of task IDs
-    configs?: string[]; // comma-separated list of config IDs
+    tasks?: string[];
+    configs?: string[];
+    repetitions: number;
     dryRun: boolean;
     skipPreflight: boolean;
-  } = { dryRun: false, skipPreflight: false };
+  } = { repetitions: 1, dryRun: false, skipPreflight: false };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--category" && args[i + 1]) {
@@ -45,6 +47,14 @@ function parseArgs() {
       opts.category = val as EvalCategoryId;
     } else if (args[i] === "--task" && args[i + 1]) opts.tasks = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--config" && args[i + 1]) opts.configs = args[++i].split(",").map((s) => s.trim());
+    else if (args[i] === "--repetitions" && args[i + 1]) {
+      const n = parseInt(args[++i], 10);
+      if (isNaN(n) || n < 1) {
+        console.error(`--repetitions must be a positive integer, got "${args[i]}"`);
+        process.exit(1);
+      }
+      opts.repetitions = n;
+    }
     else if (args[i] === "--dry-run") opts.dryRun = true;
     else if (args[i] === "--skip-preflight") opts.skipPreflight = true;
   }
@@ -74,8 +84,8 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
   const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
 
-  // Shared fields across all return sites
-  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, effort, thinking, timestamp };
+  // Shared fields across all return sites (repetition/totalRepetitions set by caller)
+  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, effort, thinking, timestamp, repetition: 1, totalRepetitions: 1 };
 
   // Command configs (SAST tools) only produce findings — they can't fix code
   if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
@@ -166,7 +176,11 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s) × ${configs.length} config(s) = ${tasks.length * configs.length} run(s)`)}`);
+  const { repetitions } = opts;
+  const totalRuns = tasks.length * configs.length * repetitions;
+  const repSuffix = repetitions > 1 ? ` × ${repetitions} rep(s)` : "";
+
+  console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s) × ${configs.length} config(s)${repSuffix} = ${totalRuns} run(s)`)}`);
   for (const task of tasks) {
     console.log(`  ${styleText("bold", task.id)}  ${styleText("dim", `[${task.category.id}]`)}`);
     for (let i = 0; i < configs.length; i++) {
@@ -197,7 +211,6 @@ async function main() {
   mkdirSync(TMP_DIR, { recursive: true });
 
   const results: EvalResult[] = [];
-  const totalRuns = tasks.length * configs.length;
   let runIndex = 0;
 
   for (let ci = 0; ci < configs.length; ci++) {
@@ -205,17 +218,25 @@ async function main() {
     printConfigHeader(config.name, ci + 1, configs.length);
 
     for (const task of tasks) {
-      runIndex++;
-      printRunProgress(task.name, runIndex, totalRuns);
-      const result = await runEval(task, config);
-      printResult(result);
-      results.push(result);
+      for (let rep = 0; rep < repetitions; rep++) {
+        runIndex++;
+        const repLabel = repetitions > 1 ? ` (rep ${rep + 1}/${repetitions})` : "";
+        printRunProgress(`${task.name}${repLabel}`, runIndex, totalRuns);
+        const result = await runEval(task, config);
+        result.repetition = rep + 1;
+        result.totalRepetitions = repetitions;
+        printResult(result);
+        results.push(result);
+      }
     }
   }
 
-  printSummaryTable(results);
+  const taskAggregates = aggregateByTask(results);
+  const configAggregates = aggregateByConfig(taskAggregates);
 
-  const outputPath = saveResults(results, RESULTS_DIR);
+  printSummaryTable(results, taskAggregates, configAggregates);
+
+  const outputPath = saveResults(results, RESULTS_DIR, taskAggregates, configAggregates);
   console.log(`Results saved to: ${outputPath}\n`);
 }
 

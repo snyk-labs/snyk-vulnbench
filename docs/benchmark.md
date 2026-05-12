@@ -21,7 +21,13 @@
 5. [Scoring Deep-Dive](#scoring-deep-dive)
    - [Command configs and Snyk Code (SAST)](#command-configs-and-snyk-code-sast)
    - [When to update `mapRuleId` (Snyk)](#when-to-update-mapruleid-snyk)
-6. [Metrics Deep-Dive](#metrics-deep-dive)
+6. [Aggregation and Headline Scores](#aggregation-and-headline-scores)
+   - [The Three-Level Pipeline](#the-three-level-pipeline)
+   - [Macro-Averaging](#macro-averaging)
+   - [Repetitions](#repetitions)
+   - [What Metrics Are Aggregated](#what-metrics-are-aggregated)
+   - [Design Decisions](#design-decisions)
+7. [Metrics Deep-Dive](#metrics-deep-dive)
    - [Metrics Quick Reference](#metrics-quick-reference)
    - [Session-Level Token Accounting](#session-level-token-accounting)
    - [SDK Message Structure and Deduplication](#sdk-message-structure-and-deduplication)
@@ -32,8 +38,8 @@
    - [Sample Output — fix-vulns Run](#sample-output--fix-vulns-run)
    - [Sample Output — Summary Table](#sample-output--summary-table)
    - [Sample Output — JSONL Record](#sample-output--jsonl-record)
-7. [FAQ — Understanding Token and Cost Reports](#faq--understanding-token-and-cost-reports)
-8. [Adding Your Own Tasks and Configs](#adding-your-own-tasks-and-configs)
+8. [FAQ — Understanding Token and Cost Reports](#faq--understanding-token-and-cost-reports)
+9. [Adding Your Own Tasks and Configs](#adding-your-own-tasks-and-configs)
 
 ---
 
@@ -635,14 +641,19 @@ The reporter handles all output. It has five functions:
 
 **`printResult(result)`** — prints a label-aligned block for one run immediately after it completes. Each metric gets its own line with a fixed-width dim label, making it easy to scan vertically. See [Metrics Deep-Dive](#metrics-deep-dive) for annotated mock output.
 
-**`printSummaryTable(results)`** — prints a compact comparison table after all runs finish. Columns: task id, config id, score (color-coded), recall, precision, total tokens, wall time. Includes per-config score averages. See [Sample Output — Summary Table](#sample-output--summary-table).
+**`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. When repetitions > 1, the per-fixture table shows mean scores (labeled "mean of N"). When multiple tasks are involved, a headline section shows per-config macro-averaged scores. Columns: task/config id, score (color-coded), recall, precision, total tokens, cost, wall time. See [Sample Output — Summary Table](#sample-output--summary-table).
 
-**`saveResults(results, dir)`** — writes each result as a JSON line to `results/benchmark-<timestamp>.jsonl`. JSONL (JSON Lines) format means one complete JSON object per line, making it easy to:
+**`saveResults(results, dir, taskAggregates, configAggregates)`** — writes results to `results/benchmark-<timestamp>.jsonl`. Each line is a JSON object tagged with a `_type` discriminator:
+- `"run"` — raw `EvalResult` (one per execution)
+- `"task-aggregate"` — `AggregatedTaskResult` (one per task+config pair, mean across repetitions)
+- `"config-aggregate"` — `AggregatedConfigResult` (one per config, macro-averaged across fixtures)
+
+JSONL (JSON Lines) format means one complete JSON object per line, making it easy to:
 - Load into analysis tools (Python pandas, etc.)
 - Append new results without re-reading old ones
-- Query with `jq` from the command line
+- Query with `jq` from the command line — filter by `_type` to select the aggregation level
 
-See [Sample Output — JSONL Record](#sample-output--jsonl-record) for the full structure of one record.
+See [Sample Output — JSONL Record](#sample-output--jsonl-record) for the full structure of each row type.
 
 ---
 
@@ -665,6 +676,8 @@ interface EvalResult {
   metrics: BenchmarkMetrics; // tokens, time, tool calls
   details: FindVulnsDetails | FixVulnsDetails; // what happened in scoring
   timestamp: string;       // ISO 8601 — when this run happened
+  repetition: number;      // 1-indexed repetition number (e.g. 2 of 3)
+  totalRepetitions: number; // total reps requested for this task+config pair
   error?: string;          // set if the run crashed
 }
 ```
@@ -856,6 +869,124 @@ The SARIF → **`VulnType`** step is **`mapRuleId()`** in **`src/parsers/snyk-co
 - You add a **command config** that still uses the **`snyk-code`** parser — the same `mapRuleId` applies; wire the config in `evals/run-configs.json` only after the parser can map the rules you care about.
 
 Operational checklist, example `jq` invocations, and the distinction between “**new `VulnType`**” vs “**existing type, new Snyk id**” live in **`docs/benchmark-management.md`** → [Maintaining Snyk Code ruleId mappings](./benchmark-management.md#maintaining-snyk-code-ruleid-mappings).
+
+---
+
+## Aggregation and Headline Scores
+
+When multiple fixtures and/or repeated runs are involved, raw per-run scores need to be collapsed into single headline numbers for comparison charts. This section explains the aggregation pipeline, the statistical approach, and the design decisions behind it.
+
+Frontier eval suites — SWE-bench, HumanEval, MBPP, MMLU, and the benchmark sections of model cards from Anthropic, OpenAI, and others — all face the same problem: they run a model against dozens or hundreds of tasks and need to report *one number* on a chart. The standard approach is **macro-averaging**: compute the metric independently for each task, then take the arithmetic mean across tasks. SWE-bench's headline "resolve rate" is literally `resolved / total_tasks` — a macro-average of binary pass/fail. This ensures each test scenario contributes equally regardless of how many sub-items it contains, which is the right default when fixtures represent qualitatively different codebases rather than interchangeable samples from the same distribution.
+
+Non-determinism adds a second dimension. Model responses vary between runs, so a single execution may not be representative. The standard practice is to run each (task, config) pair multiple times (typically 3–5), take the mean across those repetitions as the per-fixture score, and then macro-average those fixture-level means into the headline number. The raw per-run data is preserved so that anyone who needs standard deviations or confidence intervals can compute them after the fact.
+
+The rest of this section details exactly how the benchmark implements this two-step collapse — repetitions first, then macro-averaging — and the design decisions that shaped it.
+
+---
+
+### The Three-Level Pipeline
+
+Scores are aggregated in three levels, each producing a progressively more condensed view:
+
+```mermaid
+flowchart LR
+    raw["EvalResult[]<br/>(N tasks x M configs x R reps)"] --> byTask
+    byTask["aggregateByTask()<br/>AggregatedTaskResult[]<br/>(N x M, mean over R reps)"] --> byConfig
+    byConfig["aggregateByConfig()<br/>AggregatedConfigResult[]<br/>(M configs, macro-avg over N tasks)"]
+```
+
+| Level | What it represents | How it's computed |
+|---|---|---|
+| **Per-run** | One execution of `runEval(task, config)` | Raw scores: F1, recall, precision, time, tokens, cost |
+| **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions |
+| **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures |
+
+The per-config level produces the **headline numbers** — the single values shown on comparison charts (e.g. "Opus F1: 83%, Sonnet F1: 71%, Snyk Code F1: 92%").
+
+**Example with 3 fixtures, 2 configs, 3 repetitions:**
+- 18 raw `EvalResult` objects (per-run level)
+- 6 per-fixture scores (3 fixtures x 2 configs, each the mean of 3 reps)
+- 2 headline numbers (one per config, each the mean of 3 fixture-level scores)
+
+---
+
+### Macro-Averaging
+
+The headline score for each config is a **macro-average** (unweighted mean) across fixtures. Each fixture contributes equally to the final number regardless of how many vulnerabilities it contains.
+
+**Why macro-average and not micro-average?** Micro-averaging pools all TP/FP/FN across fixtures and computes one combined metric. This would let a fixture with 50 vulns dominate over one with 3 vulns. Macro-averaging ensures each fixture (test scenario) has equal weight, which is appropriate when fixtures represent qualitatively different codebases rather than interchangeable samples from the same distribution.
+
+This is the standard approach used by SWE-bench (resolve rate = mean of binary pass/fail per task), HumanEval, MBPP, MMLU, and most frontier eval suites.
+
+---
+
+### Repetitions
+
+To mitigate non-determinism in model responses, the benchmark supports running each (task, config) pair multiple times via the `--repetitions N` CLI flag.
+
+```bash
+# Run each (task, config) pair 3 times
+pnpm run benchmark -- --repetitions 3
+
+# Combine with other filters
+pnpm run benchmark -- --category find-vulns --config sonnet-4-6 --repetitions 3
+```
+
+When `--repetitions` is omitted, it defaults to **1** (existing behavior unchanged).
+
+The per-fixture score used in the macro-average is the arithmetic mean across repetitions:
+
+```
+score(fixture_i, config_j) = mean over k runs of score(fixture_i, config_j, run_k)
+```
+
+Then the headline number is:
+
+```
+headline_score(config_j) = mean over i fixtures of score(fixture_i, config_j)
+```
+
+Each raw `EvalResult` carries `repetition` (1-indexed) and `totalRepetitions` fields so results can be identified and grouped after the fact.
+
+**Recommended repetition counts:**
+- **1** (default): Fine for initial/exploratory runs and SAST command configs (which are deterministic)
+- **3**: Practical minimum for meaningful averaging across model runs
+- **5**: More reliable; recommended for published comparisons
+
+---
+
+### What Metrics Are Aggregated
+
+All numeric metrics are averaged at both the per-fixture and per-config levels:
+
+| Metric | Per-fixture | Per-config |
+|---|---|---|
+| **Score (F1)** | Mean across reps | Macro-avg across fixtures |
+| **Recall** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
+| **Precision** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
+| **Wall time** (`sessionDurationMs`) | Mean across reps | Macro-avg across fixtures |
+| **Total tokens** (logical input + output) | Mean across reps | Macro-avg across fixtures |
+| **Cost** (`totalCostUsd`) | Mean across reps (null if any run lacked it) | Macro-avg across fixtures |
+
+Aggregate rows are written to the JSONL output file alongside raw results, tagged with a `_type` discriminator:
+
+| `_type` | What it contains |
+|---|---|
+| `"run"` | Raw `EvalResult` — one execution |
+| `"task-aggregate"` | `AggregatedTaskResult` — mean across reps for one (task, config) |
+| `"config-aggregate"` | `AggregatedConfigResult` — macro-avg across fixtures for one config |
+
+Downstream consumers (chart generators, `jq` queries) can filter by `_type` to select the appropriate aggregation level.
+
+---
+
+### Design Decisions
+
+**Weighted averaging: out of scope.** All fixtures contribute equally to the headline number. This is the simplest, most transparent, and most defensible approach. It could be revisited if fixtures are deliberately grouped by difficulty tier, but for now the benchmark treats all fixtures as equally important test scenarios.
+
+**Error bars / confidence intervals: out of scope.** These add reporting complexity without a clear current need. The raw per-run data (all `"run"` rows) is preserved in the JSONL file, so anyone who needs standard deviations or confidence intervals can compute them from the raw data after the fact.
+
+**Micro-averaging: not used.** As explained above, micro-averaging would let large fixtures dominate the headline number. Macro-averaging is the field standard for heterogeneous eval suites.
 
 ---
 
@@ -1142,31 +1273,80 @@ Note the difference in tool usage: `Edit` calls dominate for fix tasks (high inp
 
 ### Sample Output — Summary Table
 
-After all runs complete, `printSummaryTable()` prints a comparison across the full task × config matrix. For find-vulns tasks, Recall and Precision columns are included. A Cost column appears when any run has cost data (model runs from the SDK). Scores are color-coded (green >= 90%, yellow 70-89%, red < 70%). Per-config averages are shown at the bottom.
+After all runs complete, `printSummaryTable()` prints a comparison. For find-vulns tasks, Recall and Precision columns are included. A Cost column appears when any run has cost data. Scores are color-coded (green >= 90%, yellow 70-89%, red < 70%).
+
+**Single task, single repetition** — the simplest case:
 
 ```
 ══════════════════════════════════════════════════════════════════════
   BENCHMARK SUMMARY
 ══════════════════════════════════════════════════════════════════════
 
-  Task                   Config      Score  Recall  Prec.  Tokens     Cost   Time
-  ─────────────────────  ──────────  ─────  ──────  ─────  ──────  ───────  ─────
-  js-project-tigerteam-find-vulns  sonnet-4-6    67%     71%    63%  56,164  $0.0509  40.3s
-  js-project-tigerteam-find-vulns  snyk-code    100%    100%   100%       0        -   9.9s
+  Task                               Config      Score  Recall  Prec.  Tokens     Cost   Time
+  ───────────────────────────────    ──────────  ─────  ──────  ─────  ──────  ───────  ─────
+  js-project-tigerteam-find-vulns   sonnet-4-6    67%     71%    63%  56,164  $0.0509  40.3s
+  js-project-tigerteam-find-vulns   snyk-code    100%    100%   100%       0        -   9.9s
 
   Avg by config:  sonnet-4-6  67%   |   snyk-code  100%
 ```
 
-Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types. The Cost column uses `totalCostUsd` from the SDK — SAST/command runs show "-" since they have no API token cost.
+**Multiple tasks** — a headline section appears with macro-averaged scores per config:
+
+```
+══════════════════════════════════════════════════════════════════════
+  BENCHMARK SUMMARY
+══════════════════════════════════════════════════════════════════════
+
+  Task                               Config      Score  Recall  Prec.   Tokens     Cost    Time
+  ───────────────────────────────    ──────────  ─────  ──────  ─────  ───────  ───────  ──────
+  js-project-tigerteam-find-vulns   sonnet-4-6    67%     71%    63%   56,164  $0.0509   40.3s
+  js-project-tigerteam-find-vulns   snyk-code    100%    100%   100%        0        -    9.9s
+  js-project-shadowfox-find-vulns   sonnet-4-6    78%     80%    76%   48,200  $0.0421   35.1s
+  js-project-shadowfox-find-vulns   snyk-code     91%     91%    91%        0        -   10.2s
+
+  Headline scores (macro-avg across fixtures):
+
+  Config      Score  Recall  Prec.   Tokens     Cost    Time  Fixtures
+  ──────────  ─────  ──────  ─────  ───────  ───────  ──────  ────────
+  sonnet-4-6    73%     76%    70%   52,182  $0.0465   37.7s         2
+  snyk-code     96%     96%    96%        0        -   10.1s         2
+```
+
+**With repetitions** (`--repetitions 3`) — per-fixture table shows means:
+
+```
+══════════════════════════════════════════════════════════════════════
+  BENCHMARK SUMMARY
+══════════════════════════════════════════════════════════════════════
+
+  Per-fixture scores (mean of 3):
+
+  Task                               Config      Score  Recall  Prec.   Tokens     Cost    Time
+  ───────────────────────────────    ──────────  ─────  ──────  ─────  ───────  ───────  ──────
+  js-project-tigerteam-find-vulns   sonnet-4-6    70%     74%    66%   55,800  $0.0498   39.8s
+  js-project-tigerteam-find-vulns   snyk-code    100%    100%   100%        0        -    9.9s
+
+  Headline scores (mean across repetitions):
+
+  Config      Score  Recall  Prec.   Tokens     Cost    Time  Fixtures
+  ──────────  ─────  ──────  ─────  ───────  ───────  ──────  ────────
+  sonnet-4-6    70%     74%    66%   55,800  $0.0498   39.8s         1
+  snyk-code    100%    100%   100%        0        -    9.9s         1
+```
+
+Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types. The headline section provides the single number per config that goes on comparison charts.
 
 ---
 
 ### Sample Output — JSONL Record
 
-Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This is the complete record — everything the console shows plus the raw data behind it:
+Each JSONL file contains three row types distinguished by `_type`. Raw run results come first, followed by task aggregates and config aggregates.
+
+**Run row** (`_type: "run"`) — one per execution:
 
 ```json
 {
+  "_type": "run",
   "taskId": "js-project-tigerteam-find-vulns",
   "taskName": "JS App: Find Vulnerabilities 1",
   "runConfigId": "sonnet-4-6",
@@ -1176,6 +1356,8 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
   "thinking": { "type": "adaptive" },
   "score": 0.667,
   "timestamp": "2026-05-12T10:46:33.179Z",
+  "repetition": 1,
+  "totalRepetitions": 1,
   "metrics": {
     "sessionDurationMs": 40254,
     "totalInputTokens": 7,
@@ -1231,31 +1413,77 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
 }
 ```
 
+**Task-aggregate row** (`_type: "task-aggregate"`) — one per (task, config) pair, mean across repetitions:
+
+```json
+{
+  "_type": "task-aggregate",
+  "taskId": "js-project-tigerteam-find-vulns",
+  "taskName": "JS App: Find Vulnerabilities 1",
+  "runConfigId": "sonnet-4-6",
+  "runConfigName": "Claude Sonnet 4.6 (no MCP)",
+  "runConfigType": "model",
+  "effort": "high",
+  "thinking": { "type": "adaptive" },
+  "repetitions": 1,
+  "score": 0.667,
+  "recall": 0.714,
+  "precision": 0.625,
+  "sessionDurationMs": 40254,
+  "totalTokens": 56164,
+  "totalCostUsd": 0.0508587
+}
+```
+
+**Config-aggregate row** (`_type: "config-aggregate"`) — one per config, macro-averaged across all fixtures:
+
+```json
+{
+  "_type": "config-aggregate",
+  "runConfigId": "sonnet-4-6",
+  "runConfigName": "Claude Sonnet 4.6 (no MCP)",
+  "runConfigType": "model",
+  "fixtureCount": 2,
+  "score": 0.725,
+  "recall": 0.757,
+  "precision": 0.695,
+  "sessionDurationMs": 37677,
+  "totalTokens": 52182,
+  "totalCostUsd": 0.0465
+}
+```
+
 The JSONL file can be queried directly:
 ```bash
-# Show all scores
-jq '.score' results/benchmark-*.jsonl
+# Show all raw run scores
+jq 'select(._type == "run") | .score' results/benchmark-*.jsonl
+
+# Get headline scores per config (for charts)
+jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, recall: .recall}' results/benchmark-*.jsonl
+
+# Get per-fixture scores (with repetition averaging already applied)
+jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, score: .score}' results/benchmark-*.jsonl
 
 # Compare model vs SAST scores for the same task
-jq 'select(.taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
 
 # Only model runs (exclude SAST tools)
-jq 'select(.runConfigType == "model")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model")' results/benchmark-*.jsonl
 
 # Only SAST tool runs
-jq 'select(.runConfigType == "command")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "command")' results/benchmark-*.jsonl
 
 # Compare logical input tokens and cost across model configs
-jq 'select(.runConfigType == "model") | {config: .runConfigId, task: .taskId, tokens: .metrics.totalLogicalInputTokens, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, task: .taskId, tokens: .metrics.totalLogicalInputTokens, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
 
 # Find the most-used tool across all model runs
-jq 'select(.runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/benchmark-*.jsonl
 
 # Compare scores across effort levels for the same model
-jq 'select(.runConfigType == "model") | {config: .runConfigId, effort: .effort, thinking: .thinking.type, score: .score, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, effort: .effort, thinking: .thinking.type, score: .score, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
 
 # Only high-effort runs
-jq 'select(.effort == "high")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .effort == "high")' results/benchmark-*.jsonl
 ```
 
 ---
@@ -1396,4 +1624,12 @@ pnpm run benchmark -- --category app-find-vulns
 # Preview what would run without actually running anything
 pnpm run benchmark -- --dry-run
 pnpm run benchmark -- --category llm-find-vulns --dry-run
+
+# Run each (task, config) pair 3 times to mitigate non-determinism
+pnpm run benchmark -- --repetitions 3
+
+# Combine repetitions with other filters
+pnpm run benchmark -- --category find-vulns --config sonnet-4-6 --repetitions 3
+
+# Repetitions default to 1 — omitting the flag gives existing behavior
 ```

@@ -235,5 +235,41 @@ export interface EvalResult {
   metrics: BenchmarkMetrics;
   details: FindVulnsDetails | FixVulnsDetails;
   timestamp: string;
+  /** 1-indexed repetition number (e.g. 2 means this is the 2nd run of the same task+config). */
+  repetition: number;
+  /** Total repetitions requested for this task+config pair. */
+  totalRepetitions: number;
   error?: string;
+}
+
+/** Aggregated metrics for one (task, config) pair across repeated runs. */
+export interface AggregatedTaskResult {
+  taskId: string;
+  taskName: string;
+  runConfigId: string;
+  runConfigName: string;
+  runConfigType: "model" | "command";
+  effort: EffortLevel | null;
+  thinking: ThinkingConfig | null;
+  repetitions: number;
+  score: number;
+  recall: number | null;
+  precision: number | null;
+  sessionDurationMs: number;
+  totalTokens: number;
+  totalCostUsd: number | null;
+}
+
+/** Headline numbers for one config, macro-averaged across all fixtures. */
+export interface AggregatedConfigResult {
+  runConfigId: string;
+  runConfigName: string;
+  runConfigType: "model" | "command";
+  fixtureCount: number;
+  score: number;
+  recall: number | null;
+  precision: number | null;
+  sessionDurationMs: number;
+  totalTokens: number;
+  totalCostUsd: number | null;
 }
