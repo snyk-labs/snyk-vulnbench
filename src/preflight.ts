@@ -56,24 +56,24 @@ function checkClaudeInstalled(): CheckResult {
 }
 
 function checkClaudeAuth(): CheckResult {
+  const failMsg = "Not logged in. Run: claude auth login  (or set ANTHROPIC_API_KEY)";
   try {
     const output = run("claude", ["auth", "status"]);
-    const loggedIn = /logged in/i.test(output) || /authenticated/i.test(output) || /ANTHROPIC_API_KEY/i.test(output);
-    if (loggedIn) {
-      const summary = output.split("\n").filter(Boolean).slice(0, 2).join(" ").trim();
-      return { ok: true, label: "Claude Code auth", detail: summary };
+    try {
+      const status = JSON.parse(output);
+      if (status.loggedIn) {
+        const parts = [status.authMethod, status.email, status.orgName].filter(Boolean);
+        return { ok: true, label: "Claude Code auth", detail: parts.join(", ") || "authenticated" };
+      }
+    } catch {
+      // Not JSON — fall through to text heuristics for older CLI versions
+      if (/logged.?in|authenticated|ANTHROPIC_API_KEY/i.test(output)) {
+        return { ok: true, label: "Claude Code auth", detail: output.split("\n").filter(Boolean)[0]?.trim() ?? "authenticated" };
+      }
     }
-    return {
-      ok: false,
-      label: "Claude Code auth",
-      detail: "Not logged in. Run: claude auth login  (or set ANTHROPIC_API_KEY)",
-    };
+    return { ok: false, label: "Claude Code auth", detail: failMsg };
   } catch {
-    return {
-      ok: false,
-      label: "Claude Code auth",
-      detail: "Could not verify auth. Run: claude auth login  (or set ANTHROPIC_API_KEY)",
-    };
+    return { ok: false, label: "Claude Code auth", detail: failMsg };
   }
 }
 
