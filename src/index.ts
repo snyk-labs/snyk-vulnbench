@@ -10,10 +10,11 @@ import {
   scoreFixVulns,
   fixVulnsScore,
 } from "./scorer.js";
-import { printResult, printSummaryTable, saveResults } from "./reporter.js";
+import { printResult, printRunProgress, printConfigHeader, printSummaryTable, saveResults } from "./reporter.js";
 import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
 import { EVAL_CATEGORIES } from "./types.js";
+import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -59,8 +60,6 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
   // Shared fields across all return sites
   const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, timestamp };
-
-  console.log(`\nRunning: ${task.name} | ${config.name}`);
 
   // Command configs (SAST tools) only produce findings — they can't fix code
   if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
@@ -151,14 +150,14 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\nBenchmark: ${tasks.length} task(s) × ${configs.length} config(s) = ${tasks.length * configs.length} run(s)`);
+  console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s) × ${configs.length} config(s) = ${tasks.length * configs.length} run(s)`)}`);
   for (const task of tasks) {
-    console.log(`  ${task.id}  [${task.category.id}]`);
+    console.log(`  ${styleText("bold", task.id)}  ${styleText("dim", `[${task.category.id}]`)}`);
     for (let i = 0; i < configs.length; i++) {
       const c = configs[i];
-      const prefix = i === configs.length - 1 ? "  └─" : "  ├─";
+      const connector = i === configs.length - 1 ? "└─" : "├─";
       const label = c.type === "command" ? `[sast] ${(c as CommandRunConfig).command}` : (c as ModelRunConfig).model;
-      console.log(`${prefix} ${c.id}: ${label}`);
+      console.log(`  ${styleText("dim", connector)} ${c.id}: ${label}`);
     }
   }
 
@@ -174,9 +173,16 @@ async function main() {
   mkdirSync(TMP_DIR, { recursive: true });
 
   const results: EvalResult[] = [];
+  const totalRuns = tasks.length * configs.length;
+  let runIndex = 0;
 
-  for (const config of configs) {
+  for (let ci = 0; ci < configs.length; ci++) {
+    const config = configs[ci];
+    printConfigHeader(config.name, ci + 1, configs.length);
+
     for (const task of tasks) {
+      runIndex++;
+      printRunProgress(task.name, runIndex, totalRuns);
       const result = await runEval(task, config);
       printResult(result);
       results.push(result);
@@ -186,7 +192,7 @@ async function main() {
   printSummaryTable(results);
 
   const outputPath = saveResults(results, RESULTS_DIR);
-  console.log(`\nResults saved to: ${outputPath}\n`);
+  console.log(`Results saved to: ${outputPath}\n`);
 }
 
 main().catch((err) => {
