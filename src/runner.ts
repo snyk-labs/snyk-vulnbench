@@ -14,11 +14,16 @@ export async function runTask(
   const toolCalls: ToolCallRecord[] = [];
   const toolStartTimes = new Map<string, number>();
   const filesScannedSet = new Set<string>();
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
-  let totalCacheReadTokens = 0;
-  let totalCacheCreationTokens = 0;
-  let totalTurns = 0;
+  // Manual per-turn accumulation (fallback when SDKResultMessage.usage is unavailable)
+  let accInputTokens = 0;
+  let accOutputTokens = 0;
+  let accCacheReadTokens = 0;
+  let accCacheCreationTokens = 0;
+  let accTurns = 0;
+  // Authoritative session totals from SDKResultMessage (preferred when available)
+  let resultUsage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } | null = null;
+  let resultCostUsd: number | null = null;
+  let resultNumTurns: number | null = null;
   let finalText = "";
 
   // PreToolUse hook: record start time
@@ -100,11 +105,11 @@ export async function runTask(
           const usageKey = `${usage.input_tokens}:${usage.output_tokens}:${usage.cache_read_input_tokens}:${usage.cache_creation_input_tokens}`;
           if (lastUsagePerSession.get(sessionKey) !== usageKey) {
             lastUsagePerSession.set(sessionKey, usageKey);
-            totalTurns++;
-            totalInputTokens += usage.input_tokens ?? 0;
-            totalOutputTokens += usage.output_tokens ?? 0;
-            totalCacheReadTokens += usage.cache_read_input_tokens ?? 0;
-            totalCacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+            accTurns++;
+            accInputTokens += usage.input_tokens ?? 0;
+            accOutputTokens += usage.output_tokens ?? 0;
+            accCacheReadTokens += usage.cache_read_input_tokens ?? 0;
+            accCacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
           }
         }
         // Capture the last text block as the final output
@@ -117,19 +122,31 @@ export async function runTask(
       if ("result" in message) {
         const result = message as any;
         if (result.result) finalText = result.result;
+        // SDKResultMessage carries authoritative session-level token totals.
+        // Prefer these over manual per-turn accumulation when available.
+        if (result.usage) {
+          resultUsage = {
+            input_tokens: result.usage.input_tokens ?? 0,
+            output_tokens: result.usage.output_tokens ?? 0,
+            cache_read_input_tokens: result.usage.cache_read_input_tokens ?? 0,
+            cache_creation_input_tokens: result.usage.cache_creation_input_tokens ?? 0,
+          };
+          resultCostUsd = typeof result.total_cost_usd === "number" ? result.total_cost_usd : null;
+          resultNumTurns = typeof result.num_turns === "number" ? result.num_turns : null;
+        }
       }
     }
   } catch (err) {
     return {
       finalText,
-      metrics: buildMetrics(sessionStart, totalInputTokens, totalOutputTokens, totalCacheReadTokens, totalCacheCreationTokens, totalTurns, toolCalls, filesScannedSet),
+      metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet }),
       error: String(err),
     };
   }
 
   return {
     finalText,
-    metrics: buildMetrics(sessionStart, totalInputTokens, totalOutputTokens, totalCacheReadTokens, totalCacheCreationTokens, totalTurns, toolCalls, filesScannedSet),
+    metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet }),
   };
 }
 
@@ -139,18 +156,23 @@ function estimateTokens(value: unknown): number {
   return Math.ceil(JSON.stringify(value).length / 4);
 }
 
-function buildMetrics(
-  sessionStart: number,
-  inputTokens: number,
-  outputTokens: number,
-  cacheReadTokens: number,
-  cacheCreationTokens: number,
-  turns: number,
-  toolCalls: ToolCallRecord[],
-  filesScannedSet: Set<string>,
-): BenchmarkMetrics {
+interface BuildMetricsInput {
+  sessionStart: number;
+  accInputTokens: number;
+  accOutputTokens: number;
+  accCacheReadTokens: number;
+  accCacheCreationTokens: number;
+  accTurns: number;
+  resultUsage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } | null;
+  resultCostUsd: number | null;
+  resultNumTurns: number | null;
+  toolCalls: ToolCallRecord[];
+  filesScannedSet: Set<string>;
+}
+
+function buildMetrics(input: BuildMetricsInput): BenchmarkMetrics {
   const toolStats: Record<string, { count: number; totalDurationMs: number; totalInputTokensEst: number; totalOutputTokensEst: number }> = {};
-  for (const call of toolCalls) {
+  for (const call of input.toolCalls) {
     if (!toolStats[call.tool]) toolStats[call.tool] = { count: 0, totalDurationMs: 0, totalInputTokensEst: 0, totalOutputTokensEst: 0 };
     toolStats[call.tool].count++;
     toolStats[call.tool].totalDurationMs += call.durationMs;
@@ -158,15 +180,25 @@ function buildMetrics(
     toolStats[call.tool].totalOutputTokensEst += call.outputTokensEst;
   }
 
+  // Prefer authoritative session totals from SDKResultMessage when available,
+  // falling back to manually accumulated per-turn values.
+  const inputTokens = input.resultUsage?.input_tokens ?? input.accInputTokens;
+  const outputTokens = input.resultUsage?.output_tokens ?? input.accOutputTokens;
+  const cacheReadTokens = input.resultUsage?.cache_read_input_tokens ?? input.accCacheReadTokens;
+  const cacheCreationTokens = input.resultUsage?.cache_creation_input_tokens ?? input.accCacheCreationTokens;
+  const turns = input.resultNumTurns ?? input.accTurns;
+
   return {
-    sessionDurationMs: Date.now() - sessionStart,
+    sessionDurationMs: Date.now() - input.sessionStart,
     totalInputTokens: inputTokens,
     totalOutputTokens: outputTokens,
     totalCacheReadTokens: cacheReadTokens,
     totalCacheCreationTokens: cacheCreationTokens,
+    totalLogicalInputTokens: inputTokens + cacheReadTokens + cacheCreationTokens,
+    totalCostUsd: input.resultCostUsd,
     totalTurns: turns,
-    toolCalls,
+    toolCalls: input.toolCalls,
     toolStats,
-    filesScanned: [...filesScannedSet],
+    filesScanned: [...input.filesScannedSet],
   };
 }

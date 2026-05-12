@@ -160,6 +160,10 @@ export interface BenchmarkMetrics {
   totalCacheReadTokens: number;
   /** Tokens written into the prompt cache on this session */
   totalCacheCreationTokens: number;
+  /** Total logical input tokens (input + cache_read + cache_creation) — the actual context size the model processed */
+  totalLogicalInputTokens: number;
+  /** Session cost in USD from the SDK (accounts for cached vs non-cached pricing). Null when unavailable. */
+  totalCostUsd: number | null;
   totalTurns: number;
   toolCalls: ToolCallRecord[];
   /** Aggregated per-tool stats */

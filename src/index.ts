@@ -66,7 +66,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     return {
       ...base,
       score: 0,
-      metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [] },
+      metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [] },
       details: { agentFindings: [], truePositives: [], falsePositives: 0, falseNegatives: task.knownVulns.map((v) => v.id), precision: 0, recall: 0 },
       error: `Command config "${config.id}" does not support fix-vulns tasks`,
     };
