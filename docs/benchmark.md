@@ -326,9 +326,14 @@ interface ModelRunConfig {
   id: string;
   name: string;
   model: string;                           // e.g. "claude-opus-4-6"
+  effort?: EffortLevel;                    // "low" | "medium" | "high" | "max" — defaults to "high"
+  thinking?: ThinkingConfig;               // defaults to { type: "adaptive" }
   mcpServers?: Record<string, MCPServer>;  // optional: MCP tool servers
   maxTurns?: number;
 }
+
+// EffortLevel = "low" | "medium" | "high" | "max"
+// ThinkingConfig = { type: "adaptive" } | { type: "enabled"; budgetTokens?: number } | { type: "disabled" }
 
 // Command-based: runs a CLI tool (SAST scanner, etc.)
 interface CommandRunConfig {
@@ -363,6 +368,52 @@ Example comparisons enabled by this design:
     "semgrep": { "command": "npx", "args": ["@semgrep/mcp"] }
   }
 }
+```
+
+#### Effort and Thinking
+
+Two parameters control how deeply Claude reasons during a benchmark run:
+
+**`effort`** — Controls the overall reasoning effort level. Higher effort means more thorough analysis but more tokens and time. Available levels:
+
+| Level | Description | Default? |
+|---|---|---|
+| `"low"` | Minimal thinking, fastest responses | |
+| `"medium"` | Moderate thinking | |
+| `"high"` | Deep reasoning | **Yes** (default if omitted) |
+| `"max"` | Maximum effort (Opus 4.6 only) | |
+
+**`thinking`** — Controls Claude's extended thinking (chain-of-thought) mode:
+
+| Config | Description | Default? |
+|---|---|---|
+| `{ "type": "adaptive" }` | Claude decides when and how much to think (Opus 4.6+, Sonnet 4.6) | **Yes** (default if omitted) |
+| `{ "type": "enabled", "budgetTokens": N }` | Fixed thinking token budget | |
+| `{ "type": "disabled" }` | No extended thinking | |
+
+Both values are recorded in every JSONL result (`effort` and `thinking` fields on `EvalResult`), so you can compare runs at different effort levels after the fact. Example configs for benchmarking effort:
+
+```json
+[
+  {
+    "id": "sonnet-low",
+    "name": "Claude Sonnet 4.6 (low effort)",
+    "model": "claude-sonnet-4-6",
+    "effort": "low"
+  },
+  {
+    "id": "sonnet-high",
+    "name": "Claude Sonnet 4.6 (high effort)",
+    "model": "claude-sonnet-4-6",
+    "effort": "high"
+  },
+  {
+    "id": "opus-max",
+    "name": "Claude Opus 4.6 (max effort)",
+    "model": "claude-opus-4-6",
+    "effort": "max"
+  }
+]
 ```
 
 **Adding a SAST command config:**
@@ -608,6 +659,8 @@ interface EvalResult {
   runConfigId: string;     // e.g. "opus-4-6"
   runConfigName: string;   // e.g. "Claude Opus 4.6 (no MCP)"
   runConfigType: "model" | "command"; // distinguishes Agent SDK runs from SAST tool runs
+  effort: EffortLevel | null;      // "low" | "medium" | "high" | "max" — null for command runs
+  thinking: ThinkingConfig | null; // { type: "adaptive" } etc. — null for command runs
   score: number;           // 0.0–1.0
   metrics: BenchmarkMetrics; // tokens, time, tool calls
   details: FindVulnsDetails | FixVulnsDetails; // what happened in scoring
@@ -838,6 +891,13 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **Vulns attempted** | `Fixed       :  N/M vulnerabilities` | `details.vulnsAttempted` | Total known vulns in the fixture |
 | **Judge notes** | `Notes       :  ...` | `details.judgeNotes` | Per-vuln verdict from the LLM judge (Claude Haiku) |
 
+#### Agent configuration (model runs only)
+
+| Metric | Report line | JSONL field | What it means |
+|---|---|---|---|
+| **Effort** | `Effort      :  high  (thinking: adaptive)` | `effort` | Reasoning effort level (`"low"` / `"medium"` / `"high"` / `"max"`). Null for command runs. |
+| **Thinking** | Shown inline with effort | `thinking` | Extended thinking config (`{ type: "adaptive" }` / `{ type: "enabled", budgetTokens: N }` / `{ type: "disabled" }`). Null for command runs. |
+
 #### Session metrics (all eval types)
 
 | Metric | Report line | JSONL field | What it means |
@@ -1029,6 +1089,7 @@ Runs are grouped by config with a banner header. Each run shows a progress count
 
   ▸ [1/2] JS App: Find Vulnerabilities 1                              ← bold task name + progress
     Score (F1) :  67%                                                  ← color-coded (green/yellow/red)
+    Effort     :  high  (thinking: adaptive)                           ← effort level + thinking mode
     Recall     :  71%  (5/7 known vulns found)                         ← fraction of ground-truth vulns
     Precision  :  63%  (3 false positives)                             ← fraction of findings that were real
     Missed     :  js-xpowered-by-header-1, js-alloc...                 ← IDs of missed vulns (red)
@@ -1111,6 +1172,8 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
+  "effort": "high",
+  "thinking": { "type": "adaptive" },
   "score": 0.667,
   "timestamp": "2026-05-12T10:46:33.179Z",
   "metrics": {
@@ -1187,6 +1250,12 @@ jq 'select(.runConfigType == "model") | {config: .runConfigId, task: .taskId, to
 
 # Find the most-used tool across all model runs
 jq 'select(.runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/benchmark-*.jsonl
+
+# Compare scores across effort levels for the same model
+jq 'select(.runConfigType == "model") | {config: .runConfigId, effort: .effort, thinking: .thinking.type, score: .score, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
+
+# Only high-effort runs
+jq 'select(.effort == "high")' results/benchmark-*.jsonl
 ```
 
 ---
@@ -1202,6 +1271,7 @@ Here is the output from a real benchmark run:
 
   ▸ [1/2] JS App: Find Vulnerabilities 1
     Score (F1)  :  67%
+    Effort      :  high  (thinking: adaptive)
     Recall      :  71%  (5/7 known vulns found)
     Precision   :  63%  (3 false positives)
     Missed      :  js-xpowered-by-header-1, js-allocation-of-resources-without-limits-or-throttling-2

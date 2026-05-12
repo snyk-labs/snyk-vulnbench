@@ -3,12 +3,14 @@
     "id": "opus-4-6",
     "name": "Claude Opus 4.6 (no MCP)",
     "model": "claude-opus-4-6",
+    "effort": "high",
     "maxTurns": 30
   },
   {
     "id": "sonnet-4-6",
     "name": "Claude Sonnet 4.6 (no MCP)",
     "model": "claude-sonnet-4-6",
+    "effort": "high",
     "maxTurns": 30
   },
   {

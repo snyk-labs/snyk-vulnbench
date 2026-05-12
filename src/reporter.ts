@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { styleText } from "node:util";
-import type { EvalResult, FindVulnsDetails, FixVulnsDetails } from "./types.js";
+import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig } from "./types.js";
 
 // ─── Style Helpers ────────────────────────────────────────────────────────────
 
@@ -27,6 +27,13 @@ const LABEL_WIDTH = 12;
 
 function metricLine(label: string, value: string, indent = "    "): string {
   return `${indent}${s("dim", label.padEnd(LABEL_WIDTH))}${s("dim", ":")}  ${value}`;
+}
+
+function formatThinking(thinking: ThinkingConfig | null): string {
+  if (!thinking) return "n/a";
+  if (thinking.type === "adaptive") return "adaptive";
+  if (thinking.type === "disabled") return "disabled";
+  return thinking.budgetTokens ? `enabled (${thinking.budgetTokens.toLocaleString()} tokens)` : "enabled";
 }
 
 // ─── Config Group Header ──────────────────────────────────────────────────────
@@ -59,6 +66,11 @@ export function printResult(result: EvalResult): void {
   const isFindVulns = "recall" in result.details;
   const scoreLabel = isFindVulns ? "Score (F1)" : "Score";
   console.log(metricLine(scoreLabel, coloredScore(result.score)));
+
+  if (result.effort) {
+    const thinkingLabel = formatThinking(result.thinking);
+    console.log(metricLine("Effort", `${result.effort}  ${s("dim", `(thinking: ${thinkingLabel})`)}`));
+  }
 
   if (isFindVulns) {
     const d = result.details as FindVulnsDetails;

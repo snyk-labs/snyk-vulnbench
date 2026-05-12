@@ -116,12 +116,23 @@ export interface MCPServerConfig {
   env?: Record<string, string>;
 }
 
+export type EffortLevel = "low" | "medium" | "high" | "max";
+
+export type ThinkingConfig =
+  | { type: "adaptive" }
+  | { type: "enabled"; budgetTokens?: number }
+  | { type: "disabled" };
+
 /** Standard agent run using the Claude Agent SDK. */
 export interface ModelRunConfig {
   type?: "model";
   id: string;
   name: string;
   model: string;
+  /** Controls how much reasoning effort Claude applies. Defaults to "high". */
+  effort?: EffortLevel;
+  /** Controls extended thinking mode. Defaults to { type: "adaptive" }. */
+  thinking?: ThinkingConfig;
   mcpServers?: Record<string, MCPServerConfig>;
   maxTurns?: number;
 }
@@ -216,6 +227,10 @@ export interface EvalResult {
   runConfigName: string;
   /** Distinguishes model (Agent SDK) runs from command (SAST tool) runs in JSONL output */
   runConfigType: "model" | "command";
+  /** Effort level used for this run (model runs only). Null for command runs. */
+  effort: EffortLevel | null;
+  /** Thinking config used for this run (model runs only). Null for command runs. */
+  thinking: ThinkingConfig | null;
   score: number; // 0–1
   metrics: BenchmarkMetrics;
   details: FindVulnsDetails | FixVulnsDetails;

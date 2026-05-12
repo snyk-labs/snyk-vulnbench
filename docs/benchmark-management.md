@@ -361,22 +361,27 @@ Append an entry to the array:
     "id": "opus-4-6",
     "name": "Claude Opus 4.6 (no MCP)",
     "model": "claude-opus-4-6",
+    "effort": "high",
     "maxTurns": 30
   },
   {
     "id": "sonnet-4-6",
     "name": "Claude Sonnet 4.6 (no MCP)",
     "model": "claude-sonnet-4-6",
+    "effort": "high",
     "maxTurns": 30
   },
   {
     "id": "haiku-4-5",
     "name": "Claude Haiku 4.5 (cheapest)",
     "model": "claude-haiku-4-5",
+    "effort": "high",
     "maxTurns": 20
   }
 ]
 ```
+
+Both `effort` and `thinking` are optional — when omitted they default to `"high"` and `{ "type": "adaptive" }` respectively. Both values are captured in the JSONL result file for every run, enabling post-hoc comparisons across effort levels.
 
 Verify with dry-run:
 ```bash
@@ -548,6 +553,8 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `id` | Yes | `string` | Unique identifier. Used in `--config` CLI filter. |
 | `name` | Yes | `string` | Human-readable label shown in console output and result files. |
 | `model` | Yes | `string` | Anthropic model ID, e.g. `"claude-opus-4-6"`, `"claude-sonnet-4-6"`, `"claude-haiku-4-5"`. |
+| `effort` | No | `"low"` \| `"medium"` \| `"high"` \| `"max"` | Reasoning effort level. Defaults to `"high"`. `"max"` is Opus 4.6 only. |
+| `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
 | `mcpServers` | No | `object` | Map of MCP server name → `MCPServerConfig`. Omit for a bare model run. |
 

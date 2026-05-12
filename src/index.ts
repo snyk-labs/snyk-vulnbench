@@ -15,7 +15,7 @@ import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -71,8 +71,11 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const isCommand = config.type === "command";
   const runConfigType: "model" | "command" = isCommand ? "command" : "model";
 
+  const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
+  const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
+
   // Shared fields across all return sites
-  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, timestamp };
+  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, effort, thinking, timestamp };
 
   // Command configs (SAST tools) only produce findings — they can't fix code
   if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
@@ -169,7 +172,15 @@ async function main() {
     for (let i = 0; i < configs.length; i++) {
       const c = configs[i];
       const connector = i === configs.length - 1 ? "└─" : "├─";
-      const label = c.type === "command" ? `[sast] ${(c as CommandRunConfig).command}` : (c as ModelRunConfig).model;
+      let label: string;
+      if (c.type === "command") {
+        label = `[sast] ${(c as CommandRunConfig).command}`;
+      } else {
+        const mc = c as ModelRunConfig;
+        const effortTag = mc.effort ?? "high";
+        const thinkingTag = mc.thinking ? mc.thinking.type : "adaptive";
+        label = `${mc.model} (effort: ${effortTag}, thinking: ${thinkingTag})`;
+      }
       console.log(`  ${styleText("dim", connector)} ${c.id}: ${label}`);
     }
   }

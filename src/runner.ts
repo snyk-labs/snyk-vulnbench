@@ -62,24 +62,23 @@ export async function runTask(
   const lastUsagePerSession = new Map<string | null, string>();
 
   try {
+    const effort = config.effort ?? "high";
+    const thinking = config.thinking ?? { type: "adaptive" as const };
+
     for await (const message of query({
       prompt: task.prompt,
       options: {
         cwd,
         model: config.model,
         maxTurns: task.maxTurns ?? config.maxTurns ?? 30,
+        effort,
+        thinking,
         allowedTools: [
           "Read", "Glob", "Grep", "Bash", "Write", "Edit",
-          // Allow all tools from every configured MCP server.
-          // Derived from config so adding a server in run-configs.json needs no code change.
           ...Object.keys(config.mcpServers ?? {}).map((name) => `mcp__${name}__*`),
         ],
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
-        // Restrict filesystem access to the fixture directory only.
-        // allowWrite is a whitelist — writes outside cwd are rejected outright.
-        // denyRead targets the parent directory (e.g. fixtures/) which contains
-        // sibling ground-truth JSONs and other fixture dirs the agent shouldn't see.
         sandbox: {
           filesystem: {
             allowWrite: [cwd],
