@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>__REPORT_TITLE__</title>
+  <style>
+    :root {
+      /* Snyk Evo glow palette — source tokens */
+      --snyk-purple: #9043c6;
+      --snyk-glow-light-blue: #00bcffb3;
+      --snyk-glow-pink: #ff0ff3b3;
+      --snyk-glow-orange: #ff890499;
+      --snyk-glow-pink-soft: #ff0ff399;
+      --snyk-glow-red: #fb2c3680;
+      --snyk-glow-orange-soft: #ff890480;
+
+      /* Layout */
+      --bg: #ffffff;
+      --text: #111111;
+      --muted: #5c5c5c;
+      --grid: #e8e8e8;
+      --axis: #000000;
+      --radius: 6px;
+      --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+      /* Chart role colors — change these to retheme.
+         "model" = the AI agent (e.g. Claude Sonnet).
+         "snyk"  = Snyk Code SAST. */
+      --bar-model: #4a4a4a;
+      --bar-snyk: var(--snyk-purple);
+
+      /* Recall/precision pairs — model gets neutral grays, Snyk gets brand tones */
+      --bar-model-recall: #4a4a4a;
+      --bar-model-precision: #a0a0a0;
+      --bar-snyk-recall: var(--snyk-purple);
+      --bar-snyk-precision: #c39bdf;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 48px 32px 64px;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .page {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .meta {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .task-group {
+      margin-bottom: 64px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--grid);
+    }
+
+    .task-group:last-child {
+      border-bottom: none;
+    }
+
+    .task-group h2.task-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+
+    .task-group .task-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0 0 24px;
+    }
+
+    section.chart-section {
+      margin-bottom: 48px;
+    }
+
+    section.chart-section h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+
+    section.chart-section .chart-desc {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+
+    .chart-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .chart-wrap svg {
+      display: block;
+      min-width: 520px;
+    }
+
+    .y-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      fill: var(--muted);
+    }
+
+    .grid line {
+      stroke: var(--grid);
+      stroke-width: 1;
+    }
+
+    .axis-x {
+      stroke: var(--axis);
+      stroke-width: 1.5;
+    }
+
+    .tick-label {
+      font-size: 12px;
+      fill: var(--text);
+    }
+
+    .value-label {
+      font-size: 13px;
+      font-weight: 700;
+      fill: var(--text);
+    }
+
+    .footnote {
+      font-size: 0.75rem;
+      font-style: italic;
+      fill: var(--muted);
+    }
+
+    footer {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--grid);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>__REPORT_TITLE__</h1>
+      <p class="subtitle">__REPORT_SUBTITLE__</p>
+      <p class="meta" id="report-meta"></p>
+    </header>
+
+    <div id="charts-root"></div>
+
+    <footer>
+      Static report generated from embedded benchmark JSONL rows. See <code>public/README.md</code> for how to refresh the data.
+    </footer>
+  </div>
+
+  <script>
+    const BENCHMARK_ROWS = __BENCHMARK_ROWS__;
+
+    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const COLORS = {
+      model: css("--bar-model") || "#4a4a4a",
+      snyk: css("--bar-snyk") || "#9043c6",
+      modelRecall: css("--bar-model-recall") || "#4a4a4a",
+      modelPrecision: css("--bar-model-precision") || "#a0a0a0",
+      snykRecall: css("--bar-snyk-recall") || "#9043c6",
+      snykPrecision: css("--bar-snyk-precision") || "#c39bdf",
+    };
+
+    function ns(tag, attrs, children) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      if (attrs) {
+        for (const [k, v] of Object.entries(attrs)) {
+          if (v !== undefined && v !== null) el.setAttribute(k, String(v));
+        }
+      }
+      if (children) {
+        for (const c of children) {
+          if (typeof c === "string") el.appendChild(document.createTextNode(c));
+          else if (c) el.appendChild(c);
+        }
+      }
+      return el;
+    }
+
+    function topRoundedRect(x, y, w, h, r) {
+      if (h <= 0) return `M${x},${y + h}h${w}v0h${-w}z`;
+      const clampR = Math.min(r, w / 2, h);
+      return [
+        `M${x},${y + h}`,
+        `V${y + clampR}`,
+        `Q${x},${y} ${x + clampR},${y}`,
+        `H${x + w - clampR}`,
+        `Q${x + w},${y} ${x + w},${y + clampR}`,
+        `V${y + h}`,
+        `Z`,
+      ].join("");
+    }
+
+    function pct(x) {
+      return (100 * x).toFixed(1) + "%";
+    }
+
+    function fmtMs(ms) {
+      if (ms >= 1000) return (ms / 1000).toFixed(1) + " s";
+      return ms + " ms";
+    }
+
+    function renderBarChart(container, options) {
+      const {
+        title,
+        yAxisLabel,
+        categories,
+        values,
+        valueFormat,
+        yMax,
+        yTicks,
+        yTickFormat,
+        barColors,
+      } = options;
+
+      const W = 720;
+      const H = 260;
+      const margin = { top: 28, right: 24, bottom: 52, left: 64 };
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom;
+      const n = categories.length;
+      const gap = innerW * 0.12 / Math.max(n - 1, 1);
+      const barW = (innerW - gap * (n - 1)) / n;
+
+      const svg = ns("svg", {
+        viewBox: `0 0 ${W} ${H}`,
+        width: "100%",
+        height: H,
+        role: "img",
+        "aria-label": title,
+      });
+
+      const gRoot = ns("g", { transform: `translate(${margin.left},${margin.top})` });
+      svg.appendChild(gRoot);
+
+      const fmtY = yTickFormat || ((t) => String(t));
+      for (const t of yTicks) {
+        const y = innerH - (t / yMax) * innerH;
+        gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
+        gRoot.appendChild(
+          ns(
+            "text",
+            {
+              class: "tick-label",
+              x: -10,
+              y: y + 4,
+              "text-anchor": "end",
+              "font-size": "11",
+              fill: "#5c5c5c",
+            },
+            [fmtY(t)]
+          )
+        );
+      }
+
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: innerW, y1: innerH, y2: innerH }));
+
+      const yLabel = ns("text", {
+        class: "y-label",
+        x: -innerH / 2,
+        y: -50,
+        transform: "rotate(-90)",
+        "text-anchor": "middle",
+      }, [yAxisLabel]);
+      gRoot.appendChild(yLabel);
+
+      categories.forEach((label, i) => {
+        const v = values[i];
+        const h = (v / yMax) * innerH;
+        const x = i * (barW + gap);
+        const y = innerH - h;
+        const fill = barColors[i] || COLORS.model;
+
+        const bar = ns("path", {
+          class: "bar",
+          d: topRoundedRect(x, y, barW, Math.max(h, 0), 6),
+          fill,
+        });
+        gRoot.appendChild(bar);
+
+        const valText = ns("text", {
+          class: "value-label",
+          x: x + barW / 2,
+          y: y - 8,
+          "text-anchor": "middle",
+        }, [valueFormat(v, i)]);
+        gRoot.appendChild(valText);
+
+        const words = label.split(" ");
+        const lines = words.length > 4 ? [words.slice(0, 3).join(" "), words.slice(3).join(" ")] : [label];
+        lines.forEach((line, li) => {
+          gRoot.appendChild(
+            ns("text", {
+              class: "tick-label",
+              x: x + barW / 2,
+              y: innerH + 18 + li * 14,
+              "text-anchor": "middle",
+            }, [line])
+          );
+        });
+      });
+
+      container.innerHTML = "";
+      container.appendChild(svg);
+    }
+
+    function renderGroupedRecallPrecision(container, categories, recall, precision, colorPairs) {
+      const W = 720;
+      const H = 280;
+      const margin = { top: 36, right: 24, bottom: 56, left: 64 };
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom;
+      const yMax = 1;
+      const n = categories.length;
+      const groupW = innerW / n;
+      const innerGap = groupW * 0.15;
+      const pairW = groupW - innerGap;
+      const barW = pairW / 2 - 4;
+
+      const legend = document.createElement("div");
+      legend.className = "rp-legend";
+      legend.style.cssText = "display:flex; gap:32px; margin-bottom:12px; flex-wrap:wrap;";
+
+      categories.forEach((label, i) => {
+        const cp = colorPairs[i];
+        const col = document.createElement("div");
+        col.style.cssText = "display:flex; flex-direction:column; gap:4px; min-width:140px;";
+
+        const title = document.createElement("span");
+        title.style.cssText = "font-size:12px; font-weight:600; color:#111;";
+        title.textContent = label;
+        col.appendChild(title);
+
+        [{ color: cp.recall, metric: "Recall" }, { color: cp.precision, metric: "Precision" }].forEach((item) => {
+          const row = document.createElement("div");
+          row.style.cssText = "display:flex; align-items:center; gap:6px;";
+          const swatch = document.createElement("span");
+          swatch.style.cssText = `display:inline-block; width:28px; height:8px; border-radius:2px; background:${item.color};`;
+          const text = document.createElement("span");
+          text.style.cssText = "font-size:11px; color:#5c5c5c;";
+          text.textContent = item.metric;
+          row.appendChild(swatch);
+          row.appendChild(text);
+          col.appendChild(row);
+        });
+
+        legend.appendChild(col);
+      });
+
+      const svg = ns("svg", {
+        viewBox: `0 0 ${W} ${H}`,
+        width: "100%",
+        height: H,
+        role: "img",
+        "aria-label": "Recall and precision by run",
+      });
+
+      const gRoot = ns("g", { transform: `translate(${margin.left},${margin.top})` });
+      svg.appendChild(gRoot);
+
+      const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1];
+      for (const t of yTicks) {
+        const y = innerH - t * innerH;
+        gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
+        gRoot.appendChild(
+          ns(
+            "text",
+            {
+              class: "tick-label",
+              x: -10,
+              y: y + 4,
+              "text-anchor": "end",
+              "font-size": "11",
+              fill: "#5c5c5c",
+            },
+            [Math.round(t * 100) + "%"]
+          )
+        );
+      }
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: innerW, y1: innerH, y2: innerH }));
+
+      gRoot.appendChild(
+        ns("text", {
+          class: "y-label",
+          x: -innerH / 2,
+          y: -50,
+          transform: "rotate(-90)",
+          "text-anchor": "middle",
+        }, ["RATE"])
+      );
+
+      categories.forEach((label, i) => {
+        const gx = i * groupW + innerGap / 2;
+        const cp = colorPairs[i];
+        const vals = [
+          { v: recall[i], fill: cp.recall, name: "Recall" },
+          { v: precision[i], fill: cp.precision, name: "Precision" },
+        ];
+        vals.forEach((item, j) => {
+          const x = gx + j * (barW + 6);
+          const h = item.v * innerH;
+          const y = innerH - h;
+          gRoot.appendChild(
+            ns("path", {
+              class: "bar",
+              d: topRoundedRect(x, y, barW, Math.max(h, 0), 6),
+              fill: item.fill,
+            })
+          );
+          gRoot.appendChild(
+            ns("text", {
+              class: "value-label",
+              x: x + barW / 2,
+              y: y - 6,
+              "text-anchor": "middle",
+              "font-size": "11",
+            }, [pct(item.v)])
+          );
+        });
+
+        const short = label.length > 22 ? label.slice(0, 20) + "…" : label;
+        gRoot.appendChild(
+          ns("text", {
+            class: "tick-label",
+            x: gx + pairW / 2,
+            y: innerH + 20,
+            "text-anchor": "middle",
+          }, [short])
+        );
+      });
+
+      container.innerHTML = "";
+      container.appendChild(legend);
+      container.appendChild(svg);
+    }
+
+    function normalizeRuns(rows) {
+      return rows.map((r) => ({
+        label: r.runConfigName,
+        score: r.score,
+        durationMs: r.metrics.sessionDurationMs,
+        recall: r.details && r.details.recall,
+        precision: r.details && r.details.precision,
+        isSnyk: r.runConfigType === "command",
+        barMain: r.runConfigType === "command" ? COLORS.snyk : COLORS.model,
+      }));
+    }
+
+    function groupByTask(rows) {
+      const groups = {};
+      for (const row of rows) {
+        const key = row.taskId;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      }
+      return groups;
+    }
+
+    function renderTaskGroup(container, taskId, rows) {
+      const group = document.createElement("div");
+      group.className = "task-group";
+
+      const first = rows[0];
+      const titleEl = document.createElement("h2");
+      titleEl.className = "task-title";
+      titleEl.textContent = first.taskName || taskId;
+      group.appendChild(titleEl);
+
+      const subtitleEl = document.createElement("p");
+      subtitleEl.className = "task-subtitle";
+      subtitleEl.textContent = taskId;
+      group.appendChild(subtitleEl);
+
+      const runs = normalizeRuns(rows);
+      const labels = runs.map((r) => r.label);
+      const barColors = runs.map((r) => r.barMain);
+
+      // Score chart
+      const scoreSection = document.createElement("section");
+      scoreSection.className = "chart-section";
+      scoreSection.innerHTML = `<h3>Composite score</h3><p class="chart-desc">Overall benchmark score for this task (higher is better).</p><div class="chart-wrap"></div>`;
+      group.appendChild(scoreSection);
+      renderBarChart(scoreSection.querySelector(".chart-wrap"), {
+        title: "Score — " + taskId,
+        yAxisLabel: "SCORE",
+        categories: labels,
+        values: runs.map((r) => r.score),
+        valueFormat: (v) => pct(v),
+        yMax: 1,
+        yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
+        yTickFormat: (t) => Math.round(t * 100) + "%",
+        barColors,
+      });
+
+      // Duration chart
+      const durSection = document.createElement("section");
+      durSection.className = "chart-section";
+      durSection.innerHTML = `<h3>Session duration</h3><p class="chart-desc">Wall-clock time from start to completion.</p><div class="chart-wrap"></div>`;
+      group.appendChild(durSection);
+      const maxDur = Math.max(...runs.map((r) => r.durationMs), 1);
+      const yMaxMs = Math.ceil(maxDur / 5000) * 5000;
+      renderBarChart(durSection.querySelector(".chart-wrap"), {
+        title: "Duration — " + taskId,
+        yAxisLabel: "DURATION",
+        categories: labels,
+        values: runs.map((r) => r.durationMs),
+        valueFormat: (v) => fmtMs(v),
+        yMax: yMaxMs,
+        yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => t * yMaxMs),
+        yTickFormat: (t) => (t >= 1000 ? Math.round(t / 1000) + "s" : String(Math.round(t))),
+        barColors,
+      });
+
+      // Recall/Precision chart (only if data is available)
+      const hasRecallPrecision = runs.some((r) => r.recall != null && r.precision != null);
+      if (hasRecallPrecision) {
+        const rpSection = document.createElement("section");
+        rpSection.className = "chart-section";
+        rpSection.innerHTML = `<h3>Recall and precision</h3><p class="chart-desc">Recall (known vulns found) and precision (share of findings that matched ground truth).</p><div class="chart-wrap"></div>`;
+        group.appendChild(rpSection);
+
+        const recallPrecisionColors = runs.map((r) =>
+          r.isSnyk
+            ? { recall: COLORS.snykRecall, precision: COLORS.snykPrecision }
+            : { recall: COLORS.modelRecall, precision: COLORS.modelPrecision }
+        );
+        renderGroupedRecallPrecision(
+          rpSection.querySelector(".chart-wrap"),
+          labels,
+          runs.map((r) => r.recall || 0),
+          runs.map((r) => r.precision || 0),
+          recallPrecisionColors
+        );
+      }
+
+      container.appendChild(group);
+    }
+
+    function init() {
+      const ts = [...new Set(BENCHMARK_ROWS.map((r) => r.timestamp))].sort().join(" → ");
+      document.getElementById("report-meta").textContent = "Source timestamps: " + ts;
+
+      const groups = groupByTask(BENCHMARK_ROWS);
+      const root = document.getElementById("charts-root");
+
+      for (const [taskId, rows] of Object.entries(groups)) {
+        renderTaskGroup(root, taskId, rows);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
