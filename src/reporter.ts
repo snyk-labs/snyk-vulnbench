@@ -47,7 +47,6 @@ export function printRunProgress(taskName: string, runIndex: number, totalRuns: 
 
 export function printResult(result: EvalResult): void {
   const m = result.metrics;
-  const totalTokens = m.totalInputTokens + m.totalOutputTokens + m.totalCacheReadTokens + m.totalCacheCreationTokens;
   const durationSec = (m.sessionDurationMs / 1000).toFixed(1);
 
   if (result.error) {
@@ -80,16 +79,24 @@ export function printResult(result: EvalResult): void {
   console.log(metricLine("Turns", String(m.totalTurns)));
   console.log(metricLine("Files", String(m.filesScanned.length)));
 
+  const totalTokens = m.totalLogicalInputTokens + m.totalOutputTokens;
   if (totalTokens > 0) {
-    const cacheDetail = (m.totalCacheReadTokens > 0 || m.totalCacheCreationTokens > 0)
-      ? `  cache-read: ${m.totalCacheReadTokens.toLocaleString()}  cache-write: ${m.totalCacheCreationTokens.toLocaleString()}`
-      : "";
     console.log(metricLine(
       "Tokens",
-      `${totalTokens.toLocaleString()}  (in: ${m.totalInputTokens.toLocaleString()}  out: ${m.totalOutputTokens.toLocaleString()}${cacheDetail})`,
+      `${totalTokens.toLocaleString()} total  (in: ${m.totalLogicalInputTokens.toLocaleString()}  out: ${m.totalOutputTokens.toLocaleString()})`,
     ));
+    if (m.totalCacheReadTokens > 0 || m.totalCacheCreationTokens > 0) {
+      console.log(metricLine(
+        "Cache",
+        s("dim", `${m.totalCacheReadTokens.toLocaleString()} read + ${m.totalCacheCreationTokens.toLocaleString()} written  (${m.totalInputTokens.toLocaleString()} uncached)`),
+      ));
+    }
   } else {
     console.log(metricLine("Tokens", "0"));
+  }
+
+  if (m.totalCostUsd != null) {
+    console.log(metricLine("Cost", `$${m.totalCostUsd.toFixed(4)}`));
   }
 
   const topTools = Object.entries(m.toolStats).sort((a, b) => b[1].count - a[1].count);
@@ -127,14 +134,15 @@ export function printSummaryTable(results: EvalResult[]): void {
   console.log(s(["bold", "cyan"], rule));
 
   const hasFindVulns = results.some((r) => !r.error && "recall" in r.details);
+  const hasCost = results.some((r) => r.metrics.totalCostUsd != null);
 
   const header = hasFindVulns
-    ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", "Time"]
-    : ["Task", "Config", "Score", "Tokens", "Time"];
+    ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
+    : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
 
   const rows = results.map((r) => {
     const m = r.metrics;
-    const totalTokens = m.totalInputTokens + m.totalOutputTokens + m.totalCacheReadTokens + m.totalCacheCreationTokens;
+    const totalTokens = m.totalLogicalInputTokens + m.totalOutputTokens;
     const base = [
       r.taskId,
       r.runConfigId,
@@ -149,6 +157,9 @@ export function printSummaryTable(results: EvalResult[]): void {
     }
 
     base.push(totalTokens.toLocaleString());
+    if (hasCost) {
+      base.push(m.totalCostUsd != null ? `$${m.totalCostUsd.toFixed(4)}` : "-");
+    }
     base.push(`${(m.sessionDurationMs / 1000).toFixed(1)}s`);
     return base;
   });

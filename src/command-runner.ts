@@ -73,6 +73,8 @@ function emptyMetrics(sessionStart: number): BenchmarkMetrics {
     totalOutputTokens: 0,
     totalCacheReadTokens: 0,
     totalCacheCreationTokens: 0,
+    totalLogicalInputTokens: 0,
+    totalCostUsd: null,
     totalTurns: 0,
     toolCalls: [],
     toolStats: {},

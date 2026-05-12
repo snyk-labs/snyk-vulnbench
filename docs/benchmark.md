@@ -32,7 +32,8 @@
    - [Sample Output — fix-vulns Run](#sample-output--fix-vulns-run)
    - [Sample Output — Summary Table](#sample-output--summary-table)
    - [Sample Output — JSONL Record](#sample-output--jsonl-record)
-7. [Adding Your Own Tasks and Configs](#adding-your-own-tasks-and-configs)
+7. [FAQ — Understanding Token and Cost Reports](#faq--understanding-token-and-cost-reports)
+8. [Adding Your Own Tasks and Configs](#adding-your-own-tasks-and-configs)
 
 ---
 
@@ -95,7 +96,7 @@ flowchart TD
         end
 
         P["ResultMessage received\n(agent finished)"] --> Q
-        Q["Collect from stream:\n• per-turn token usage\n• tool call records\n• final text output"]
+        Q["Collect from stream:\n• session-total usage\n  from ResultMessage\n• tool call records\n• final text output"]
     end
 
     subgraph SCORE["④ Score the Output"]
@@ -431,18 +432,15 @@ hooks: {
 
 We use a `Map<tool_use_id, startTime>` to pair up the pre and post events, giving us the duration of each individual tool call. This is more reliable than trying to parse timing from the message stream.
 
-**Token counting:**
+**Token counting (dual-path):**
 
-The Agent SDK's message stream includes a `usage` field on every `AssistantMessage`. Each field represents the token count for that one turn. We accumulate them all to get session totals:
+The runner uses a two-path strategy for token counting:
 
-```
-Turn 1: { input: 1200, output: 300 }
-Turn 2: { input: 3400, output: 800 }   ← context grows each turn
-Turn 3: { input: 4100, output: 200 }
-                               ───────
-Total input:  8700   (each turn re-sends the full context)
-Total output: 1300   (just the new tokens Claude generated)
-```
+1. **Primary (preferred):** The `SDKResultMessage` emitted at the end of the session carries an authoritative `usage` field with session-level token totals and a `total_cost_usd` field with the actual session cost. When available, these are used directly — no manual accumulation needed.
+
+2. **Fallback:** The Agent SDK's message stream also includes a `usage` field on every `AssistantMessage`, representing the token count for that one API call. The runner accumulates these per-turn values with deduplication (see [SDK Message Structure and Deduplication](#sdk-message-structure-and-deduplication)) as a fallback for cases where the `SDKResultMessage.usage` is unavailable (older SDK versions, alternative harnesses, error paths).
+
+Both paths produce the same `BenchmarkMetrics` shape. The `totalCostUsd` field is only populated when the SDK provides `total_cost_usd` (the primary path); the fallback path sets it to `null` since computing cost requires a model-specific pricing table that the benchmark does not maintain.
 
 Note: input tokens grow each turn because the API is stateless — the full conversation history is re-sent every turn. This means a long agent session can be significantly more expensive than its output token count suggests.
 
@@ -461,10 +459,12 @@ After a run completes, the runner returns a `BenchmarkMetrics` object containing
 ```typescript
 interface BenchmarkMetrics {
   sessionDurationMs: number;        // wall-clock ms from first query() call to ResultMessage
-  totalInputTokens: number;         // non-cached input tokens, summed across all turns
-  totalOutputTokens: number;        // output tokens generated, summed across all turns
+  totalInputTokens: number;         // non-cached input tokens (the "uncacheable" residual)
+  totalOutputTokens: number;        // output tokens generated across all turns
   totalCacheReadTokens: number;     // tokens served from prompt cache across all turns
   totalCacheCreationTokens: number; // tokens written into prompt cache across all turns
+  totalLogicalInputTokens: number;  // input + cache_read + cache_creation — the actual context size
+  totalCostUsd: number | null;      // session cost in USD (null for command runs / fallback path)
   totalTurns: number;               // number of assistant messages in the session
   toolCalls: ToolCallRecord[];      // one entry per individual tool execution, in order
   toolStats: {                      // per-tool aggregates
@@ -837,18 +837,24 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **Wall time** | `Time        :  Xs` | `metrics.sessionDurationMs` | Clock time from query start to finish, including all API round-trips and tool execution |
 | **Turns** | `Turns       :  N` | `metrics.totalTurns` | Unique API calls made (after dedup — see [SDK Message Structure](#sdk-message-structure-and-deduplication)) |
 | **Files scanned** | `Files       :  N` | `metrics.filesScanned` | Distinct file paths touched by Read/Write/Edit; proxy for codebase exploration depth |
-| **Input tokens** | `in: N` (inside Tokens line) | `metrics.totalInputTokens` | New non-cached input tokens across all turns |
+| **Total logical input** | `in: N` (inside Tokens line) | `metrics.totalLogicalInputTokens` | Total context the model processed: input + cache_read + cache_creation |
 | **Output tokens** | `out: N` (inside Tokens line) | `metrics.totalOutputTokens` | All tokens Claude generated across all turns |
-| **Cache-read tokens** | `cache-read: N` (inside Tokens line) | `metrics.totalCacheReadTokens` | Context served from prompt cache (~10% billing rate) |
-| **Cache-write tokens** | `cache-write: N` (inside Tokens line) | `metrics.totalCacheCreationTokens` | Context written into prompt cache (~125% billing rate) |
-| **Total tokens** | `Tokens      :  N` | sum of the four above | Total context consumed — not a direct cost proxy (see [Cache Tokens](#cache-tokens)) |
+| **Uncached input** | `(N uncached)` (inside Cache line) | `metrics.totalInputTokens` | Non-cached input tokens — the residual outside the cached prefix |
+| **Cache-read tokens** | `N read` (inside Cache line) | `metrics.totalCacheReadTokens` | Context served from prompt cache (~10% billing rate) |
+| **Cache-write tokens** | `N written` (inside Cache line) | `metrics.totalCacheCreationTokens` | Context written into prompt cache (~125% billing rate) |
+| **Total tokens** | `Tokens      :  N total` | `totalLogicalInputTokens + totalOutputTokens` | Total context consumed (logical input + output) |
+| **Cost** | `Cost        :  $X.XXXX` | `metrics.totalCostUsd` | Session cost in USD from the SDK (accounts for model and cached vs non-cached pricing). Null for command runs. |
 | **Per-tool stats** | `Tools       :  Read 4x avg 11ms ...` | `metrics.toolStats` | Per-tool call count, avg duration, and estimated input/output tokens |
 
 ---
 
 ### Session-Level Token Accounting
 
-The Anthropic API reports token usage on every API call. The runner accumulates these across the full session:
+The runner uses a dual-path approach for token accounting.
+
+**Primary path — `SDKResultMessage.usage`:** The `SDKResultMessage` emitted at the end of the session carries authoritative session-level token totals directly from Claude Code. When available, these are used as the canonical source. The result message also provides `total_cost_usd` — the actual session cost in USD, accounting for per-model pricing and the different billing rates for cached vs non-cached tokens.
+
+**Fallback path — per-turn accumulation:** The Anthropic API reports token usage on every API call. The runner accumulates these across the full session as a fallback:
 
 ```
 Turn 1 (system prompt + user message):
@@ -862,24 +868,29 @@ Turn 3 (context + tool results from turns 1–2):
   ...
 
 Session totals (summed across all turns):
-  totalInputTokens:       2,230   ← new non-cached tokens across all turns
+  totalInputTokens:       2,230   ← non-cached tokens (the "uncacheable" residual)
   totalOutputTokens:      1,520   ← all tokens Claude generated
   totalCacheReadTokens:   9,460   ← context tokens served from cache
   totalCacheCreationTokens: 1,840 ← tokens written into cache on turn 1
+  totalLogicalInputTokens: 13,530 ← input + cache_read + cache_creation (actual context size)
 ```
 
-**Important:** the four token fields represent *different things* and must all be counted to understand true session cost:
+**Understanding the three input token buckets:**
+
+The Anthropic API reports input tokens in three mutually exclusive buckets per API call:
 
 | Field | What it counts | Billing rate |
 |---|---|---|
-| `totalInputTokens` | New non-cached input tokens per turn | Full input rate |
-| `totalOutputTokens` | All tokens Claude generated | Output rate |
+| `totalInputTokens` | Tokens neither cached nor written to cache (the "uncacheable" residual) | Full input rate |
 | `totalCacheReadTokens` | Context tokens served from the prompt cache | ~10% of input rate |
 | `totalCacheCreationTokens` | Tokens written into the cache for the first time | ~125% of input rate |
 
-The `Tokens: N total` line in the report sums all four to give you the full picture of context consumed.
+All three represent tokens the model actually processed as input context. The sum — `totalLogicalInputTokens` — is the real context size. The `Tokens: N total` line in the report shows `totalLogicalInputTokens + totalOutputTokens`.
 
-**Why not just read usage from the final ResultMessage?** The ResultMessage's `usage` field contains only the cost of that final "done" turn — a few tokens — not a session cumulative total. Using it would silently overwrite all the accumulated per-turn data with a misleadingly small number. The runner explicitly accumulates only from `AssistantMessage` turns.
+| Field | What it counts | Billing rate |
+|---|---|---|
+| `totalOutputTokens` | All tokens Claude generated | Output rate |
+| `totalCostUsd` | Full session cost from the SDK | Accounts for all rate differences |
 
 ---
 
@@ -920,7 +931,7 @@ This guarantees each unique API call is counted exactly once regardless of how m
 
 ### Cache Tokens
 
-**Short answer: yes, cache tokens count — they represent real cost, just at heavily discounted rates.**
+**Short answer: yes, cache tokens count — they represent real context the model processed, just at heavily discounted billing rates.**
 
 Prompt caching is an automatic Anthropic API feature. When the same prefix (system prompt + early conversation context) appears in multiple consecutive API calls, the API stores that prefix on Anthropic's servers after the first call. Subsequent calls that reuse the same prefix pay a fraction of the normal input rate instead of re-processing it from scratch. No benchmark code configuration is needed — the Claude Code subprocess triggers it automatically.
 
@@ -931,16 +942,28 @@ There are two sides to the cache economy:
 | `totalCacheCreationTokens` | First call that establishes the cached prefix | ~125% of input rate |
 | `totalCacheReadTokens` | Every subsequent call that reads from the cache | ~10% of input rate |
 
-In a typical multi-turn benchmark session the system prompt (~500 tokens) plus the fixture code (~300 tokens) get cached after turn 1. Turns 2 onward each read ~800 tokens from cache instead of paying full input rate. This means `totalCacheReadTokens` can easily be 5–10× larger than `totalInputTokens` in a long session — the bulk of context consumed is cheap cache reads.
+In a typical multi-turn benchmark session, Claude Code's system prompt and tool definitions (~10K+ tokens) plus your task prompt and fixture code get cached after turn 1. Turns 2 onward read this from cache instead of paying full input rate. This means `totalCacheReadTokens` can easily be 10–50× larger than `totalInputTokens` in a multi-turn session — the bulk of context consumed is cheap cache reads.
 
-The "Tokens" line in the report shows the total and a breakdown:
+The report shows tokens in two lines — a total with logical input/output, and a cache breakdown:
 ```
-    Tokens     :  18,432  (in: 4,210  out: 1,820  cache-read: 11,900  cache-write: 502)
+    Tokens     :  56,164 total  (in: 54,154  out: 2,010)
+    Cache      :  52,859 read + 1,288 written  (7 uncached)
 ```
 
-If no caching occurred (e.g. a very short single-turn session), the cache fields are omitted:
+- `in: 54,154` is `totalLogicalInputTokens` — the actual context size (input + cache_read + cache_creation)
+- `out: 2,010` is `totalOutputTokens` — tokens Claude generated
+- `52,859 read` is `totalCacheReadTokens` — context served from cache
+- `1,288 written` is `totalCacheCreationTokens` — context written to cache
+- `7 uncached` is `totalInputTokens` — the tiny residual outside the cache prefix
+
+If no caching occurred (e.g. a very short single-turn session), the Cache line is omitted:
 ```
-    Tokens     :  6,030  (in: 4,210  out: 1,820)
+    Tokens     :  6,030 total  (in: 4,210  out: 1,820)
+```
+
+When the SDK provides cost data, a Cost line appears:
+```
+    Cost       :  $0.0509
 ```
 
 When tokens are 0 (SAST/command runs), the line simply shows `0`:
@@ -948,7 +971,7 @@ When tokens are 0 (SAST/command runs), the line simply shows `0`:
     Tokens     :  0
 ```
 
-**Important for benchmarking:** The `N total` figure is *context consumed*, not *cost*. Because cache-read tokens bill at ~10% of the input rate, two runs that did the same logical work but had different cache hit rates will show very different totals. To compare actual cost across runs, weight each field by its billing rate rather than summing raw counts. For within-session comparisons (same model, same fixture, different configs), total tokens is a reasonable proxy because cache behavior is roughly symmetric.
+**Cost vs tokens:** The `N total` figure is *context consumed*, not cost. The `totalCostUsd` field (from the SDK's `SDKResultMessage.total_cost_usd`) is the actual cost, already accounting for the different billing rates of cached vs non-cached tokens and the specific model's pricing. Use `totalCostUsd` for cost comparisons; use `totalLogicalInputTokens` for context size comparisons.
 
 Prompt caching activates automatically when the cacheable prefix is at least 1,024 tokens. Below that threshold `totalCacheReadTokens` and `totalCacheCreationTokens` will both be 0 even in multi-turn sessions.
 
@@ -994,31 +1017,35 @@ toolStats["Read"] = {
 Runs are grouped by config with a banner header. Each run shows a progress counter and a label-aligned metric block. Annotations in `← ...` are for this doc only and do not appear in real output.
 
 ```
-━━━ Config: Claude Opus 4.6 (no MCP) [1/2] ━━━━━━━━━━━━━━━━━━━━━━━━  ← bold cyan banner
+━━━ Config: Claude Sonnet 4.6 (no MCP) [1/2] ━━━━━━━━━━━━━━━━━━━━━━  ← bold cyan banner
 
-  ▸ [1/4] JS App: Find Vulnerabilities                                ← bold task name + progress
-    Score (F1) :  89%                                                  ← color-coded (green/yellow/red)
-    Recall     :  100%  (5/5 known vulns found)                        ← fraction of ground-truth vulns
-    Precision  :  83%  (1 false positives)                             ← fraction of findings that were real
-    Missed     :  none                                                 ← IDs of missed vulns (green if none)
-    Time       :  24.8s
-    Turns      :  6
-    Files      :  4
-    Tokens     :  18,432  (in: 4,210  out: 1,820  cache-read: 11,900  cache-write: 502)
-    Tools      :  Read 4x avg 11ms ~320 in / ~8,240 out · Bash 3x avg 53ms ~45 in / ~180 out
+  ▸ [1/2] JS App: Find Vulnerabilities 1                              ← bold task name + progress
+    Score (F1) :  67%                                                  ← color-coded (green/yellow/red)
+    Recall     :  71%  (5/7 known vulns found)                         ← fraction of ground-truth vulns
+    Precision  :  63%  (3 false positives)                             ← fraction of findings that were real
+    Missed     :  js-xpowered-by-header-1, js-alloc...                 ← IDs of missed vulns (red)
+    Time       :  40.3s
+    Turns      :  5
+    Files      :  1
+    Tokens     :  56,164 total  (in: 54,154  out: 2,010)               ← logical input + output
+    Cache      :  52,859 read + 1,288 written  (7 uncached)            ← cache breakdown
+    Cost       :  $0.0509                                              ← session cost from SDK
+    Tools      :  Bash 2x avg 101ms ~49 in / ~95 out · Read 1x avg 6ms ~18 in / ~428 out
 ```
 
-**Reading the token line:**
-- `in: 4,210` — new context tokens paid at full rate across all 6 turns
-- `out: 1,820` — tokens Claude generated (reasoning + tool calls + final answer)
-- `cache-read: 11,900` — repeated context (system prompt, fixture code) served from cache
-- `cache-write: 502` — context written into cache on the first turn
-- `18,432` — everything added together
+**Reading the token lines:**
+- `in: 54,154` — `totalLogicalInputTokens`: the actual context size the model processed (input + cache_read + cache_creation)
+- `out: 2,010` — tokens Claude generated (reasoning + tool calls + final answer)
+- `56,164 total` — logical input + output
+- `52,859 read` — context tokens served from the prompt cache across turns 2–5
+- `1,288 written` — context written into the prompt cache on turn 1
+- `7 uncached` — non-cached input tokens (the tiny residual outside the cache prefix)
+- `$0.0509` — actual session cost from the SDK, accounting for cached vs non-cached billing rates
 
 **Reading the tools line:**
-- `Read 4x` — called 4 times
-- `avg 11ms` — average wall-clock time per call
-- `~320 in / ~8,240 out` — estimated tokens in parameters and results (this lands in context next turn)
+- `Bash 2x` — called 2 times
+- `avg 101ms` — average wall-clock time per call
+- `~49 in / ~95 out` — estimated tokens in parameters and results (this lands in context next turn)
 
 ---
 
@@ -1034,7 +1061,9 @@ Runs are grouped by config with a banner header. Each run shows a progress count
     Time       :  48.2s
     Turns      :  12
     Files      :  4
-    Tokens     :  42,100  (in: 8,400  out: 3,600  cache-read: 28,900  cache-write: 1,200)
+    Tokens     :  42,100 total  (in: 38,500  out: 3,600)
+    Cache      :  28,900 read + 1,200 written  (8,400 uncached)
+    Cost       :  $0.1284
     Tools      :  Read 6x avg 9ms · Edit 5x avg 22ms · Bash 2x avg 41ms · Glob 1x avg 6ms
 ```
 
@@ -1044,24 +1073,22 @@ Note the difference in tool usage: `Edit` calls dominate for fix tasks (high inp
 
 ### Sample Output — Summary Table
 
-After all runs complete, `printSummaryTable()` prints a comparison across the full task × config matrix. For find-vulns tasks, Recall and Precision columns are included. Scores are color-coded (green >= 90%, yellow 70-89%, red < 70%). Per-config averages are shown at the bottom.
+After all runs complete, `printSummaryTable()` prints a comparison across the full task × config matrix. For find-vulns tasks, Recall and Precision columns are included. A Cost column appears when any run has cost data (model runs from the SDK). Scores are color-coded (green >= 90%, yellow 70-89%, red < 70%). Per-config averages are shown at the bottom.
 
 ```
 ══════════════════════════════════════════════════════════════════════
   BENCHMARK SUMMARY
 ══════════════════════════════════════════════════════════════════════
 
-  Task                     Config       Score   Recall   Prec.    Tokens    Time
-  ───────────────────────  ──────────   ─────   ──────   ─────   ───────   ─────
-  js-vulns-1-find-vulns    sonnet-4-6     77%     83%     71%    54,385   37.8s
-  js-vulns-2-find-vulns    sonnet-4-6     86%    100%     75%    54,420   31.2s
-  js-vulns-1-find-vulns    snyk-code      92%    100%     86%         0   11.8s
-  js-vulns-2-find-vulns    snyk-code     100%    100%    100%         0   10.4s
+  Task                   Config      Score  Recall  Prec.  Tokens     Cost   Time
+  ─────────────────────  ──────────  ─────  ──────  ─────  ──────  ───────  ─────
+  js-vulns-1-find-vulns  sonnet-4-6    67%     71%    63%  56,164  $0.0509  40.3s
+  js-vulns-1-find-vulns  snyk-code    100%    100%   100%       0        -   9.9s
 
-  Avg by config:  sonnet-4-6  82%   |   snyk-code  96%
+  Avg by config:  sonnet-4-6  67%   |   snyk-code  100%
 ```
 
-Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types.
+Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types. The Cost column uses `totalCostUsd` from the SDK — SAST/command runs show "-" since they have no API token cost.
 
 ---
 
@@ -1071,30 +1098,32 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
 
 ```json
 {
-  "taskId": "js-find-vulns",
-  "taskName": "JS App: Find Vulnerabilities",
-  "runConfigId": "opus-4-6",
-  "runConfigName": "Claude Opus 4.6 (no MCP)",
+  "taskId": "js-vulns-1-find-vulns",
+  "taskName": "JS App: Find Vulnerabilities 1",
+  "runConfigId": "sonnet-4-6",
+  "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
-  "score": 0.888,
-  "timestamp": "2026-03-26T21:49:22.964Z",
+  "score": 0.667,
+  "timestamp": "2026-05-12T10:46:33.179Z",
   "metrics": {
-    "sessionDurationMs": 24800,
-    "totalInputTokens": 4210,
-    "totalOutputTokens": 1820,
-    "totalCacheReadTokens": 11900,
-    "totalCacheCreationTokens": 502,
-    "totalTurns": 6,
+    "sessionDurationMs": 40254,
+    "totalInputTokens": 7,
+    "totalOutputTokens": 2010,
+    "totalCacheReadTokens": 52859,
+    "totalCacheCreationTokens": 1288,
+    "totalLogicalInputTokens": 54154,
+    "totalCostUsd": 0.0508587,
+    "totalTurns": 5,
     "toolCalls": [
-      { "tool": "Read", "durationMs": 12, "inputTokensEst": 8, "outputTokensEst": 2100 },
-      { "tool": "Bash", "durationMs": 61, "inputTokensEst": 18, "outputTokensEst": 42 },
-      { "tool": "Read", "durationMs": 9,  "inputTokensEst": 8, "outputTokensEst": 2180 }
+      { "tool": "Bash", "durationMs": 171, "inputTokensEst": 25, "outputTokensEst": 24 },
+      { "tool": "Bash", "durationMs": 31, "inputTokensEst": 24, "outputTokensEst": 71 },
+      { "tool": "Read", "durationMs": 6, "inputTokensEst": 18, "outputTokensEst": 428 }
     ],
     "toolStats": {
-      "Read": { "count": 4, "totalDurationMs": 44, "totalInputTokensEst": 320, "totalOutputTokensEst": 8240 },
-      "Bash": { "count": 3, "totalDurationMs": 159, "totalInputTokensEst": 45, "totalOutputTokensEst": 180 },
-      "Grep": { "count": 2, "totalDurationMs": 16, "totalInputTokensEst": 28, "totalOutputTokensEst": 640 }
-    }
+      "Bash": { "count": 2, "totalDurationMs": 202, "totalInputTokensEst": 49, "totalOutputTokensEst": 95 },
+      "Read": { "count": 1, "totalDurationMs": 6, "totalInputTokensEst": 18, "totalOutputTokensEst": 428 }
+    },
+    "filesScanned": ["/workspaces/snyk-vulnbench/fixtures/js-vulns-1/app.js"]
   },
   "details": {
     "agentFindings": [
@@ -1102,10 +1131,10 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
       { "type": "xss", "file": "app.js", "line": 31, "severity": "high", "description": "..." }
     ],
     "truePositives": ["js-sqli-1", "js-xss-1", "js-path-traversal-1", "js-hardcoded-creds-1", "js-cmd-injection-1"],
-    "falsePositives": 1,
-    "falseNegatives": [],
-    "precision": 0.833,
-    "recall": 1.0
+    "falsePositives": 3,
+    "falseNegatives": ["js-xpowered-by-header-1", "js-allocation-of-resources-without-limits-or-throttling-2"],
+    "precision": 0.625,
+    "recall": 0.714
   }
 }
 ```
@@ -1116,7 +1145,7 @@ The JSONL file can be queried directly:
 jq '.score' results/benchmark-*.jsonl
 
 # Compare model vs SAST scores for the same task
-jq 'select(.taskId == "js-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
+jq 'select(.taskId == "js-vulns-1-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
 
 # Only model runs (exclude SAST tools)
 jq 'select(.runConfigType == "model")' results/benchmark-*.jsonl
@@ -1124,12 +1153,88 @@ jq 'select(.runConfigType == "model")' results/benchmark-*.jsonl
 # Only SAST tool runs
 jq 'select(.runConfigType == "command")' results/benchmark-*.jsonl
 
-# Compare token costs across model configs for the same task
-jq 'select(.taskId == "js-find-vulns" and .runConfigType == "model") | {config: .runConfigId, tokens: (.metrics.totalInputTokens + .metrics.totalOutputTokens + .metrics.totalCacheReadTokens + .metrics.totalCacheCreationTokens)}' results/benchmark-*.jsonl
+# Compare logical input tokens and cost across model configs
+jq 'select(.runConfigType == "model") | {config: .runConfigId, task: .taskId, tokens: .metrics.totalLogicalInputTokens, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
 
 # Find the most-used tool across all model runs
 jq 'select(.runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/benchmark-*.jsonl
 ```
+
+---
+
+## FAQ — Understanding Token and Cost Reports
+
+### Q: How do I read the token counts? What does "7 uncached" mean? Where does my prompt and file content show up?
+
+Here is the output from a real benchmark run:
+
+```
+━━━ Config: Claude Sonnet 4.6 (no MCP) [1/2] ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ▸ [1/2] JS App: Find Vulnerabilities 1
+    Score (F1)  :  67%
+    Recall      :  71%  (5/7 known vulns found)
+    Precision   :  63%  (3 false positives)
+    Missed      :  js-xpowered-by-header-1, js-allocation-of-resources-without-limits-or-throttling-2
+    Time        :  40.3s
+    Turns       :  5
+    Files       :  1
+    Tokens      :  56,164 total  (in: 54,154  out: 2,010)
+    Cache       :  52,859 read + 1,288 written  (7 uncached)
+    Cost        :  $0.0509
+    Tools       :  Bash 2x avg 101ms ~49 in / ~95 out · Read 1x avg 6ms ~18 in / ~428 out
+```
+
+Questions:
+1. The cost is total? meaning it includes both input and output?
+2. The cost is provided by CC directly? meaning that it is already accounting for the model of use etc?
+3. On to the tokens/cache topic — can you break down the token counts and explain the meaning of it to me? What sort of insights can I learn from this that are useful for the benchmark? Why do we see again "7 uncached" — is that 7 tokens? What does it account for? What I'm trying to figure out for example is where does my prompt + the file contents fit into the tokens usage. Is that reflected in how we count tokens? in how we report?
+
+**Answers:**
+
+**1. Is the cost total (input + output)?**
+
+Yes. `total_cost_usd` ($0.0509) comes directly from Claude Code's `SDKResultMessage`. It's the full session cost including all input tokens (at their respective rates — cached reads at 0.1x, cache writes at 1.25x, uncached at 1x) plus all output tokens. It also accounts for the specific model's pricing (Sonnet 4.6 in this case). We don't compute this ourselves — Claude Code does.
+
+**2. Is the cost accounting for the model?**
+
+Yes. Claude Code knows which model ran and applies the correct per-model pricing. If you ran the same task with Opus 4.6, the cost would be higher even for the same token counts because Opus has higher per-token rates.
+
+**3. Token/cache breakdown explained:**
+
+Here are the raw numbers from this run:
+
+| Metric | Value | Meaning |
+|---|---|---|
+| `totalLogicalInputTokens` | **54,154** | Total context the model processed across all 5 turns |
+| `totalOutputTokens` | **2,010** | Total tokens the model generated (tool calls + final analysis) |
+| `totalCacheReadTokens` | **52,859** | Input tokens served from the prompt cache |
+| `totalCacheCreationTokens` | **1,288** | Input tokens written to cache (first-time caching) |
+| `totalInputTokens` | **7** | Input tokens that were neither cached nor cache-written |
+
+The key insight is how these map to the **5 turns** in this session:
+
+**Turn 1** (first API call): Claude Code sends the system prompt (~1,200+ tokens of our security audit instructions, but padded with Claude Code's own large system prompt and tool definitions) plus the user prompt. Nothing is cached yet, so most of this goes into `cache_creation` (1,288 tokens written to cache). A tiny handful (7 tokens) falls outside the cacheable prefix — likely a few framing tokens at the very end of the message that the API doesn't cache.
+
+**Turns 2–5** (subsequent API calls): Each turn resends the entire conversation context (system prompt + tool definitions + conversation history so far). The system prompt and tool definitions are identical to turn 1, so they're served from the **cache** (contributing to the 52,859 cache-read total). Each successive turn also includes the growing conversation (previous tool calls and responses), which adds to the cache reads.
+
+Now, about where **your prompt and app.js** fit:
+
+- The **system prompt** (our `defaultSystemPrompt` — the "You are a security expert..." text) is ~200 tokens. But Claude Code wraps it inside its own massive system prompt (~10K+ tokens of tool definitions, instructions, etc.).
+- The **user prompt** ("Audit all files in this directory...") is ~30 tokens.
+- The **app.js file content** (~57 lines) is ~428 tokens (we can see this from `Read: outputTokensEst: 428`).
+
+All of these are part of the 54,154 logical input total, but they're a small fraction of it. The bulk is Claude Code's own system prompt and tool definitions that get sent with every turn.
+
+**What insights are useful for benchmarking?**
+
+The token numbers tell you:
+
+- **Context efficiency**: 52,859 / 54,154 = **97.6%** of input tokens were cache hits. This means the model's context is dominated by the static system prompt/tools that don't change between turns — your actual task content (prompt + code) is a small fraction.
+- **Cost efficiency**: At $0.05 per run, the caching saves roughly ~90% versus what it would cost without caching (cache reads are 0.1x the base rate).
+- **The "7 uncached" tokens**: These are a tiny residual that falls outside the cache boundary on each turn. The API caches contiguous prefixes from the start of the message, and anything after the last `cache_control` breakpoint is uncacheable. These 7 tokens are likely the tail end of one turn's message framing. They're essentially noise for benchmarking purposes.
+
+What's **not** reflected in our token reporting today is a per-turn breakdown — we only see session totals. If you wanted to know "how many tokens did the app.js content add to the context," you'd need per-turn instrumentation, which the SDK doesn't expose.
 
 ---
 
