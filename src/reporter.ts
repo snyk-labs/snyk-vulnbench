@@ -101,11 +101,15 @@ export function printResult(result: EvalResult): void {
 
   const topTools = Object.entries(m.toolStats).sort((a, b) => b[1].count - a[1].count);
   if (topTools.length > 0) {
-    const parts = topTools.map(([tool, stats]) => {
+    const lines = topTools.map(([tool, stats]) => {
       const avgMs = (stats.totalDurationMs / stats.count).toFixed(0);
-      return `${tool} ${stats.count}x avg ${avgMs}ms ~${stats.totalInputTokensEst.toLocaleString()} in / ~${stats.totalOutputTokensEst.toLocaleString()} out`;
+      return s("dim", `${tool} ${stats.count}x avg ${avgMs}ms ~${stats.totalInputTokensEst.toLocaleString()} in / ~${stats.totalOutputTokensEst.toLocaleString()} out`);
     });
-    console.log(metricLine("Tools", s("dim", parts.join(" · "))));
+    console.log(metricLine("Tools", lines[0]));
+    const continuation = " ".repeat(4 + LABEL_WIDTH + 1 + 2);
+    for (let i = 1; i < lines.length; i++) {
+      console.log(`${continuation}${lines[i]}`);
+    }
   }
 }
 
