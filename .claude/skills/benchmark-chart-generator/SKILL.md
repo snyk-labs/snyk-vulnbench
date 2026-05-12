@@ -54,6 +54,9 @@ recall/precision chart is only rendered when the data exists.
 If a row is missing critical fields (`score`, `metrics.sessionDurationMs`), warn the
 user and skip that row rather than failing entirely.
 
+For the full EvalResult schema and all available fields, see
+[`docs/benchmark.md` — EvalResult](../../docs/benchmark.md#evalresult--the-final-record).
+
 ### Step 3: Build the HTML
 
 1. Read the template from this skill's `assets/report-template.html`.
@@ -85,6 +88,79 @@ Report success to the user with the output path and how to open it.
 
 Done when: the HTML file exists at the output path, contains the correct data, and
 the user has been told where to find it.
+
+## Available data fields for charting
+
+Every row in the JSONL file is an `EvalResult`. The default template only uses a subset
+of available fields (score, duration, recall, precision). When the user asks for custom
+charts, use any of the fields below. For the full schema and type definitions, see
+[`docs/benchmark.md`](../../docs/benchmark.md#evalresult--the-final-record).
+
+### Core fields (always present)
+
+| Field path | Type | Description |
+|---|---|---|
+| `taskId`, `taskName` | string | Task identifier and display name |
+| `runConfigId`, `runConfigName` | string | Config identifier and display name |
+| `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
+| `effort` | `"low"\|"medium"\|"high"\|"max"\|null` | Reasoning effort level. Null for command runs. |
+| `thinking` | `ThinkingConfig\|null` | Extended thinking config: `{type:"adaptive"}`, `{type:"enabled",budgetTokens:N}`, or `{type:"disabled"}`. Null for command runs. |
+| `score` | number (0-1) | Overall F1 score (find-vulns) or fraction fixed (fix-vulns) |
+| `timestamp` | string (ISO 8601) | When this run happened |
+
+### Metrics (always present)
+
+| Field path | Type | Description |
+|---|---|---|
+| `metrics.sessionDurationMs` | number | Wall-clock time |
+| `metrics.totalCostUsd` | number or null | Session cost in USD (model runs only) |
+| `metrics.totalLogicalInputTokens` | number | Total context the model processed |
+| `metrics.totalOutputTokens` | number | Total tokens generated |
+| `metrics.totalTurns` | number | API round-trips |
+| `metrics.toolStats` | object | Per-tool `{count, totalDurationMs, totalInputTokensEst, totalOutputTokensEst}` |
+| `metrics.filesScanned` | string[] | Unique file paths touched |
+
+### Find-vulns details (when `details.recall` exists)
+
+| Field path | Type | Description |
+|---|---|---|
+| `details.recall` | number (0-1) | Fraction of ground-truth vulns found |
+| `details.precision` | number (0-1) | Fraction of agent findings that were real |
+| `details.truePositives` | `Array<{id, type, severity}>` | Correctly matched vulns |
+| `details.falsePositives` | `Vulnerability[]` | Unmatched agent findings (hallucinations) |
+| `details.falseNegatives` | `Array<{id, type, severity}>` | Missed vulns |
+| `details.byType` | `Record<VulnType, BreakdownEntry>` | Per-vulnerability-type breakdown |
+| `details.bySeverity` | `Record<Severity, BreakdownEntry>` | Per-severity breakdown |
+
+A `BreakdownEntry` has: `{ total: number, found: number, precision: number, recall: number, f1: number }`.
+
+`VulnType` values: `sql-injection`, `xss`, `path-traversal`, `command-injection`,
+`hardcoded-credentials`, `information-exposure`, `allocation-of-resources-without-limits-or-throttling`,
+`ssrf`, `csrf`, `open-redirect`, `xxe`, `idor`, `insecure-deserialization`,
+`improper-type-validation`, `prototype-pollution`, `origin-validation-error`, `other`.
+
+`Severity` values: `critical`, `high`, `medium`, `low`.
+
+### Chart ideas by data field
+
+When the user asks for comparisons, use these patterns:
+
+| User wants | Fields to use | Chart type |
+|---|---|---|
+| Compare configs on a specific vuln type | `details.byType["xss"].recall` per config | Grouped bars |
+| Compare configs on a severity level | `details.bySeverity["critical"].f1` per config | Grouped bars |
+| Show "excluding low, scores are similar" | `details.bySeverity` -- sum found/total for non-low | Stacked or grouped bars |
+| Effort level comparison | `effort` + `score` (or `metrics.totalCostUsd`) | Bar chart or scatter |
+| Cost vs quality tradeoff | `metrics.totalCostUsd` vs `score` | Scatter plot |
+| Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` | Stacked bars |
+| Tool usage comparison | `metrics.toolStats[tool].count` per config | Grouped bars |
+| What did the model hallucinate? | `details.falsePositives` -- group by `.type` | Pie or horizontal bars |
+| Which vuln types are hardest? | `details.byType[type].recall` across all types for one config | Horizontal bar chart |
+
+When building these custom charts, follow the same Snyk Evo styling and use the
+existing `renderBarChart` and `renderGroupedRecallPrecision` functions from the template
+as a starting point. Add new chart rendering functions as needed for scatter plots,
+stacked bars, or horizontal bars.
 
 ## Color and styling reference
 

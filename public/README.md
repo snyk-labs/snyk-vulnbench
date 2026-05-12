@@ -105,7 +105,7 @@ jq -s '.' results/benchmark-2026-04-24T11-21-37-863Z.jsonl
 
 Copy the output into `const BENCHMARK_ROWS = ` ... `;` in the HTML (still valid JS for numeric/boolean/string fields).
 
-### Fields the page expects
+### Fields the page expects (minimum)
 
 Each row should include at least:
 
@@ -119,6 +119,34 @@ Each row should include at least:
 | `details.recall`, `details.precision` | Grouped recall/precision chart |
 
 If `details` is missing, the script will throw; extend the script if you add runs without those fields.
+
+### Additional fields available for custom charts
+
+The JSONL result schema has grown significantly beyond what the default template renders. When building custom chart reports (via the `benchmark-chart-generator` skill or manual HTML), the following additional data is available on every row.
+
+For the full `EvalResult` schema, `BreakdownEntry` shape, and all field descriptions, see [`docs/benchmark.md` — EvalResult](../docs/benchmark.md#evalresult--the-final-record).
+
+| Field path | Type | Description |
+|---|---|---|
+| `effort` | `"low"\|"medium"\|"high"\|"max"\|null` | Agent reasoning effort level. Null for command/SAST runs. |
+| `thinking` | `{type:"adaptive"}\|{type:"enabled",budgetTokens?:N}\|{type:"disabled"}\|null` | Extended thinking config. Null for command/SAST runs. |
+| `details.byType` | `Record<VulnType, BreakdownEntry>` | Per-vulnerability-type precision/recall/F1. E.g. `details.byType["xss"].recall`. |
+| `details.bySeverity` | `Record<Severity, BreakdownEntry>` | Per-severity precision/recall/F1. E.g. `details.bySeverity["critical"].f1`. |
+| `details.truePositives` | `Array<{id, type, severity}>` | Correctly identified vulns with their type and severity. |
+| `details.falsePositives` | `Vulnerability[]` | Full findings that didn't match any ground-truth vuln (the hallucinations). |
+| `details.falseNegatives` | `Array<{id, type, severity}>` | Missed vulns with their type and severity. |
+| `metrics.totalCostUsd` | `number\|null` | Session cost in USD (model runs only). |
+| `metrics.totalLogicalInputTokens` | `number` | Total context the model processed. |
+| `metrics.totalOutputTokens` | `number` | Total tokens generated. |
+| `metrics.toolStats` | `Record<string, {count, totalDurationMs, ...}>` | Per-tool call count, timing, and estimated token costs. |
+
+A `BreakdownEntry` has: `{ total, found, precision, recall, f1 }`.
+
+**Example chart ideas** using these fields:
+- Recall by vulnerability type across configs (`details.byType[type].recall`)
+- Score comparison across effort levels (`effort` + `score`)
+- Cost vs. score scatter plot (`metrics.totalCostUsd` vs `score`)
+- Severity-filtered F1 (`details.bySeverity["critical"].f1` vs `details.bySeverity["medium"].f1`)
 
 ### Ordering and color assignment
 
