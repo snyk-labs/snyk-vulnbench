@@ -576,11 +576,15 @@ When the agent fixes vulnerabilities, it actually edits the source files. If it 
 
 **Location:** `src/reporter.ts`
 
-The reporter handles all output. It has three functions:
+The reporter handles all output. It has five functions:
 
-**`printResult(result)`** — prints a detailed block for one run immediately after it completes. See [Metrics Deep-Dive](#metrics-deep-dive) for annotated mock output.
+**`printConfigHeader(name, index, total)`** — prints a bold cyan banner line (`━━━ Config: ... [n/m] ━━━`) before each config's group of task results.
 
-**`printSummaryTable(results)`** — prints a compact comparison table after all runs finish. Columns: task id, config id, score, total tokens (all four token types combined), wall time. See [Sample Output — Summary Table](#sample-output--summary-table).
+**`printRunProgress(taskName, index, total)`** — prints a bold progress line (`▸ [n/N] TaskName`) before each individual run.
+
+**`printResult(result)`** — prints a label-aligned block for one run immediately after it completes. Each metric gets its own line with a fixed-width dim label, making it easy to scan vertically. See [Metrics Deep-Dive](#metrics-deep-dive) for annotated mock output.
+
+**`printSummaryTable(results)`** — prints a compact comparison table after all runs finish. Columns: task id, config id, score (color-coded), recall, precision, total tokens, wall time. Includes per-config score averages. See [Sample Output — Summary Table](#sample-output--summary-table).
 
 **`saveResults(results, dir)`** — writes each result as a JSON line to `results/benchmark-<timestamp>.jsonl`. JSONL (JSON Lines) format means one complete JSON object per line, making it easy to:
 - Load into analysis tools (Python pandas, etc.)
@@ -810,40 +814,35 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Score (F1)** | `Score (F1): X%` | `score` | Harmonic mean of precision and recall — the headline quality number |
-| **Recall** | `Recall: X% (N/M found)` | `details.recall` | Fraction of real vulns the agent found |
-| **Precision** | `Precision: X% (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
+| **Score (F1)** | `Score (F1) :  X%` | `score` | Harmonic mean of precision and recall — the headline quality number |
+| **Recall** | `Recall      :  X%  (N/M known vulns found)` | `details.recall` | Fraction of real vulns the agent found |
+| **Precision** | `Precision   :  X%  (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
 | **True positives** | Implicit in recall line | `details.truePositives` | IDs of real vulns correctly identified |
 | **False positives** | `(N false positives)` | `details.falsePositives` | Count of agent findings with no matching ground-truth vuln |
-| **False negatives** | `Missed: id1, id2` | `details.falseNegatives` | IDs of real vulns the agent did not find |
+| **False negatives** | `Missed      :  id1, id2` | `details.falseNegatives` | IDs of real vulns the agent did not find |
 
 #### Quality metrics (fix-vulns)
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Score** | `Score: X%` | `score` | Fraction of known vulns confirmed fixed by the LLM judge |
-| **Vulns fixed** | `Fixed: N/M` | `details.vulnsFixed` | Count confirmed remediated |
-| **Vulns attempted** | `Fixed: N/M` | `details.vulnsAttempted` | Total known vulns in the fixture |
-| **Judge notes** | `Notes: ...` | `details.judgeNotes` | Per-vuln verdict from the LLM judge (Claude Haiku) |
+| **Score** | `Score       :  X%` | `score` | Fraction of known vulns confirmed fixed by the LLM judge |
+| **Vulns fixed** | `Fixed       :  N/M vulnerabilities` | `details.vulnsFixed` | Count confirmed remediated |
+| **Vulns attempted** | `Fixed       :  N/M vulnerabilities` | `details.vulnsAttempted` | Total known vulns in the fixture |
+| **Judge notes** | `Notes       :  ...` | `details.judgeNotes` | Per-vuln verdict from the LLM judge (Claude Haiku) |
 
 #### Session metrics (all eval types)
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Wall time** | `Time: Xs` | `metrics.sessionDurationMs` | Clock time from query start to finish, including all API round-trips and tool execution |
-| **Turns** | `Turns: N` | `metrics.totalTurns` | Unique API calls made (after dedup — see [SDK Message Structure](#sdk-message-structure-and-deduplication)) |
-| **Files scanned** | `Files: N` | `metrics.filesScanned` | Distinct file paths touched by Read/Write/Edit; proxy for codebase exploration depth |
-| **Input tokens** | `in: N` | `metrics.totalInputTokens` | New non-cached input tokens across all turns |
-| **Output tokens** | `out: N` | `metrics.totalOutputTokens` | All tokens Claude generated across all turns |
-| **Cache-read tokens** | `cache-read: N` | `metrics.totalCacheReadTokens` | Context served from prompt cache (~10% billing rate) |
-| **Cache-write tokens** | `cache-write: N` | `metrics.totalCacheCreationTokens` | Context written into prompt cache (~125% billing rate) |
-| **Total tokens** | `N total` | sum of the four above | Total context consumed — not a direct cost proxy (see [Cache Tokens](#cache-tokens)) |
-| **Total tool calls** | `(N calls across M types)` | sum of `metrics.toolStats[*].count` | Grand total tool invocations across the session |
-| **Tool types used** | `(N calls across M types)` | `Object.keys(metrics.toolStats).length` | Number of distinct tool types called |
-| **Per-tool call count** | `Read: Nx` | `metrics.toolStats[name].count` | How many times each specific tool was called |
-| **Per-tool avg duration** | `avg Nms` | `metrics.toolStats[name].totalDurationMs` | Total duration ÷ count; time each tool type spent executing |
-| **Per-tool input tokens (est)** | `~N in tokens (est)` | `metrics.toolStats[name].totalInputTokensEst` | Estimated tokens in tool parameters (chars/4) |
-| **Per-tool output tokens (est)** | `~N out tokens (est)` | `metrics.toolStats[name].totalOutputTokensEst` | Estimated tokens in tool results (chars/4) |
+| **Wall time** | `Time        :  Xs` | `metrics.sessionDurationMs` | Clock time from query start to finish, including all API round-trips and tool execution |
+| **Turns** | `Turns       :  N` | `metrics.totalTurns` | Unique API calls made (after dedup — see [SDK Message Structure](#sdk-message-structure-and-deduplication)) |
+| **Files scanned** | `Files       :  N` | `metrics.filesScanned` | Distinct file paths touched by Read/Write/Edit; proxy for codebase exploration depth |
+| **Input tokens** | `in: N` (inside Tokens line) | `metrics.totalInputTokens` | New non-cached input tokens across all turns |
+| **Output tokens** | `out: N` (inside Tokens line) | `metrics.totalOutputTokens` | All tokens Claude generated across all turns |
+| **Cache-read tokens** | `cache-read: N` (inside Tokens line) | `metrics.totalCacheReadTokens` | Context served from prompt cache (~10% billing rate) |
+| **Cache-write tokens** | `cache-write: N` (inside Tokens line) | `metrics.totalCacheCreationTokens` | Context written into prompt cache (~125% billing rate) |
+| **Total tokens** | `Tokens      :  N` | sum of the four above | Total context consumed — not a direct cost proxy (see [Cache Tokens](#cache-tokens)) |
+| **Per-tool stats** | `Tools       :  Read 4x avg 11ms ...` | `metrics.toolStats` | Per-tool call count, avg duration, and estimated input/output tokens |
 
 ---
 
@@ -934,14 +933,19 @@ There are two sides to the cache economy:
 
 In a typical multi-turn benchmark session the system prompt (~500 tokens) plus the fixture code (~300 tokens) get cached after turn 1. Turns 2 onward each read ~800 tokens from cache instead of paying full input rate. This means `totalCacheReadTokens` can easily be 5–10× larger than `totalInputTokens` in a long session — the bulk of context consumed is cheap cache reads.
 
-The "Tokens" line in the report sums all four fields so the total reflects full context consumed:
+The "Tokens" line in the report shows the total and a breakdown:
 ```
-Tokens:  18,432 total  (in: 4,210, out: 1,820  cache-read: 11,900, cache-write: 502)
+    Tokens     :  18,432  (in: 4,210  out: 1,820  cache-read: 11,900  cache-write: 502)
 ```
 
 If no caching occurred (e.g. a very short single-turn session), the cache fields are omitted:
 ```
-Tokens:  6,030 total  (in: 4,210, out: 1,820)
+    Tokens     :  6,030  (in: 4,210  out: 1,820)
+```
+
+When tokens are 0 (SAST/command runs), the line simply shows `0`:
+```
+    Tokens     :  0
 ```
 
 **Important for benchmarking:** The `N total` figure is *context consumed*, not *cost*. Because cache-read tokens bill at ~10% of the input rate, two runs that did the same logical work but had different cache hit rates will show very different totals. To compare actual cost across runs, weight each field by its billing rate rather than summing raw counts. For within-session comparisons (same model, same fixture, different configs), total tokens is a reasonable proxy because cache behavior is roughly symmetric.
@@ -987,25 +991,21 @@ toolStats["Read"] = {
 
 ### Sample Output — find-vulns Run
 
-This is what `printResult()` produces immediately after each run completes. Annotations in `← ...` are for this doc only and do not appear in real output.
+Runs are grouped by config with a banner header. Each run shows a progress counter and a label-aligned metric block. Annotations in `← ...` are for this doc only and do not appear in real output.
 
 ```
-──────────────────────────────────────────────────────────────────────
-Task:    JS App: Find Vulnerabilities          ← task name from EvalTask
-Config:  Claude Opus 4.6 (no MCP)             ← run config name
-Score:   89%                                  ← F1 score (precision × recall harmonic mean)
-Tokens:  18,432 total  (in: 4,210, out: 1,820  cache-read: 11,900, cache-write: 502)
-                        ↑ new non-cached       ↑ from prompt cache    ↑ cache written
-Time:    24.8s  |  Turns: 6                   ← wall time | AssistantMessage count
+━━━ Config: Claude Opus 4.6 (no MCP) [1/2] ━━━━━━━━━━━━━━━━━━━━━━━━  ← bold cyan banner
 
-Recall:    100%  (5/5 known vulns found)       ← fraction of ground-truth vulns identified
-Precision: 83%   (1 false positives)           ← fraction of reported findings that were real
-Missed:    none                                ← IDs of any vulns not found (none here)
-
-Top tools:                                     ← top 5 by call count
-  Read: 4x, avg 11ms, ~320 in / ~8,240 out tokens (est)
-  Bash: 3x, avg 53ms, ~45 in / ~180 out tokens (est)
-  Grep: 2x, avg 8ms, ~28 in / ~640 out tokens (est)
+  ▸ [1/4] JS App: Find Vulnerabilities                                ← bold task name + progress
+    Score (F1) :  89%                                                  ← color-coded (green/yellow/red)
+    Recall     :  100%  (5/5 known vulns found)                        ← fraction of ground-truth vulns
+    Precision  :  83%  (1 false positives)                             ← fraction of findings that were real
+    Missed     :  none                                                 ← IDs of missed vulns (green if none)
+    Time       :  24.8s
+    Turns      :  6
+    Files      :  4
+    Tokens     :  18,432  (in: 4,210  out: 1,820  cache-read: 11,900  cache-write: 502)
+    Tools      :  Read 4x avg 11ms ~320 in / ~8,240 out · Bash 3x avg 53ms ~45 in / ~180 out
 ```
 
 **Reading the token line:**
@@ -1013,57 +1013,52 @@ Top tools:                                     ← top 5 by call count
 - `out: 1,820` — tokens Claude generated (reasoning + tool calls + final answer)
 - `cache-read: 11,900` — repeated context (system prompt, fixture code) served from cache
 - `cache-write: 502` — context written into cache on the first turn
-- `18,432 total` — everything added together
+- `18,432` — everything added together
 
-**Reading the tool line:**
-- `Read: 4x` — called 4 times
+**Reading the tools line:**
+- `Read 4x` — called 4 times
 - `avg 11ms` — average wall-clock time per call
-- `~320 in` — estimated tokens in the 4 filename parameters combined
-- `~8,240 out` — estimated tokens in the 4 file contents returned (this lands in context next turn)
+- `~320 in / ~8,240 out` — estimated tokens in parameters and results (this lands in context next turn)
 
 ---
 
 ### Sample Output — fix-vulns Run
 
 ```
-──────────────────────────────────────────────────────────────────────
-Task:    JS App: Fix Vulnerabilities
-Config:  Claude Sonnet 4.6 (no MCP)
-Score:   80%
-Tokens:  42,100 total  (in: 8,400, out: 3,600  cache-read: 28,900, cache-write: 1,200)
-Time:    48.2s  |  Turns: 12
-
-Fixed:  4/5 vulnerabilities
-Notes:  Fixed SQL injection (parameterized queries), XSS (output escaping), path traversal
-        (realpath validation), and hardcoded credentials (env vars). Command injection fix
-        was incomplete — exec() replaced with spawn() but args still concatenated.
-
-Top tools:
-  Read:  6x, avg 9ms,  ~280 in / ~9,100 out tokens (est)
-  Edit:  5x, avg 22ms, ~1,840 in / ~12 out tokens (est)
-  Bash:  2x, avg 41ms, ~35 in / ~95 out tokens (est)
-  Glob:  1x, avg 6ms,  ~8 in / ~120 out tokens (est)
+  ▸ [3/4] JS App: Fix Vulnerabilities
+    Score      :  80%
+    Fixed      :  4/5 vulnerabilities
+    Notes      :  Fixed SQL injection (parameterized queries), XSS (output escaping), path traversal
+                  (realpath validation), and hardcoded credentials (env vars). Command injection fix
+                  was incomplete — exec() replaced with spawn() but args still concatenated.
+    Time       :  48.2s
+    Turns      :  12
+    Files      :  4
+    Tokens     :  42,100  (in: 8,400  out: 3,600  cache-read: 28,900  cache-write: 1,200)
+    Tools      :  Read 6x avg 9ms · Edit 5x avg 22ms · Bash 2x avg 41ms · Glob 1x avg 6ms
 ```
 
-Note the `Edit` tool profile: high input tokens (the before/after diff content) and near-zero output tokens (it returns just a success indicator). This is the inverse of `Read`, which has small inputs (just the filename) and large outputs (the file contents).
+Note the difference in tool usage: `Edit` calls dominate for fix tasks (high input tokens from before/after diff content, near-zero output), while `Read` dominates for find tasks.
 
 ---
 
 ### Sample Output — Summary Table
 
-After all runs complete, `printSummaryTable()` prints a comparison across the full task × config matrix. The **Tokens** column is the same four-field total used in the per-run block.
+After all runs complete, `printSummaryTable()` prints a comparison across the full task × config matrix. For find-vulns tasks, Recall and Precision columns are included. Scores are color-coded (green >= 90%, yellow 70-89%, red < 70%). Per-config averages are shown at the bottom.
 
 ```
 ══════════════════════════════════════════════════════════════════════
-BENCHMARK SUMMARY
+  BENCHMARK SUMMARY
 ══════════════════════════════════════════════════════════════════════
-Task                      Config              Score  Tokens   Time(s)
-────────────────────────  ──────────────────  ─────  ───────  ───────
-js-find-vulns             opus-4-6            89%    18432    24.8
-js-find-vulns             sonnet-4-6          72%    14210    19.3
-js-fix-vulns              sonnet-4-6          80%    42100    48.2
-python-find-vulns         opus-4-6            100%   22800    28.1
-python-find-vulns         sonnet-4-6          80%    19400    21.7
+
+  Task                     Config       Score   Recall   Prec.    Tokens    Time
+  ───────────────────────  ──────────   ─────   ──────   ─────   ───────   ─────
+  js-vulns-1-find-vulns    sonnet-4-6     77%     83%     71%    54,385   37.8s
+  js-vulns-2-find-vulns    sonnet-4-6     86%    100%     75%    54,420   31.2s
+  js-vulns-1-find-vulns    snyk-code      92%    100%     86%         0   11.8s
+  js-vulns-2-find-vulns    snyk-code     100%    100%    100%         0   10.4s
+
+  Avg by config:  sonnet-4-6  82%   |   snyk-code  96%
 ```
 
 Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types.

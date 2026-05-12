@@ -1,4 +1,5 @@
 import { execFileSync } from "child_process";
+import { styleText } from "node:util";
 import type { RunConfig, CommandRunConfig } from "./types.js";
 
 interface CheckResult {
@@ -123,7 +124,8 @@ function run(cmd: string, args: string[]): string {
 function printChecks(checks: CheckResult[]): void {
   console.log("\nPreflight checks:");
   for (const c of checks) {
-    const icon = c.ok ? "✔" : "✘";
-    console.log(`  ${icon} ${c.label}: ${c.detail}`);
+    const icon = c.ok ? styleText("green", "✔") : styleText("red", "✘");
+    const detail = c.ok ? c.detail : styleText("red", c.detail);
+    console.log(`  ${icon} ${c.label}: ${detail}`);
   }
 }

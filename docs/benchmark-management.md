@@ -168,12 +168,16 @@ pnpm run benchmark -- --dry-run
 Expected output (exact counts depend on how many task JSON files exist):
 ```
 Benchmark: N task(s) × M config(s) = N×M run(s)
-  • js-find-vulns [find-vulns]
-  • …
-  • ruby-find-vulns [find-vulns]      ← your new task
-  • ruby-fix-vulns [fix-vulns]        ← your new task
-  • opus-4-6: claude-opus-4-6
-  • sonnet-4-6: claude-sonnet-4-6
+  js-find-vulns  [find-vulns]
+  ├─ opus-4-6: claude-opus-4-6
+  └─ sonnet-4-6: claude-sonnet-4-6
+  …
+  ruby-find-vulns  [find-vulns]      ← your new task
+  ├─ opus-4-6: claude-opus-4-6
+  └─ sonnet-4-6: claude-sonnet-4-6
+  ruby-fix-vulns  [fix-vulns]        ← your new task
+  ├─ opus-4-6: claude-opus-4-6
+  └─ sonnet-4-6: claude-sonnet-4-6
 ```
 
 Run `pnpm run benchmark -- --dry-run` locally for current task and config counts.
