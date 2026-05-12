@@ -1,0 +1,62 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Todo app with SQLite and file attachments. Scaffolded from Cursor's Auto MAX mode.",
+  "vulnerabilities": [
+    {
+      "id": "js-xpowered-by-header-4",
+      "type": "information-exposure",
+      "severity": "medium",
+      "file": "server.js",
+      "line": 7,
+      "description": "Disable X-Powered-By header for your Express app (consider using Helmet middleware), because it exposes information about the used framework to potential attackers."
+    },
+    {
+      "id": "js-alloc-without-limits-4a",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "server.js",
+      "line": 106,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
+      "id": "js-alloc-without-limits-4b",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "server.js",
+      "line": 168,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
+      "id": "js-alloc-without-limits-4c",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "server.js",
+      "line": 183,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
+      "id": "js-path-traversal-4a",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "server.js",
+      "line": 140,
+      "description": "Unsanitized input from an HTTP parameter flows into fs.unlink, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to delete arbitrary files."
+    },
+    {
+      "id": "js-path-traversal-4b",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "server.js",
+      "line": 146,
+      "description": "Unsanitized input from an HTTP parameter flows into fs.unlink, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to delete arbitrary files."
+    },
+    {
+      "id": "js-path-traversal-4c",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "server.js",
+      "line": 174,
+      "description": "Unsanitized input from an HTTP parameter flows into fs.unlink, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to delete arbitrary files."
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Express.js app for benchmark testing",
+  "vulnerabilities": [
+    {
+      "id": "js-xpowered-by-header-1",
+      "type": "information-exposure",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 13,
+      "description": "X-Powered-By header exposes information about the used framework to potential attackers"
+    },
+    {
+      "id": "js-hardcoded-creds-1",
+      "type": "hardcoded-credentials",
+      "severity": "high",
+      "file": "app.js",
+      "line": 9,
+      "description": "Hardcoded database password in DB_CONFIG object"
+    },
+    {
+      "id": "js-allocation-of-resources-without-limits-or-throttling-1",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 34,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
+      "id": "js-allocation-of-resources-without-limits-or-throttling-2",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 43,
+      "description": "Expensive operation (a file system operation) is performed by an endpoint handler which does not use a rate-limiting mechanism. It may enable the attackers to perform Denial-of-service attacks. Consider using a rate-limiting middleware such as express-limit."
+    },
+    {
+      "id": "js-xss-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "app.js",
+      "line": 31,
+      "description": "Unsanitized req.query.name interpolated directly into HTML response"
+    },
+    {
+      "id": "js-path-traversal-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "app.js",
+      "line": 37,
+      "description": "User-controlled req.query.filename appended to base path without normalization"
+    },
+    {
+      "id": "js-cmd-injection-1",
+      "type": "command-injection",
+      "severity": "critical",
+      "file": "app.js",
+      "line": 45,
+      "description": "User-controlled req.query.host concatenated into shell command passed to exec()"
+    }
+  ]
+}

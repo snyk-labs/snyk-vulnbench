@@ -1,9 +1,0 @@
-{
-  "name": "js-vulns-2-fixture",
-  "private": true,
-  "dependencies": {
-    "express": "^4.21.2",
-    "knex": "^3.1.0",
-    "pg": "^8.13.1"
-  }
-}

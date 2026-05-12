@@ -1,0 +1,7 @@
+{
+  "id": "js-project-tigerteam-find-vulns",
+  "name": "JS App: Find Vulnerabilities 1",
+  "category": "find-vulns",
+  "fixture": "js-project-tigerteam",
+  "maxTurns": 20
+}

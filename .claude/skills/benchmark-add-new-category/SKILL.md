@@ -146,7 +146,7 @@ Result: `--category python-find-vulns` filters to Python-only tasks; scoring wor
 User says: "Move the app-js tasks to their own find category."
 
 Actions:
-1. Confirm: ID `app-find-vulns`, constant `APP_FIND_VULNS`, find-vulns scoring, move `app-js-1-find-vulns`.
+1. Confirm: ID `app-find-vulns`, constant `APP_FIND_VULNS`, find-vulns scoring, move `app-project-keystonebank-find-vulns`.
 2. Add entry to `EVAL_CATEGORIES`, update scoring dispatch, change task JSON, update docs.
 3. Verify with dry-run.
 
@@ -157,7 +157,7 @@ Result: `--category app-find-vulns` isolates the full-app tasks from the snippet
 User says: "Create a fix category specifically for LLM apps."
 
 Actions:
-1. Confirm: ID `llm-fix-vulns`, constant `LLM_FIX_VULNS`, fix-vulns scoring, move `llm-vulns-1-fix-vulns` and `llm-vulns-2-fix-vulns`.
+1. Confirm: ID `llm-fix-vulns`, constant `LLM_FIX_VULNS`, fix-vulns scoring, move `llm-project-stardust-fix-vulns` and `llm-project-blackmirror-fix-vulns`.
 2. Add entry to `EVAL_CATEGORIES` with fix-oriented prompts.
 3. Add the new category to the temp-copy condition in `src/index.ts` (line ~76) and confirm it falls into the fix-vulns scoring else-branch.
 4. Update task JSONs and docs.

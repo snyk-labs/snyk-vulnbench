@@ -1,0 +1,30 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Express.js app with Knex.js and PostgreSQL. Scaffolded from Cursor's Auto MAX mode.",
+  "vulnerabilities": [
+    {
+      "id": "js-xpowered-by-header-2",
+      "type": "information-exposure",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 13,
+      "description": "X-Powered-By header exposes information about the used framework to potential attackers"
+    },
+    {
+      "id": "js-hardcoded-creds-2",
+      "type": "hardcoded-credentials",
+      "severity": "high",
+      "file": "app.js",
+      "line": 8,
+      "description": "Hardcoded password used in password."
+    },
+    {
+      "id": "js-sql-injection-2",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "app.js",
+      "line": 28,
+      "description": "Unsanitized input from an HTTP parameter flows into raw, where it is used in an SQL query. This may result in an SQL Injection vulnerability."
+    }
+  ]
+}

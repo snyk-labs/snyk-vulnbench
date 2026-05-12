@@ -1,0 +1,7 @@
+{
+  "id": "app-project-keystonebank-find-vulns",
+  "name": "App JS 1 (Express/TS): Find Vulnerabilities",
+  "category": "app-find-vulns",
+  "fixture": "app-project-keystonebank",
+  "maxTurns": 35
+}

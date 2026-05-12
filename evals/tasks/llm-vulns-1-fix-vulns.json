@@ -1,7 +1,0 @@
-{
-  "id": "llm-vulns-1-fix-vulns",
-  "name": "LLM Integration App 1: Fix Vulnerabilities",
-  "category": "fix-vulns",
-  "fixture": "llm-vulns-1",
-  "maxTurns": 30
-}

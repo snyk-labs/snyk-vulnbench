@@ -1,6 +1,6 @@
 ---
 name: benchmark-run
-description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-vulns-2 with snyk code", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
+description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
 license: MIT
 compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs, Snyk CLI authenticated for snyk-code config.
 metadata:
@@ -20,7 +20,7 @@ Turn a natural-language benchmark request into the exact CLI command that runs i
 
 Read these two sources to build the current inventory:
 
-- **Task IDs** — list `evals/tasks/*.json` filenames. Each filename minus `.json` is the task ID (e.g. `js-vulns-1-find-vulns`).
+- **Task IDs** — list `evals/tasks/*.json` filenames. Each filename minus `.json` is the task ID (e.g. `js-project-tigerteam-find-vulns`).
 - **Config IDs** — read `evals/run-configs.json`. Each object's `id` field is a config ID.
 
 This step is necessary because tasks and configs change over time — never hard-code the list.
@@ -37,12 +37,12 @@ Map the user's natural language to `--task`, `--config`, and `--category` flags.
 
 | User says | Resolves to |
 |-----------|-------------|
-| "js find vulns 1" or "js-vulns-1 find" | `--task js-vulns-1-find-vulns` |
-| "js 1 to 3 find vulns" or "js find 1-3" | `--task js-vulns-1-find-vulns,js-vulns-2-find-vulns,js-vulns-3-find-vulns` |
-| "js fix vulns 2" | `--task js-vulns-2-fix-vulns` |
-| "llm 1 find" | `--task llm-vulns-1-find-vulns` |
-| "app js 1 find and fix" | `--task app-js-1-find-vulns,app-js-1-fix-vulns` |
-| "python find" | `--task python-find-vulns` |
+| "js find vulns tigerteam" or "js-project-tigerteam find" | `--task js-project-tigerteam-find-vulns` |
+| "js find vulns tigerteam, shadowfox, ironclad" | `--task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns` |
+| "js fix vulns shadowfox" | `--task js-project-shadowfox-fix-vulns` |
+| "llm 1 find" or "llm stardust find" | `--task llm-project-stardust-find-vulns` |
+| "app keystonebank find and fix" | `--task app-project-keystonebank-find-vulns,app-project-keystonebank-fix-vulns` |
+| "python find" | `--task python-project-cobalt-find-vulns` |
 | "all find tasks" or "find vulns" | `--category find-vulns` (no `--task` needed) |
 | "all fix tasks" | `--category fix-vulns` |
 | "everything" or "all" | omit both `--task` and `--category` |
@@ -115,20 +115,20 @@ If the user wants a detailed report or writeup, suggest using the `benchmark-rep
 **User says:** "run find vulns for js 1 to 3 with opus"
 
 Actions:
-1. List tasks → find `js-vulns-1-find-vulns`, `js-vulns-2-find-vulns`, `js-vulns-3-find-vulns`
+1. List tasks → find `js-project-tigerteam-find-vulns`, `js-project-shadowfox-find-vulns`, `js-project-ironclad-find-vulns`
 2. Resolve config "opus" → `opus-4-6`
-3. Run: `pnpm tsx src/index.ts --task js-vulns-1-find-vulns,js-vulns-2-find-vulns,js-vulns-3-find-vulns --config opus-4-6`
+3. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config opus-4-6`
 
 Result: 3 find-vulns tasks run against Claude Opus 4.6, scores printed and saved to results file.
 
 ---
 
-**User says:** "benchmark js-vulns-2 with sonnet and snyk code"
+**User says:** "benchmark js-project-shadowfox with sonnet and snyk code"
 
 Actions:
-1. User said "js-vulns-2" without specifying find or fix → include both: `js-vulns-2-find-vulns,js-vulns-2-fix-vulns`
+1. User said "js-project-shadowfox" without specifying find or fix → include both: `js-project-shadowfox-find-vulns,js-project-shadowfox-fix-vulns`
 2. Resolve configs → `sonnet-4-6,snyk-code`
-3. Run: `pnpm tsx src/index.ts --task js-vulns-2-find-vulns,js-vulns-2-fix-vulns --config sonnet-4-6,snyk-code`
+3. Run: `pnpm tsx src/index.ts --task js-project-shadowfox-find-vulns,js-project-shadowfox-fix-vulns --config sonnet-4-6,snyk-code`
 
 Result: 2 tasks x 2 configs = 4 runs. Sonnet runs both find and fix; Snyk Code runs find only (command configs skip fix-vulns automatically).
 
@@ -147,23 +147,23 @@ Result: Prints the task x config matrix without executing anything.
 **User says:** "run the llm benchmarks with all models"
 
 Actions:
-1. List tasks → find `llm-vulns-1-find-vulns`, `llm-vulns-1-fix-vulns`, `llm-vulns-2-find-vulns`, `llm-vulns-2-fix-vulns`
+1. List tasks → find `llm-project-stardust-find-vulns`, `llm-project-stardust-fix-vulns`, `llm-project-blackmirror-find-vulns`, `llm-project-blackmirror-fix-vulns`
 2. No specific config mentioned → omit `--config` to run all
-3. Run: `pnpm tsx src/index.ts --task llm-vulns-1-find-vulns,llm-vulns-1-fix-vulns,llm-vulns-2-find-vulns,llm-vulns-2-fix-vulns`
+3. Run: `pnpm tsx src/index.ts --task llm-project-stardust-find-vulns,llm-project-stardust-fix-vulns,llm-project-blackmirror-find-vulns,llm-project-blackmirror-fix-vulns`
 
 Result: 4 tasks x all configs. Scores and results saved.
 
 ---
 
-**User says:** "run it" (in context of discussing js-vulns-5)
+**User says:** "run it" (in context of discussing js-project-purplehaze)
 
 Actions:
-1. Infer from conversation context that the user means js-vulns-5
-2. Include both find and fix: `js-vulns-5-find-vulns,js-vulns-5-fix-vulns`
+1. Infer from conversation context that the user means js-project-purplehaze
+2. Include both find and fix: `js-project-purplehaze-find-vulns,js-project-purplehaze-fix-vulns`
 3. No config specified → run all
-4. Run: `pnpm tsx src/index.ts --task js-vulns-5-find-vulns,js-vulns-5-fix-vulns`
+4. Run: `pnpm tsx src/index.ts --task js-project-purplehaze-find-vulns,js-project-purplehaze-fix-vulns`
 
-Result: Benchmark runs for js-vulns-5 across all configured models and tools.
+Result: Benchmark runs for js-project-purplehaze across all configured models and tools.
 
 ---
 

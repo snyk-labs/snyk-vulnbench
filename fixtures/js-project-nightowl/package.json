@@ -1,0 +1,19 @@
+{
+  "name": "js-project-nightowl",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Simple todo app with SQLite and file attachments",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3"]
+  }
+}

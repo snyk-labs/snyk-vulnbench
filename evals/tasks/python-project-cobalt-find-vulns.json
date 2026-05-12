@@ -1,0 +1,7 @@
+{
+  "id": "python-project-cobalt-find-vulns",
+  "name": "Python App: Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "python-project-cobalt",
+  "maxTurns": 20
+}

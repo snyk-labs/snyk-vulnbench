@@ -1,0 +1,70 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Express + TypeScript backend (with Nuxt frontend) for benchmark testing, based on Liran Tal's Berkshare Hackaway app",
+  "vulnerabilities": [
+    {
+      "id": "app1-info-x-powered-by-1",
+      "type": "information-exposure",
+      "severity": "medium",
+      "file": "backend/index.ts",
+      "line": 20,
+      "description": "Express app exposes default X-Powered-By header (framework fingerprinting)"
+    },
+    {
+      "id": "app1-hardcoded-seed-admin-1",
+      "type": "hardcoded-credentials",
+      "severity": "medium",
+      "file": "backend/scripts/seed-db.ts",
+      "line": 22,
+      "description": "Hardcoded seed password for admin user in users array"
+    },
+    {
+      "id": "app1-hardcoded-seed-user-1",
+      "type": "hardcoded-credentials",
+      "severity": "medium",
+      "file": "backend/scripts/seed-db.ts",
+      "line": 30,
+      "description": "Hardcoded seed password for standard user in users array"
+    },
+    {
+      "id": "app1-path-traversal-statements-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "backend/routes/bank_statements.ts",
+      "line": 25,
+      "description": "User-controlled report_name flows into fs/promises.readFile as path (Snyk: javascript/PT, CWE-23)"
+    },
+    {
+      "id": "app1-prototype-pollution-memos-1",
+      "type": "prototype-pollution",
+      "severity": "medium",
+      "file": "backend/routes/memos.ts",
+      "line": 66,
+      "description": "Prototype pollution via recursive merge of user-controlled meta into profile object (Snyk: javascript/PrototypePollution, CWE-1321)"
+    },
+    {
+      "id": "app1-sql-injection-finchat-1",
+      "type": "sql-injection",
+      "severity": "medium",
+      "file": "backend/routes/finchat.ts",
+      "line": 43,
+      "description": "LLM response concatenated into SQL audit INSERT without parameterization"
+    },
+    {
+      "id": "app1-cors-wildcard-data-1",
+      "type": "origin-validation-error",
+      "severity": "medium",
+      "file": "backend/index.ts",
+      "line": 52,
+      "description": "Access-Control-Allow-Origin set to * with credentials allowed (Snyk: javascript/TooPermissiveCorsHeader — Origin Validation Error, CWE-942 / CWE-346)"
+    },
+    {
+      "id": "app1-xss-bank-profile-template-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "backend/routes/bank_profile_template.ts",
+      "line": 27,
+      "description": "Unescaped profile fields interpolated into HTML sent with text/html"
+    }
+  ]
+}

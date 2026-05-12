@@ -1,0 +1,7 @@
+{
+  "id": "js-project-nightowl-find-vulns",
+  "name": "JS Todo App (SQLite 4): Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "js-project-nightowl",
+  "maxTurns": 20
+}

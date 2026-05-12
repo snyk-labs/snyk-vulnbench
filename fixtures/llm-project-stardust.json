@@ -1,0 +1,30 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Express.js app integrating with LLM APIs and exposing jokes via a conversational AI assistant, based on Liran Tal's llm-ai-security repo.",
+  "vulnerabilities": [
+    {
+      "id": "llm-dom-xss-chatbox",
+      "type": "xss",
+      "severity": "medium",
+      "file": "public/index.html",
+      "line": 31,
+      "description": "Unsanitized input from data from a remote resource flows into innerHTML in the chat UI, where it is used to dynamically construct the HTML page on the client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS)."
+    },
+    {
+      "id": "llm-xpowered-by-header",
+      "type": "information-exposure",
+      "severity": "medium",
+      "file": "index.js",
+      "line": 13,
+      "description": "Disable X-Powered-By header for your Express app (consider using Helmet middleware), because it exposes information about the used framework to potential attackers."
+    },
+    {
+      "id": "llm-xss-response",
+      "type": "xss",
+      "severity": "medium",
+      "file": "index.js",
+      "line": 38,
+      "description": "Unsanitized input from an LLM flows into res.send(), where it is used to render an HTML page returned to the user. This may result in a Cross-Site Scripting attack (XSS)."
+    }
+  ]
+}

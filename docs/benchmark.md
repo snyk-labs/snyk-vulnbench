@@ -191,23 +191,23 @@ The `--category` CLI flag filters the task list by category id (e.g. `--category
 EVAL_CATEGORIES.FIND_VULNS             EVAL_CATEGORIES.LLM_FIND_VULNS
   { id: "find-vulns" }                   { id: "llm-find-vulns" }
          │                                        │
-         ├── js-vulns-1-find-vulns                ├── llm-vulns-1-find-vulns
-         ├── js-vulns-2-find-vulns                └── llm-vulns-2-find-vulns
-         ├── js-vulns-3-find-vulns
-         ├── js-vulns-4-find-vulns         EVAL_CATEGORIES.APP_FIND_VULNS
-         ├── js-vulns-5-find-vulns           { id: "app-find-vulns" }
-         └── python-find-vulns                    │
-                                                  └── app-js-1-find-vulns
+         ├── js-project-tigerteam-find-vulns       ├── llm-project-stardust-find-vulns
+         ├── js-project-shadowfox-find-vulns      └── llm-project-blackmirror-find-vulns
+         ├── js-project-ironclad-find-vulns
+         ├── js-project-nightowl-find-vulns  EVAL_CATEGORIES.APP_FIND_VULNS
+         ├── js-project-purplehaze-find-vulns  { id: "app-find-vulns" }
+         └── python-project-cobalt-find-vulns    │
+                                                  └── app-project-keystonebank-find-vulns
 EVAL_CATEGORIES.FIX_VULNS
   { id: "fix-vulns" }
          │
-         ├── js-vulns-2-fix-vulns
-         ├── js-vulns-3-fix-vulns
-         ├── js-vulns-4-fix-vulns
-         ├── js-vulns-5-fix-vulns
-         ├── app-js-1-fix-vulns
-         ├── llm-vulns-1-fix-vulns
-         └── llm-vulns-2-fix-vulns
+         ├── js-project-shadowfox-fix-vulns
+         ├── js-project-ironclad-fix-vulns
+         ├── js-project-nightowl-fix-vulns
+         ├── js-project-purplehaze-fix-vulns
+         ├── app-project-keystonebank-fix-vulns
+         ├── llm-project-stardust-fix-vulns
+         └── llm-project-blackmirror-fix-vulns
 ```
 
 #### Scoring Pipelines
@@ -255,11 +255,11 @@ A fixture is a self-contained directory containing vulnerable source code. It is
 
 ```
 fixtures/
-  js-vulns.json   ← Ground truth: exactly which vulns exist and where
-  js-vulns/
-    app.js        ← The vulnerable code (intentionally bad)
-  python-vulns.json
-  python-vulns/
+  js-project-tigerteam.json   ← Ground truth: exactly which vulns exist and where
+  js-project-tigerteam/
+    app.js                    ← The code under test
+  python-project-cobalt.json
+  python-project-cobalt/
     app.py
 ```
 
@@ -705,22 +705,22 @@ For **fix-vulns**:
 Let's trace exactly what happens when you run:
 
 ```bash
-pnpm run benchmark -- --task js-find-vulns --config opus-4-6
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config opus-4-6
 ```
 
 **Step 1 — Setup (`index.ts`)**
-- Filters `EVAL_TASKS` to just `js-find-vulns`
+- Filters `EVAL_TASKS` to just `js-project-tigerteam-find-vulns`
 - Filters `DEFAULT_RUN_CONFIGS` to just `opus-4-6`
 - 1 task × 1 config = 1 run
 
 **Step 2 — Prepare the working directory (`index.ts`)**
 - `task.type === "find-vulns"` → no copy needed
-- Sets `cwd = fixtures/js-vulns/` (the agent will start here)
+- Sets `cwd = fixtures/js-project-tigerteam/` (the agent will start here)
 
 **Step 3 — Run the agent (`runner.ts`)**
 - Calls `query({ prompt: "Audit all files...", options: { cwd, model: "claude-opus-4-6", hooks: [...] } })`
 - The Agent SDK spawns the Claude Code CLI as a subprocess
-- The agent starts in `fixtures/js-vulns/` and begins reading `app.js`
+- The agent starts in `fixtures/js-project-tigerteam/` and begins reading `app.js`
 - The `PreToolUse` hook fires before each tool call, recording its start time
 - The `PostToolUse` hook fires after, recording tool name + duration
 - Each `AssistantMessage` from the stream contributes its `usage.input_tokens` and `usage.output_tokens` to running totals
@@ -793,7 +793,7 @@ If you add a fixture with two different SQL injections in the same file, give th
 
 ### Command configs and Snyk Code (SAST)
 
-Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an external CLI against the fixture directory, parse **stdout** into the same finding shape as the LLM path, then reuse **identical** find-vulns scoring. This section is the reference for “how do Snyk’s results line up with `fixtures/js-vulns-1.json` (or any ground-truth file)?”
+Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an external CLI against the fixture directory, parse **stdout** into the same finding shape as the LLM path, then reuse **identical** find-vulns scoring. This section is the reference for “how do Snyk’s results line up with `fixtures/js-project-tigerteam.json` (or any ground-truth file)?”
 
 #### 1. Where the run is dispatched
 
@@ -822,7 +822,7 @@ Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an 
   - **`severity`:** `mapLevel` maps SARIF `level` (`error` → `"high"`, `warning` → `"medium"`, `note` → `"low"`).
   - **`description`:** `message.text`.
 
-Alignment with a ground-truth row such as those in **`fixtures/js-vulns-1.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
+Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
 
 #### 4. Bridging to the scorer: synthetic `FINDINGS_JSON`
 
@@ -1151,8 +1151,8 @@ After all runs complete, `printSummaryTable()` prints a comparison across the fu
 
   Task                   Config      Score  Recall  Prec.  Tokens     Cost   Time
   ─────────────────────  ──────────  ─────  ──────  ─────  ──────  ───────  ─────
-  js-vulns-1-find-vulns  sonnet-4-6    67%     71%    63%  56,164  $0.0509  40.3s
-  js-vulns-1-find-vulns  snyk-code    100%    100%   100%       0        -   9.9s
+  js-project-tigerteam-find-vulns  sonnet-4-6    67%     71%    63%  56,164  $0.0509  40.3s
+  js-project-tigerteam-find-vulns  snyk-code    100%    100%   100%       0        -   9.9s
 
   Avg by config:  sonnet-4-6  67%   |   snyk-code  100%
 ```
@@ -1167,7 +1167,7 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
 
 ```json
 {
-  "taskId": "js-vulns-1-find-vulns",
+  "taskId": "js-project-tigerteam-find-vulns",
   "taskName": "JS App: Find Vulnerabilities 1",
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
@@ -1194,7 +1194,7 @@ Each run appends one JSON object to `results/benchmark-<timestamp>.jsonl`. This 
       "Bash": { "count": 2, "totalDurationMs": 202, "totalInputTokensEst": 49, "totalOutputTokensEst": 95 },
       "Read": { "count": 1, "totalDurationMs": 6, "totalInputTokensEst": 18, "totalOutputTokensEst": 428 }
     },
-    "filesScanned": ["/workspaces/snyk-vulnbench/fixtures/js-vulns-1/app.js"]
+    "filesScanned": ["/workspaces/snyk-vulnbench/fixtures/js-project-tigerteam/app.js"]
   },
   "details": {
     "agentFindings": [
@@ -1237,7 +1237,7 @@ The JSONL file can be queried directly:
 jq '.score' results/benchmark-*.jsonl
 
 # Compare model vs SAST scores for the same task
-jq 'select(.taskId == "js-vulns-1-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
+jq 'select(.taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
 
 # Only model runs (exclude SAST tools)
 jq 'select(.runConfigType == "model")' results/benchmark-*.jsonl
@@ -1367,22 +1367,22 @@ pnpm run benchmark:find    # equivalent to --category find-vulns
 pnpm run benchmark:fix     # equivalent to --category fix-vulns
 
 # Filter by a specific task (one row of the matrix), across all configs
-pnpm run benchmark -- --task js-vulns-1-find-vulns
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns
 
 # Select multiple tasks by comma-separating them (no spaces)
-pnpm run benchmark -- --task js-vulns-1-find-vulns,js-vulns-2-find-vulns
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns
 
 # Filter by a specific config (one column of the matrix), across all tasks
 pnpm run benchmark -- --config opus-4-6
 
 # Select multiple configs by comma-separating them (no spaces)
-pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config sonnet-4-6,snyk-code
 
 # Combine multiple tasks and multiple configs
-pnpm run benchmark -- --task js-vulns-1-find-vulns,js-vulns-2-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6,snyk-code
 
 # Combine filters — one task against one config (a single cell)
-pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-with-snyk
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config sonnet-with-snyk
 
 # Combine category + config — all find-vulns tasks against one config
 pnpm run benchmark -- --category find-vulns --config opus-4-6

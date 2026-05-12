@@ -26,7 +26,7 @@ Read **`docs/benchmark-management.md`** (Adding a New Eval Task, Ground-Truth JS
 
 ### Step 1: Prepare — fixture identity and paths
 
-1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-js-1`) — it must match **`evals/tasks/*.json`** `fixture` field and the sibling file **`fixtures/<fixture-name>.json`**.
+1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) — it must match **`evals/tasks/*.json`** `fixture` field and the sibling file **`fixtures/<fixture-name>.json`**.
 2. Confirm vulnerable code lives under **`fixtures/<fixture-name>/`** and that no ground-truth secrets are only in prose you will not encode in JSON.
 3. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*.json` files.
 

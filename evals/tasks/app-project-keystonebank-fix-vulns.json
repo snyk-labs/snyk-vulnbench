@@ -1,0 +1,7 @@
+{
+  "id": "app-project-keystonebank-fix-vulns",
+  "name": "App JS 1 (Express/TS): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-keystonebank",
+  "maxTurns": 40
+}

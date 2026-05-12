@@ -1,7 +1,0 @@
-{
-  "id": "python-find-vulns",
-  "name": "Python App: Find Vulnerabilities",
-  "category": "find-vulns",
-  "fixture": "python-vulns",
-  "maxTurns": 20
-}

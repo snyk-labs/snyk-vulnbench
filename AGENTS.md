@@ -40,11 +40,11 @@ evals/
   run-configs.json  # Array of RunConfig objects — edit to add/change model configs
 
 fixtures/
-  js-vulns.json     # Ground-truth vulnerability metadata (OUTSIDE agent cwd — loaded by loader)
-  js-vulns/         # Intentionally vulnerable JavaScript (Express app)
-    app.js          # Vulnerable code (SQL injection, XSS, path traversal, etc.)
-  python-vulns.json # Ground-truth vulnerability metadata
-  python-vulns/     # Intentionally vulnerable Python (Flask app)
+  js-project-tigerteam.json   # Ground-truth metadata (OUTSIDE agent cwd — loaded by loader)
+  js-project-tigerteam/       # JavaScript project (Express app)
+    app.js
+  python-project-cobalt.json   # Ground-truth metadata
+  python-project-cobalt/       # Python project (Flask app)
     app.py
 
 results/            # Benchmark output (JSONL files)
@@ -108,7 +108,7 @@ pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:fix                  # only fix-vulns tasks
 pnpm benchmark -- --config opus-only    # specific run config
-pnpm benchmark -- --task js-find-vulns  # specific task
+pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task
 ```
 
 Results are saved to `results/benchmark-<timestamp>.jsonl`.

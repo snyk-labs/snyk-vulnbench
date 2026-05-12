@@ -1,0 +1,7 @@
+{
+  "id": "js-project-shadowfox-fix-vulns",
+  "name": "JS App (Knex/Postgres 2): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-shadowfox",
+  "maxTurns": 30
+}

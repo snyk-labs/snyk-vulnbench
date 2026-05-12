@@ -1,0 +1,19 @@
+{
+  "name": "js-project-purplehaze",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Simple uptime and host health check with ping and optional security.txt probe",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-handlebars": "^8.0.1",
+    "express-session": "^1.18.1"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "llm-project-blackmirror-fix-vulns",
+  "name": "LLM Integration App 2: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "llm-project-blackmirror",
+  "maxTurns": 30
+}

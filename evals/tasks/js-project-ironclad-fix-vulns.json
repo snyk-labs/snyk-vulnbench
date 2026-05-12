@@ -1,0 +1,7 @@
+{
+  "id": "js-project-ironclad-fix-vulns",
+  "name": "JS App (Knex/Postgres 3): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-ironclad",
+  "maxTurns": 30
+}

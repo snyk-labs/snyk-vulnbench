@@ -1,0 +1,7 @@
+{
+  "id": "llm-project-stardust-find-vulns",
+  "name": "LLM Integration App 1: Find Vulnerabilities",
+  "category": "llm-find-vulns",
+  "fixture": "llm-project-stardust",
+  "maxTurns": 20
+}

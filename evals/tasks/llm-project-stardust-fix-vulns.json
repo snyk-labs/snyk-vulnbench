@@ -1,0 +1,7 @@
+{
+  "id": "llm-project-stardust-fix-vulns",
+  "name": "LLM Integration App 1: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "llm-project-stardust",
+  "maxTurns": 30
+}

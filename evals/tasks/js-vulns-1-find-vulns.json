@@ -1,7 +1,0 @@
-{
-  "id": "js-vulns-1-find-vulns",
-  "name": "JS App: Find Vulnerabilities 1",
-  "category": "find-vulns",
-  "fixture": "js-vulns-1",
-  "maxTurns": 20
-}

@@ -44,10 +44,10 @@ evals/
   run-configs.json         ← edit this array to add/change configs
 
 fixtures/
-  js-vulns.json            ← ground-truth answer key (outside agent's cwd)
-  js-vulns/
-    app.js                 ← agent's working directory
-  your-new-fixture.json    ← ground-truth answer key for your fixture
+  js-project-tigerteam.json  ← ground-truth answer key (outside agent's cwd)
+  js-project-tigerteam/
+    app.js                   ← agent's working directory
+  your-new-fixture.json      ← ground-truth answer key for your fixture
   your-new-fixture/
     ...                    ← agent's working directory
 ```
@@ -117,7 +117,7 @@ Create `fixtures/<your-fixture>.json` as a **sibling** to the fixture directory 
 }
 ```
 
-**The `id` field is what the scorer tracks.** Make each id **unique across the whole repo**, not only within one `fixtures/<name>.json` file. Benchmark results and spreadsheets often aggregate rows from many tasks; duplicate ids (e.g. the same `llm-xpowered-by-header` in two different fixtures) make history ambiguous and harder to join to ground truth. Prefer a **fixture-scoped prefix**: shorten the fixture directory name if needed (`llm-vulns-2` → `llm2-`, `js-vulns-5` → `js5-`) so every id is globally distinctive. Keep ids descriptive and stable — if you rename an id after runs, historical JSONL will no longer line up.
+**The `id` field is what the scorer tracks.** Make each id **unique across the whole repo**, not only within one `fixtures/<name>.json` file. Benchmark results and spreadsheets often aggregate rows from many tasks; duplicate ids (e.g. the same `llm-xpowered-by-header` in two different fixtures) make history ambiguous and harder to join to ground truth. Prefer a **fixture-scoped prefix**: shorten the fixture directory name if needed (`llm-project-blackmirror` → `lbm-`, `js-project-purplehaze` → `jph-`) so every id is globally distinctive. Keep ids descriptive and stable — if you rename an id after runs, historical JSONL will no longer line up.
 
 See the [Ground-Truth JSON Reference](#ground-truth-json-reference) for the full field list and valid values.
 
@@ -507,7 +507,7 @@ The `{fixturePath}` placeholder is substituted at runtime with the absolute path
 
 ```bash
 # Compare Snyk Code SAST against Sonnet on the same task
-pnpm run benchmark -- --task js-vulns-1-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config sonnet-4-6,snyk-code
 
 # Run SAST against all find-vulns tasks
 pnpm run benchmark -- --category find-vulns --config snyk-code
@@ -685,7 +685,7 @@ That's it. No source code changes required.
 - Check that the `type` values in `vulns.json` exactly match the valid `VulnType` strings — a typo here means no match.
 
 **"No matching tasks found. Available: ..."**
-- The `--task` id(s) you passed don't match any loaded task. Multiple tasks are comma-separated: `--task js-vulns-1-find-vulns,js-vulns-2-find-vulns` (no spaces around the comma). Run `--dry-run` to see what ids are loaded.
+- The `--task` id(s) you passed don't match any loaded task. Multiple tasks are comma-separated: `--task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns` (no spaces around the comma). Run `--dry-run` to see what ids are loaded.
 
 **"No matching configs found for '...'. Available: ..."**
 - The `--config` value(s) you passed don't match any entry in `evals/run-configs.json`. Multiple configs are comma-separated: `--config sonnet-4-6,snyk-code` (no spaces around the comma).

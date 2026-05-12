@@ -1,0 +1,7 @@
+{
+  "id": "js-project-purplehaze-find-vulns",
+  "name": "JS Todo App (SQLite 5): Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "js-project-purplehaze",
+  "maxTurns": 25
+}
