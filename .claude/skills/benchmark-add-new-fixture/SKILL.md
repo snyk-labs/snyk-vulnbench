@@ -16,7 +16,7 @@ Drive a new benchmark fixture from an empty or existing `fixtures/<name>/` tree 
 
 **Principles (read before executing):**
 
-- Ground truth lives in **`fixtures/<fixture-name>.json`** (sibling of **`fixtures/<fixture-name>/`**), never inside the fixture cwd — the agent must not read the answer key. See `docs/benchmark-management.md` and `docs/benchmark.md` (Snyk / scoring sections).
+- Ground truth lives in **`fixtures/<fixture-name>/findings.json`** (inside the fixture dir but outside `project/`) — the agent's `cwd` is `project/` so it cannot read the answer key. See `docs/benchmark-management.md` and `docs/benchmark.md` (Snyk / scoring sections).
 - Find-vulns scoring matches findings to known vulns **by `VulnType` only**, in a **greedy order**: iterate parsed findings in array order; each finding consumes the **first unmatched** ground-truth row with the same `type`. Therefore **`vulnerabilities[]` order should mirror `snyk code test` `results[]` order** whenever multiple rows share a type (e.g. two `hardcoded-credentials`, two `other` or two of any same type).
 - Snyk maps SARIF **`results[].ruleId`** (e.g. `javascript/TooPermissiveCorsHeader`) to benchmark `type` via **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Driver metadata in **`runs[0].tool.driver.rules`** (`id`, `name`, `shortDescription.text`, `properties.cwe`) names the vulnerability class — use it to pick or add `VulnType` strings and regex patterns.
 
@@ -26,9 +26,9 @@ Read **`docs/benchmark-management.md`** (Adding a New Eval Task, Ground-Truth JS
 
 ### Step 1: Prepare — fixture identity and paths
 
-1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) — it must match **`evals/tasks/*.json`** `fixture` field and the sibling file **`fixtures/<fixture-name>.json`**.
-2. Confirm vulnerable code lives under **`fixtures/<fixture-name>/`** and that no ground-truth secrets are only in prose you will not encode in JSON.
-3. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*.json` files.
+1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) — it must match **`evals/tasks/*.json`** `fixture` field and the file **`fixtures/<fixture-name>/findings.json`**.
+2. Confirm source code lives under **`fixtures/<fixture-name>/project/`** and that no ground-truth secrets are only in prose you will not encode in JSON.
+3. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*/findings.json` files.
 
 **Done when:** `<fixture-name>` is fixed and you know the repo root (benchmark project root).
 
@@ -42,7 +42,7 @@ Run Snyk from the **benchmark repo root** so paths and `cwd` match how the bench
 
 ```bash
 cd /path/to/snyk-vulnbench
-snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-output="/tmp/snyk-<fixture-name>-$RANDOM.json"
+snyk code test "fixtures/<fixture-name>/project/" --include-ignores --json --json-file-output="/tmp/snyk-<fixture-name>-$RANDOM.json"
 ```
 
 **Extract machine-readable fields without reading megabytes into chat:**
@@ -65,10 +65,10 @@ snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-o
 
 ---
 
-### Step 4: Author `fixtures/<fixture-name>.json`
+### Step 4: Author `fixtures/<fixture-name>/findings.json`
 
-1. Create **`fixtures/<fixture-name>.json`** with top-level **`description`**, **`vulnerabilities`** array, and **`_note`** pointing at `docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type` (copy pattern from an existing `fixtures/*.json`).
-2. Each element: **`id`** (globally unique), **`type`** (`VulnType`), **`severity`**, **`file`** (relative to fixture root, POSIX separators), **`line`** (align with SARIF primary `startLine` when possible), **`description`** (human-readable; cite Snyk `ruleId` / CWE when helpful for maintainers).
+1. Create **`fixtures/<fixture-name>/findings.json`** with top-level **`description`**, **`vulnerabilities`** array, and **`_note`** pointing at `docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type` (copy pattern from an existing `fixtures/*/findings.json`).
+2. Each element: **`id`** (globally unique), **`type`** (`VulnType`), **`severity`**, **`file`** (relative to `project/` root, POSIX separators), **`line`** (align with SARIF primary `startLine` when possible), **`description`** (human-readable; cite Snyk `ruleId` / CWE when helpful for maintainers).
 3. **Sort `vulnerabilities` in the same order as `runs[0].results`** from Step 2 whenever two entries could compete for the same `type` under greedy matching.
 
 **Done when:** JSON validates and loader can read it (`vulnerabilities` is an array of objects with required fields).
@@ -87,7 +87,7 @@ snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-o
 
 ### Step 6: Verify end-to-end
 
-1. **Loader:** `pnpm run benchmark -- --dry-run` must list the new tasks (if the repo’s full task set currently fails loading, fix unrelated missing `fixtures/*.json` first, or temporarily validate by importing `loadEvalTasks` in a small `tsx` script).
+1. **Loader:** `pnpm run benchmark -- --dry-run` must list the new tasks (if the repo’s full task set currently fails loading, fix unrelated missing `fixtures/*/findings.json` first, or temporarily validate by importing `loadEvalTasks` in a small `tsx` script).
 2. **Snyk parity:** Pipe the SARIF file through the same path as the harness: `parseSnykCodeOutput` → build synthetic `FINDINGS_JSON` (see **`src/command-runner.ts`**) → **`scoreFindVulns`** with `knownVulns` loaded from your new JSON. Expect **recall 1.0** and **no false negatives** when ordering and types align.
 3. Optionally run **`pnpm run benchmark -- --task <fixture-name>-find-vulns --config snyk-code`** if CLI auth is available.
 
@@ -99,8 +99,8 @@ snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-o
 
 | Artifact | Path |
 |----------|------|
-| Vulnerable tree | `fixtures/<fixture-name>/` |
-| Ground truth | `fixtures/<fixture-name>.json` |
+| Source code | `fixtures/<fixture-name>/project/` |
+| Ground truth | `fixtures/<fixture-name>/findings.json` |
 | Find task | `evals/tasks/<fixture-name>-find-vulns.json` |
 | Fix task | `evals/tasks/<fixture-name>-fix-vulns.json` |
 | Snyk rule → type | `src/parsers/snyk-code.ts` → `mapRuleId()` |
@@ -116,11 +116,11 @@ snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-o
 
 **Actions:**
 
-1. Set `<fixture-name>` to `payment-api`; confirm `fixtures/payment-api.json` is missing and create the plan.
-2. Run `snyk code test "fixtures/payment-api/" --include-ignores --json --json-file-output="/tmp/snyk-payment-api-$RANDOM.json"`.
+1. Set `<fixture-name>` to `payment-api`; confirm `fixtures/payment-api/findings.json` is missing and create the plan.
+2. Run `snyk code test "fixtures/payment-api/project/" --include-ignores --json --json-file-output="/tmp/snyk-payment-api-$RANDOM.json"`.
 3. List `results[]` order and each `ruleId` + uri + line; check `driver.rules` for CWE / short names.
 4. Update `mapRuleId` for any new `ruleId` strings; add `VulnType` + scorer aliases + docs table row only if the class is new to the benchmark.
-5. Write `fixtures/payment-api.json` with `vulnerabilities` ordered like SARIF `results`.
+5. Write `fixtures/payment-api/findings.json` with `vulnerabilities` ordered like SARIF `results`.
 6. Add `evals/tasks/payment-api-find-vulns.json` and `payment-api-fix-vulns.json`.
 7. Verify with `parseSnykCodeOutput` + `scoreFindVulns` (or full dry-run).
 
@@ -171,17 +171,17 @@ snyk code test "fixtures/<fixture-name>/" --include-ignores --json --json-file-o
 
 1. Keep SARIF only under `/tmp/...` or `.gitignore`d paths; never add `*-results.json` under `fixtures/` unless the repo explicitly wants checked-in golden SARIF (rare — large and churny).
 
-**Result:** Repository stays lean; ground truth remains the curated `fixtures/<name>.json`.
+**Result:** Repository stays lean; ground truth remains the curated `fixtures/<name>/findings.json`.
 
 ---
 
 ## Troubleshooting
 
-**Error:** `Failed to read vulns.json for fixture "foo"` when running the benchmark.
+**Error:** `Failed to read findings.json for fixture "foo"` when running the benchmark.
 
-**Cause:** Missing or misnamed **`fixtures/foo.json`**, or task `fixture` field does not match directory name.
+**Cause:** Missing or misnamed **`fixtures/foo/findings.json`**, or task `fixture` field does not match directory name.
 
-**Solution:** Ensure **`fixtures/<fixture-name>.json`** exists as a **sibling** of **`fixtures/<fixture-name>/`**, and task JSON `fixture` equals the directory basename exactly.
+**Solution:** Ensure **`fixtures/<fixture-name>/findings.json`** exists inside the fixture directory, and task JSON `fixture` equals the directory basename exactly.
 
 ---
 

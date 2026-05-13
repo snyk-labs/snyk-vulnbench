@@ -44,15 +44,17 @@ evals/
   run-configs.json         ← edit this array to add/change configs
 
 fixtures/
-  js-project-tigerteam.json  ← ground-truth answer key (outside agent's cwd)
   js-project-tigerteam/
-    app.js                   ← agent's working directory
-  your-new-fixture.json      ← ground-truth answer key for your fixture
+    project/                 ← agent's working directory
+      app.js
+    findings.json            ← ground-truth answer key (outside agent's cwd)
   your-new-fixture/
-    ...                    ← agent's working directory
+    project/                 ← agent's working directory
+      ...
+    findings.json            ← ground-truth answer key
 ```
 
-**Adding a new task = create three files** (fixture dir + sibling ground-truth JSON + task descriptor). Adding a new run config = edit one JSON array.
+**Adding a new task = create a fixture directory** (with `project/` source code + `findings.json` ground truth) **+ a task descriptor**. Adding a new run config = edit one JSON array.
 
 ---
 
@@ -60,34 +62,35 @@ fixtures/
 
 ### Step 1 — Create the fixture directory
 
-Create a subdirectory under `fixtures/` containing your intentionally vulnerable code. The directory name is the fixture identifier you'll reference in the task JSON.
+Create a subdirectory under `fixtures/` with a `project/` subdirectory containing the source code. The directory name is the fixture identifier you'll reference in the task JSON.
 
 ```
 fixtures/
-  ruby-vulns.json      ← ground-truth answer key (sibling, outside agent's cwd — see Step 2)
-  ruby-vulns/          ← new directory
-    app.rb             ← your vulnerable source file(s)
+  ruby-project-garnet/           ← new fixture directory
+    project/                     ← agent's working directory
+      app.rb                     ← your source file(s)
+    findings.json                ← ground-truth answer key (see Step 2)
 ```
 
-The fixture can contain any number of source files in any structure. The agent will receive the fixture directory as its working directory and will explore it freely.
+The `project/` subdirectory can contain any number of source files in any structure. The agent will receive `project/` as its working directory and will explore it freely. The `findings.json` file sits outside `project/` so the agent cannot read it.
 
-**Guidelines for writing vulnerable fixtures:**
+**Guidelines for writing fixtures:**
 
 - Each vulnerability should be unambiguous and clearly exploitable (not a code smell or best-practice issue)
 - Assign each vulnerability to a specific file and line number
 - Keep the fixture realistic — it should look like code a developer might actually write, not a CTF puzzle
 - Cover a mix of severity levels (`critical`, `high`, `medium`) to make scoring more informative
-- Intentional vulnerabilities only — don't accidentally introduce real ones that aren't in `vulns.json`
+- Intentional vulnerabilities only — don't accidentally introduce real ones that aren't in `findings.json`
 
 ---
 
 ### Step 2 — Write the ground-truth JSON
 
-Create `fixtures/<your-fixture>.json` as a **sibling** to the fixture directory (not inside it). This is the **answer key** — the ground truth the scorer uses to determine whether the agent found or fixed each vulnerability. Keeping it outside the fixture directory prevents the agent from reading it and "cheating".
+Create `fixtures/<your-fixture>/findings.json` inside the fixture directory (but outside `project/`). This is the **answer key** — the ground truth the scorer uses to determine whether the agent found or fixed each vulnerability. The agent's `cwd` is set to `project/`, and `denyRead` blocks the parent directory, so the agent cannot read this file.
 
 ```json
 {
-  "description": "Intentionally vulnerable Sinatra app for security benchmark testing",
+  "description": "Sinatra app for security benchmark testing",
   "vulnerabilities": [
     {
       "id": "rb-sqli-1",
@@ -117,7 +120,7 @@ Create `fixtures/<your-fixture>.json` as a **sibling** to the fixture directory 
 }
 ```
 
-**The `id` field is what the scorer tracks.** Make each id **unique across the whole repo**, not only within one `fixtures/<name>.json` file. Benchmark results and spreadsheets often aggregate rows from many tasks; duplicate ids (e.g. the same `llm-xpowered-by-header` in two different fixtures) make history ambiguous and harder to join to ground truth. Prefer a **fixture-scoped prefix**: shorten the fixture directory name if needed (`llm-project-blackmirror` → `lbm-`, `js-project-purplehaze` → `jph-`) so every id is globally distinctive. Keep ids descriptive and stable — if you rename an id after runs, historical JSONL will no longer line up.
+**The `id` field is what the scorer tracks.** Make each id **unique across the whole repo**, not only within one `fixtures/<name>/findings.json` file. Benchmark results and spreadsheets often aggregate rows from many tasks; duplicate ids (e.g. the same `llm-xpowered-by-header` in two different fixtures) make history ambiguous and harder to join to ground truth. Prefer a **fixture-scoped prefix**: shorten the fixture directory name if needed (`llm-project-blackmirror` → `lbm-`, `js-project-purplehaze` → `jph-`) so every id is globally distinctive. Keep ids descriptive and stable — if you rename an id after runs, historical JSONL will no longer line up.
 
 See the [Ground-Truth JSON Reference](#ground-truth-json-reference) for the full field list and valid values.
 
@@ -213,7 +216,7 @@ If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF
 | `id` | Yes | `string` | Unique identifier. Used in `--task` CLI filter (supports comma-separated lists) and in result files. |
 | `name` | Yes | `string` | Human-readable label shown in console output. |
 | `category` | Yes | `"find-vulns"` \| `"llm-find-vulns"` \| `"app-find-vulns"` \| `"fix-vulns"` | Which eval category this task belongs to. |
-| `fixture` | Yes | `string` | Subdirectory name under `fixtures/`. A sibling `fixtures/<name>.json` ground-truth file must exist. |
+| `fixture` | Yes | `string` | Subdirectory name under `fixtures/`. Must contain `project/` (source code) and `findings.json` (ground truth). |
 | `maxTurns` | No | `number` | Max agent conversation turns. Defaults to the run config's `maxTurns`. Recommended: 20 for find-vulns, 30 for fix-vulns. |
 | `systemPrompt` | No | `string` | Overrides the category's default system prompt. Omit to use the default. |
 | `prompt` | No | `string` | Overrides the category's default user prompt. Omit to use the default. |
@@ -237,7 +240,7 @@ Example with a custom prompt:
 
 ## Ground-Truth JSON Reference
 
-**File location:** `fixtures/<fixture-name>.json` — a sibling to the fixture directory, never inside it.
+**File location:** `fixtures/<fixture-name>/findings.json` — inside the fixture directory but outside `project/`, so the agent cannot access it.
 
 The top-level structure:
 
@@ -252,7 +255,7 @@ Each entry in `vulnerabilities`:
 
 | Field | Required | Type | Valid Values |
 |---|---|---|---|
-| `id` | Yes | `string` | **Globally unique** id, stable across runs (unique across every `fixtures/*.json`, not just within one file). Convention: `<fixture-scoped-prefix>-<type-or-role>-<number>` e.g. `rb-sqli-1` for a single Ruby fixture, or `llm2-sql-injection` / `js5-command-injection-5` when several fixtures share a language or theme so plain `llm-*` / `js-*` would collide. |
+| `id` | Yes | `string` | **Globally unique** id, stable across runs (unique across every `fixtures/*/findings.json`, not just within one file). Convention: `<fixture-scoped-prefix>-<type-or-role>-<number>` e.g. `rb-sqli-1` for a single Ruby fixture, or `llm2-sql-injection` / `js5-command-injection-5` when several fixtures share a language or theme so plain `llm-*` / `js-*` would collide. |
 | `type` | Yes | `VulnType` | See table below |
 | `severity` | Yes | `Severity` | `"critical"`, `"high"`, `"medium"`, `"low"` |
 | `file` | Yes | `string` | Relative path from fixture root, e.g. `"app.rb"` or `"src/handlers/user.rb"` |
@@ -518,7 +521,7 @@ pnpm run benchmark -- --category find-vulns --config snyk-code
 
 ### Maintaining Snyk Code ruleId mappings
 
-Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Scoring then matches findings to ground truth **by `type` only** — if `mapRuleId` returns `"other"` for a real Snyk rule, recall against `fixtures/<name>.json` will look artificially low even though the scanner found the issue.
+Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Scoring then matches findings to ground truth **by `type` only** — if `mapRuleId` returns `"other"` for a real Snyk rule, recall against `fixtures/<name>/findings.json` will look artificially low even though the scanner found the issue.
 
 **Update `mapRuleId` whenever:**
 
@@ -538,7 +541,7 @@ Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rul
 2. Collect distinct `ruleId` values, e.g. **JSONPath** `$.runs[0].results[*].ruleId`, or `jq -r '.runs[0].results[]? | .ruleId' snyk-output.json` (dedupe with `sort -u` as needed).
 3. For each id, mentally lower-case it (that is what `mapRuleId` receives) and see which **`if (/…/)`** branch in `mapRuleId` should own it.
 4. Add or extend a regex (prefer a **comment** naming the canonical Snyk id, e.g. `javascript/DisablePoweredBy`, for the next maintainer). Match **before** overly broad patterns when order matters (e.g. `domxss` before generic `xss`).
-5. Re-run the benchmark with `--config snyk-code` (and your task filter) and confirm JSONL findings use the expected `type` strings aligned with **`fixtures/<name>.json`** `vulnerabilities[].type`.
+5. Re-run the benchmark with `--config snyk-code` (and your task filter) and confirm JSONL findings use the expected `type` strings aligned with **`fixtures/<name>/findings.json`** `vulnerabilities[].type`.
 
 **New `VulnType`:** follow [Updating When You Add a New Vulnerability Type](#updating-when-you-add-a-new-vulnerability-type) (types, `normalizeVulnType`, `mapRuleId`, and this doc’s type table). **Existing type, new Snyk id:** usually **`src/parsers/snyk-code.ts` only** plus verification.
 
@@ -592,16 +595,18 @@ Here is the full sequence for adding a Ruby/Sinatra fixture with two eval tasks 
 **Files to create:**
 
 ```
-fixtures/ruby-vulns.json            ← ground truth (sibling, outside agent's cwd)
-fixtures/ruby-vulns/app.rb          ← vulnerable Sinatra app
-evals/tasks/ruby-find-vulns.json    ← find task descriptor
-evals/tasks/ruby-fix-vulns.json     ← fix task descriptor
+fixtures/ruby-project-garnet/
+  project/                           ← source code (agent's cwd)
+    app.rb                           ← Sinatra app
+  findings.json                      ← ground truth (outside agent's cwd)
+evals/tasks/ruby-project-garnet-find-vulns.json   ← find task descriptor
+evals/tasks/ruby-project-garnet-fix-vulns.json    ← fix task descriptor
 ```
 
-**`fixtures/ruby-vulns.json`:**
+**`fixtures/ruby-project-garnet/findings.json`:**
 ```json
 {
-  "description": "Intentionally vulnerable Sinatra app",
+  "description": "Sinatra app for benchmark testing",
   "vulnerabilities": [
     {
       "id": "rb-sqli-1",
@@ -623,24 +628,24 @@ evals/tasks/ruby-fix-vulns.json     ← fix task descriptor
 }
 ```
 
-**`evals/tasks/ruby-find-vulns.json`:**
+**`evals/tasks/ruby-project-garnet-find-vulns.json`:**
 ```json
 {
-  "id": "ruby-find-vulns",
+  "id": "ruby-project-garnet-find-vulns",
   "name": "Ruby App: Find Vulnerabilities",
   "category": "find-vulns",
-  "fixture": "ruby-vulns",
+  "fixture": "ruby-project-garnet",
   "maxTurns": 20
 }
 ```
 
-**`evals/tasks/ruby-fix-vulns.json`:**
+**`evals/tasks/ruby-project-garnet-fix-vulns.json`:**
 ```json
 {
-  "id": "ruby-fix-vulns",
+  "id": "ruby-project-garnet-fix-vulns",
   "name": "Ruby App: Fix Vulnerabilities",
   "category": "fix-vulns",
-  "fixture": "ruby-vulns",
+  "fixture": "ruby-project-garnet",
   "maxTurns": 30
 }
 ```
@@ -651,13 +656,13 @@ evals/tasks/ruby-fix-vulns.json     ← fix task descriptor
 pnpm run benchmark -- --dry-run
 
 # Run find task with one model to sanity-check scoring
-pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6
+pnpm run benchmark -- --task ruby-project-garnet-find-vulns --config sonnet-4-6
 
 # Compare model against SAST on the same fixture (comma-separated, no spaces)
-pnpm run benchmark -- --task ruby-find-vulns --config sonnet-4-6,snyk-code
+pnpm run benchmark -- --task ruby-project-garnet-find-vulns --config sonnet-4-6,snyk-code
 
 # Run both tasks for your new fixture in one run (comma-separated)
-pnpm run benchmark -- --task ruby-find-vulns,ruby-fix-vulns
+pnpm run benchmark -- --task ruby-project-garnet-find-vulns,ruby-project-garnet-fix-vulns
 ```
 
 That's it. No source code changes required.
@@ -675,15 +680,15 @@ That's it. No source code changes required.
 **"Unknown category id ..."**
 - The `category` field in your task JSON must be exactly `"find-vulns"` or `"fix-vulns"` (lowercase, hyphenated).
 
-**"Failed to read vulns.json for fixture ..."**
-- The `fixture` field in your task JSON doesn't match a ground-truth file under `fixtures/`.
-- Make sure `fixtures/<your-fixture>.json` exists (as a sibling to the fixture directory, not inside it).
+**"Failed to read findings.json for fixture ..."**
+- The `fixture` field in your task JSON doesn't match a fixture directory under `fixtures/`.
+- Make sure `fixtures/<your-fixture>/findings.json` exists inside the fixture directory.
 
 **"`vulnerabilities` must be an array"**
-- Your `vulns.json` is missing the top-level `"vulnerabilities"` key, or it's not an array.
+- Your `findings.json` is missing the top-level `"vulnerabilities"` key, or it's not an array.
 
 **Duplicate vulnerability `id`s in different fixture JSON files**
-- The loader does not enforce global uniqueness, but you should still use distinct ids across every `fixtures/*.json`. Reusing the same id in two fixtures (e.g. two apps both using `llm-xpowered-by-header`) confuses aggregated results and fix-judge notes. Prefix ids with a short fixture token (`llm2-`, `js5-`, etc.).
+- The loader does not enforce global uniqueness, but you should still use distinct ids across every `fixtures/*/findings.json`. Reusing the same id in two fixtures (e.g. two apps both using `llm-xpowered-by-header`) confuses aggregated results and fix-judge notes. Prefix ids with a short fixture token (`llm2-`, `js5-`, etc.).
 
 **Task appears in dry-run but scores 0 / recall 0**
 - The agent ran but found nothing. Check that your fixture's vulnerable code is genuinely readable by the agent (no encoding issues, file permissions, etc.).

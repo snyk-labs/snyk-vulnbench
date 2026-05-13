@@ -257,19 +257,21 @@ flowchart LR
 
 **Location:** `fixtures/`
 
-A fixture is a self-contained directory containing vulnerable source code. It is the "exam question" — the thing we're testing the agent against.
+A fixture is a self-contained directory containing source code and its ground-truth metadata. It is the "exam question" — the thing we're testing the agent against.
 
 ```
 fixtures/
-  js-project-tigerteam.json   ← Ground truth: exactly which vulns exist and where
   js-project-tigerteam/
-    app.js                    ← The code under test
-  python-project-cobalt.json
+    project/                  ← Agent's working directory (source code)
+      app.js                  ← The code under test
+    findings.json             ← Ground truth: exactly which vulns exist and where
   python-project-cobalt/
-    app.py
+    project/
+      app.py
+    findings.json
 ```
 
-The `<fixture-name>.json` file is the **answer key**. It describes every vulnerability that exists in the fixture, along with metadata used for scoring:
+The `findings.json` file is the **answer key**. It describes every vulnerability that exists in the fixture, along with metadata used for scoring:
 
 ```json
 {
@@ -288,7 +290,7 @@ The `<fixture-name>.json` file is the **answer key**. It describes every vulnera
 
 The `id` field is critical — the scorer uses these IDs to track which vulnerabilities were found vs. missed, and which were fixed vs. still present.
 
-**Why the answer key lives outside the fixture directory:** The agent's `cwd` is set to `fixtures/<name>/` — everything inside that directory is visible to the agent. Keeping the ground-truth JSON as a sibling (`fixtures/<name>.json`) means the agent cannot read the answer key and inadvertently "cheat". Without a fixed, known-good ground truth, you cannot objectively score the agent — and that ground truth must be hidden from the agent for the score to be meaningful.
+**Why the answer key is outside the agent's working directory:** The agent's `cwd` is set to `fixtures/<name>/project/` — only files inside `project/` are visible to the agent. The `findings.json` file sits in the fixture root (one level up from `project/`), and `denyRead` blocks the agent from reading the parent directory. Without a fixed, known-good ground truth hidden from the agent, you cannot objectively score it.
 
 ---
 
@@ -314,7 +316,7 @@ interface EvalTask {
 Key design decisions baked into the task definition:
 
 - **`systemPrompt`** tells the agent *how* to work. For find-vulns, it instructs the agent to output a structured `FINDINGS_JSON` block at the end — without this, we couldn't reliably parse the agent's findings.
-- **`knownVulns`** is loaded automatically from `fixtures/<fixture>.json` by the loader — you never need to duplicate this data.
+- **`knownVulns`** is loaded automatically from `fixtures/<fixture>/findings.json` by the loader — you never need to duplicate this data.
 - **`maxTurns`** is a safety valve. An unconstrained agent could loop forever; this caps it.
 
 ---
@@ -435,7 +437,7 @@ Both values are recorded in every JSONL result (`effort` and `thinking` fields o
 
 The `parser` key must match a registered parser in `src/parsers/index.ts`. Adding a new SAST tool means adding one parser file and registering it there — no changes to the runner or scorer.
 
-For how Snyk (and any command config) output is turned into findings and matched to `fixtures/<name>.json` ground truth, see [Command configs and Snyk Code (SAST)](#command-configs-and-snyk-code-sast) under **Scoring Deep-Dive**.
+For how Snyk (and any command config) output is turned into findings and matched to `fixtures/<name>/findings.json` ground truth, see [Command configs and Snyk Code (SAST)](#command-configs-and-snyk-code-sast) under **Scoring Deep-Dive**.
 
 ---
 
@@ -728,12 +730,12 @@ pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config opus-4-6
 
 **Step 2 — Prepare the working directory (`index.ts`)**
 - `task.type === "find-vulns"` → no copy needed
-- Sets `cwd = fixtures/js-project-tigerteam/` (the agent will start here)
+- Sets `cwd = fixtures/js-project-tigerteam/project/` (the agent will start here)
 
 **Step 3 — Run the agent (`runner.ts`)**
 - Calls `query({ prompt: "Audit all files...", options: { cwd, model: "claude-opus-4-6", hooks: [...] } })`
 - The Agent SDK spawns the Claude Code CLI as a subprocess
-- The agent starts in `fixtures/js-project-tigerteam/` and begins reading `app.js`
+- The agent starts in `fixtures/js-project-tigerteam/project/` and begins reading `app.js`
 - The `PreToolUse` hook fires before each tool call, recording its start time
 - The `PostToolUse` hook fires after, recording tool name + duration
 - Each `AssistantMessage` from the stream contributes its `usage.input_tokens` and `usage.output_tokens` to running totals
@@ -800,7 +802,7 @@ The scorer (`scoreFindVulns` in `src/scorer.ts`) matches **parsed findings** (fr
 - An agent might phrase it as "SQL injection" or "SQLi" or "SQL Injection" — `normalizeVulnType` maps these to the same `VulnType` string (e.g. `"sql-injection"`) before comparing
 - Each known vuln can only be matched once (no double-counting)
 
-**Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file` and `line` on findings are stored in `details.agentFindings` for inspection and JSONL output but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
+**Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>/findings.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file` and `line` on findings are stored in `details.agentFindings` for inspection and JSONL output but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
 
 If you add a fixture with two different SQL injections in the same file, give them different IDs (`sqli-1`, `sqli-2`) so they appear as two ground-truth rows. The scorer will match **at most two** `sql-injection` findings to them, in **pairing order**: the *i*-th reported `sql-injection` finding in the parsed array pairs with the *i*-th still-unmatched `sql-injection` in `knownVulns` order — not by comparing line numbers to the JSON `line` fields.
 
@@ -835,7 +837,7 @@ Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an 
   - **`severity`:** `mapLevel` maps SARIF `level` (`error` → `"high"`, `warning` → `"medium"`, `note` → `"low"`).
   - **`description`:** `message.text`.
 
-Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
+Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam/findings.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
 
 #### 4. Bridging to the scorer: synthetic `FINDINGS_JSON`
 
@@ -847,7 +849,7 @@ So `scoreFindVulns` in **`src/scorer.ts`** runs unchanged: `parseFindings` extra
 
 #### 5. Matching to ground truth (same as LLM)
 
-Scoring uses **`scoreFindVulns(finalText, task)`** — the same type-only greedy matching described in [How Vuln Type Matching Works](#how-vuln-type-matching-works). There is **no** secondary matcher that lines up Snyk SARIF rule ids or line numbers to `fixtures/<name>.json` **`id`** fields. A Snyk result “counts” toward `js-xss-1` only if:
+Scoring uses **`scoreFindVulns(finalText, task)`** — the same type-only greedy matching described in [How Vuln Type Matching Works](#how-vuln-type-matching-works). There is **no** secondary matcher that lines up Snyk SARIF rule ids or line numbers to `fixtures/<name>/findings.json` **`id`** fields. A Snyk result “counts” toward `js-xss-1` only if:
 
 1. `mapRuleId` produced `"xss"`, and  
 2. That finding is paired by the greedy walk with that ground-truth row (i.e. it is the first unmatched `"xss"` in `knownVulns` order when this finding is processed, given earlier findings already consumed other `"xss"` slots).
@@ -856,7 +858,7 @@ So two XSSes in the fixture are distinguished only by **order of unmatched `xss`
 
 #### 6. Implications for benchmark authors
 
-- Keep **`type`** in `fixtures/<name>.json` consistent with `mapRuleId` in `src/parsers/snyk-code.ts` when you care about Snyk parity for that rule family.
+- Keep **`type`** in `fixtures/<name>/findings.json` consistent with `mapRuleId` in `src/parsers/snyk-code.ts` when you care about Snyk parity for that rule family.
 - When multiple known vulns share a type, **ordering** in the ground-truth file and **ordering** of Snyk results affect which ID is credited; consider ordering `vulnerabilities[]` to match typical Snyk emission order if you want stable pairing, or plan for a future location-aware matcher if you need strict line-to-id alignment.
 - **`found === "other"`** does not match arbitrary known types (`vulnTypesMatch` returns false for `"other"` findings except when the known type is also `"other"`).
 
@@ -1571,7 +1573,7 @@ No source code changes required — the benchmark uses a directory-scanning load
 
 **Quick summary:**
 
-- **New fixture:** create `fixtures/<name>/` with your vulnerable code, and a sibling `fixtures/<name>.json` as the answer key
+- **New fixture:** create `fixtures/<name>/` with a `project/` subdirectory for source code and a `findings.json` answer key
 - **New eval task:** drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture` fields
 - **New model config:** append a `ModelRunConfig` entry to `evals/run-configs.json` (or omit `"type"` — it defaults to model)
 - **New SAST config:** append a `CommandRunConfig` entry with `"type": "command"`, `"command"`, and `"parser"` fields
