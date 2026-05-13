@@ -211,7 +211,7 @@ Solution: Read the preflight output for which check failed. For Claude: run `cla
 ---
 
 Error: `Failed to read vulns.json for fixture "..."`
-Cause: A task references a fixture that doesn't have a corresponding `fixtures/<name>.json` ground-truth file.
+Cause: A task references a fixture that doesn't have a corresponding `fixtures/<name>/findings.json` ground-truth file.
 Solution: This is a fixture setup issue, not a run issue. Suggest using the `benchmark-add-new-fixture` skill to wire up the missing fixture.
 
 ---

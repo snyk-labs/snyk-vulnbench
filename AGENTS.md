@@ -40,12 +40,14 @@ evals/
   run-configs.json  # Array of RunConfig objects — edit to add/change model configs
 
 fixtures/
-  js-project-tigerteam.json   # Ground-truth metadata (OUTSIDE agent cwd — loaded by loader)
-  js-project-tigerteam/       # JavaScript project (Express app)
-    app.js
-  python-project-cobalt.json   # Ground-truth metadata
-  python-project-cobalt/       # Python project (Flask app)
-    app.py
+  js-project-tigerteam/       # Each fixture is a self-contained directory
+    project/                  # Agent's working directory (source code)
+      app.js
+    findings.json             # Ground-truth metadata (outside agent cwd)
+  python-project-cobalt/
+    project/
+      app.py
+    findings.json
 
 results/            # Benchmark output (JSONL files)
 ```
@@ -54,7 +56,7 @@ results/            # Benchmark output (JSONL files)
 
 No source code changes required. Just:
 
-1. Add a fixture directory `fixtures/<name>/` with the vulnerable code, and a sibling `fixtures/<name>.json` with the ground-truth vulnerability list
+1. Add a fixture directory `fixtures/<name>/` with a `project/` subdirectory containing the source code and a `findings.json` ground-truth file
 2. Drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture` fields
 3. Run — the loader picks it up automatically
 
@@ -120,10 +122,10 @@ Results are saved to `results/benchmark-<timestamp>.jsonl`.
 ## Important Notes
 
 - Fixtures are **intentionally vulnerable** code — they exist for security research/testing
-- Each fixture has a sibling `fixtures/<name>.json` with ground-truth vulnerability metadata — kept outside the fixture directory so the agent cannot read the answer key
+- Each fixture contains a `findings.json` ground-truth file and a `project/` subdirectory with source code — the agent's `cwd` is set to `project/` so it cannot read the answer key
 - Run configs define model + MCP servers — comparison across configs is the core benchmark value
 - The `fix-vulns` eval works on temp copies; original fixtures are never modified
-- **The agent runner (`src/runner.ts`) must always sandbox the agent to its fixture `cwd`.** `sandbox.filesystem.allowWrite: [cwd]` is a hard whitelist — the agent cannot write outside the fixture dir. `sandbox.filesystem.denyRead: [dirname(cwd)]` blocks reading the parent directory (which contains the ground-truth answer-key JSONs and other fixtures). Do not remove or loosen these restrictions: without them the agent can read the answer key and invalidate every score.
+- **The agent runner (`src/runner.ts`) must always sandbox the agent to its fixture `cwd`.** `sandbox.filesystem.allowWrite: [cwd]` is a hard whitelist — the agent cannot write outside `project/`. `sandbox.filesystem.denyRead: [dirname(cwd)]` blocks reading the fixture root (which contains `findings.json`). Do not remove or loosen these restrictions: without them the agent can read the answer key and invalidate every score.
 
 ## Benchmark Documentation and Guidelines
 

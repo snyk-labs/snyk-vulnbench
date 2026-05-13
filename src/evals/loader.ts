@@ -28,15 +28,15 @@ interface TaskJson {
 }
 
 function loadVulns(fixtureName: string): Vulnerability[] {
-  const vulnsPath = join(FIXTURES_DIR, `${fixtureName}.json`);
+  const vulnsPath = join(FIXTURES_DIR, fixtureName, "findings.json");
   let raw: { vulnerabilities: Vulnerability[] };
   try {
     raw = JSON.parse(readFileSync(vulnsPath, "utf-8"));
   } catch (err) {
-    throw new Error(`Failed to read vulns.json for fixture "${fixtureName}" at ${vulnsPath}: ${err}`);
+    throw new Error(`Failed to read findings.json for fixture "${fixtureName}" at ${vulnsPath}: ${err}`);
   }
   if (!Array.isArray(raw.vulnerabilities)) {
-    throw new Error(`vulns.json for fixture "${fixtureName}" must have a top-level "vulnerabilities" array`);
+    throw new Error(`findings.json for fixture "${fixtureName}" must have a top-level "vulnerabilities" array`);
   }
   return raw.vulnerabilities;
 }
@@ -79,7 +79,7 @@ export function loadEvalTasks(): EvalTask[] {
 
     const category = resolveCategory(categoryId);
     const knownVulns = loadVulns(fixture);
-    const fixturePath = resolve(FIXTURES_DIR, fixture);
+    const fixturePath = resolve(FIXTURES_DIR, fixture, "project");
 
     return {
       id,
