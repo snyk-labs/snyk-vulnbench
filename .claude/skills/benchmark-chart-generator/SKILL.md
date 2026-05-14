@@ -48,13 +48,13 @@ Lines without a `_type` field are legacy `"run"` rows (backward compatible).
 
 ### Step 2: Parse, filter, and validate
 
-Parse each line as JSON. **Choose the right row type for the chart:**
+Parse each line as JSON. **Choose the right aggregate rows for the report:**
 
-- **Headline comparison charts** (the most common request): use `_type === "config-aggregate"` rows. These give one number per config, macro-averaged across all fixtures.
-- **Per-fixture breakdown charts**: use `_type === "task-aggregate"` rows. These give one number per (task, config) pair, with repeated runs already averaged.
-- **Detailed per-run charts** (rare): use `_type === "run"` rows. These are the raw individual results.
+- **Headline comparison section**: always use `_type === "config-aggregate"` rows when present. These give one number per config, macro-averaged across all fixtures, and the report must start with this section.
+- **Per-fixture breakdown sections**: always use `_type === "task-aggregate"` rows when present. These give one number per (task, config) pair, with repeated runs already averaged.
+- **Detailed per-run rows**: do not use `_type === "run"` rows for normal reports. They are raw executions and can double-count repeated runs. Use them only as a legacy fallback when a file has no aggregate rows at all, and warn the user that the report was generated from raw rows.
 
-When in doubt, default to `"config-aggregate"` for headline charts and `"task-aggregate"` for per-fixture charts. If only `"run"` rows exist (legacy JSONL files or single-rep runs), use those directly.
+For current JSONL files, collect valid `"config-aggregate"` and `"task-aggregate"` rows into the `BENCHMARK_ROWS` array. Do not inject raw `"run"` rows when aggregate rows exist.
 
 For `"run"` rows, validate that every row has these required fields:
 - `taskId`, `taskName`
@@ -62,18 +62,29 @@ For `"run"` rows, validate that every row has these required fields:
 - `score` (number 0-1)
 - `metrics.sessionDurationMs` (number)
 
-For aggregate rows, validate:
+For `"task-aggregate"` rows, validate:
+- `taskId`, `taskName`
 - `runConfigId`, `runConfigName`, `runConfigType`
 - `score` (number 0-1)
 - `sessionDurationMs` (number)
+- `totalTokens` (number)
+- `totalCostUsd` (number or null)
+
+For `"config-aggregate"` rows, validate:
+- `runConfigId`, `runConfigName`, `runConfigType`
+- `fixtureCount` (number)
+- `score` (number 0-1)
+- `sessionDurationMs` (number)
+- `totalTokens` (number)
+- `totalCostUsd` (number or null)
 
 The `details.recall` and `details.precision` fields are present on `"run"` rows for
 `find-vulns` tasks but absent for `fix-vulns` tasks. On aggregate rows, `recall` and
 `precision` are top-level fields (null for non-find-vulns tasks). The template handles
 this gracefully -- the recall/precision chart is only rendered when the data exists.
 
-If a row is missing critical fields (`score`, `metrics.sessionDurationMs` or
-`sessionDurationMs`), warn the user and skip that row rather than failing entirely.
+If a row is missing critical fields (`score`, `sessionDurationMs`, `totalTokens`, or
+`totalCostUsd`), warn the user and skip that row rather than failing entirely.
 
 For the full EvalResult schema and all available fields, see
 [`docs/benchmark.md` — EvalResult](../../docs/benchmark.md#evalresult--the-final-record).
@@ -81,14 +92,16 @@ For the full EvalResult schema and all available fields, see
 ### Step 3: Build the HTML
 
 1. Read the template from this skill's `assets/report-template.html`.
-2. Collect all valid rows into a JSON array.
+2. Collect all valid aggregate rows into a JSON array: `"config-aggregate"` rows first, followed by `"task-aggregate"` rows. This makes the embedded data easy to inspect and ensures the template can render the headline section first.
 3. Replace the three placeholders in the template:
    - `__BENCHMARK_ROWS__` -- the JSON array (use `JSON.stringify` formatting, or paste the raw array)
    - `__REPORT_TITLE__` -- derive from the data: use the shared `taskName` if all rows share one task, otherwise use "Benchmark Results"
    - `__REPORT_SUBTITLE__` -- derive from the data: use `taskId` if single-task, otherwise "Multi-task comparison" or a comma-separated list of task IDs
 
-The template JS groups rows by `taskId` automatically, so multi-task JSONL files
-produce one chart section per task without any extra work.
+The template JS renders all `"config-aggregate"` rows as the headline comparison first,
+then groups `"task-aggregate"` rows by `taskId` so multi-task JSONL files produce one
+chart section per task. Each section should include score, duration, total tokens, cost,
+and recall/precision when those fields exist.
 
 ### Step 4: Write the output
 
@@ -103,7 +116,9 @@ Create the directory and write the file. Report the full path to the user.
 Confirm the output file:
 - Exists and is non-empty
 - Contains valid HTML (check for `<!DOCTYPE html>` at the start)
-- The `BENCHMARK_ROWS` array in the output has the expected number of entries
+- The `BENCHMARK_ROWS` array in the output has the expected number of aggregate entries
+- The output includes `"config-aggregate"` rows when the source file contains them
+- The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
 
 Report success to the user with the output path and how to open it.
 
@@ -113,17 +128,17 @@ the user has been told where to find it.
 ## Available data fields for charting
 
 JSONL files contain three row types, distinguished by the `_type` field. The default
-template uses `"run"` rows. When the user asks for headline comparison charts, prefer
-aggregate rows. For the full schema see
+template uses aggregate rows: `"config-aggregate"` for the report headline and
+`"task-aggregate"` for individual task sections. For the full schema see
 [`docs/benchmark.md`](../../docs/benchmark.md#evalresult--the-final-record).
 
 ### Row type discriminator
 
 | `_type` value | Description | When to use |
 |---|---|---|
-| `"run"` (or absent) | Raw `EvalResult` -- one execution | Per-run detail charts, legacy files |
-| `"task-aggregate"` | Mean across repeated runs for one (task, config) pair | Per-fixture breakdown charts |
-| `"config-aggregate"` | Macro-average across all fixtures for one config | Headline comparison charts |
+| `"run"` (or absent) | Raw `EvalResult` -- one execution | Legacy fallback only when aggregates are absent |
+| `"task-aggregate"` | Mean across repeated runs for one (task, config) pair | Individual task breakdown charts |
+| `"config-aggregate"` | Macro-average across all fixtures for one config | Headline comparison charts at the top of the report |
 
 ### Core fields on `"run"` rows
 
@@ -211,8 +226,10 @@ When the user asks for comparisons, use these patterns:
 | Compare configs on a severity level | `details.bySeverity["critical"].f1` per config | Grouped bars |
 | Show "excluding low, scores are similar" | `details.bySeverity` -- sum found/total for non-low | Stacked or grouped bars |
 | Effort level comparison | `effort` + `score` (or `metrics.totalCostUsd`) | Bar chart or scatter |
-| Cost vs quality tradeoff | `metrics.totalCostUsd` vs `score` | Scatter plot |
-| Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` | Stacked bars |
+| Cost comparison | `totalCostUsd` on aggregate rows | Bar chart, with null command costs shown as N/A |
+| Token usage comparison | `totalTokens` on aggregate rows | Bar chart |
+| Cost vs quality tradeoff | `totalCostUsd` vs `score` | Scatter plot |
+| Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` on raw rows | Detailed custom chart only when intentionally using raw run data |
 | Tool usage comparison | `metrics.toolStats[tool].count` per config | Grouped bars |
 | What did the model hallucinate? | `details.falsePositives` -- group by `.type` | Pie or horizontal bars |
 | Which vuln types are hardest? | `details.byType[type].recall` across all types for one config | Horizontal bar chart |
@@ -228,8 +245,8 @@ Colors are assigned by `runConfigType`, not row order:
 - `"command"` rows (Snyk Code SAST) get `--snyk-purple` (#9043c6)
 - `"model"` rows (AI agents) get neutral gray (#4a4a4a)
 
-The template handles all styling automatically. Do not modify CSS or chart JS --
-just inject the data and placeholders.
+The template handles all styling automatically. Do not modify CSS or chart JS during
+normal skill use -- just inject the aggregate data and placeholders.
 
 ## Examples
 
