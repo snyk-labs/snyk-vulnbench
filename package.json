@@ -10,7 +10,8 @@
     "benchmark:find:js": "tsx src/index.ts --task js-project-tigerteam-find-vulns --config sonnet-4-6 --repetitions 1",
     "benchmark:find:js-1-2": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6 --repetitions 1",
     "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6,snyk-code --repetitions 1",
-    "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1"
+    "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
+    "report:serve": "serve"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.84",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "serve": "14.2.6",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0"
   }
