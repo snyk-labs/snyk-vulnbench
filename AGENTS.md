@@ -119,6 +119,14 @@ pnpm benchmark -- --repetitions 3       # run each (task, config) pair 3 times
 
 Results are saved to `results/benchmark-<timestamp>.jsonl`.
 
+Generated HTML benchmark reports are saved under `public/<report-id>/`. To preview one locally, serve that directory with:
+
+```bash
+pnpm report:serve public/2026-05-14-wpq2k
+```
+
+This uses the `serve` npm package and defaults to `0.0.0.0:3000`; pass standard `serve` flags after the directory if you need a different port or host.
+
 ## Important Notes
 
 - Fixtures are **intentionally vulnerable** code — they exist for security research/testing

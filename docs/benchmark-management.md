@@ -19,9 +19,10 @@ How to add new eval tasks, new fixtures, and new run configs — without touchin
    - [How MCP tool permissions work](#how-mcp-tool-permissions-work)
    - [Adding a SAST command config](#adding-a-sast-command-config)
    - [Maintaining Snyk Code ruleId mappings](#maintaining-snyk-code-ruleid-mappings)
-7. [Run Config JSON Reference](#run-config-json-reference)
-8. [Worked Example: Adding a Ruby Fixture](#worked-example-adding-a-ruby-fixture)
-9. [Troubleshooting](#troubleshooting)
+7. [Serving HTML Benchmark Reports](#serving-html-benchmark-reports)
+8. [Run Config JSON Reference](#run-config-json-reference)
+9. [Worked Example: Adding a Ruby Fixture](#worked-example-adding-a-ruby-fixture)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -544,6 +545,28 @@ Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rul
 5. Re-run the benchmark with `--config snyk-code` (and your task filter) and confirm JSONL findings use the expected `type` strings aligned with **`fixtures/<name>/findings.json`** `vulnerabilities[].type`.
 
 **New `VulnType`:** follow [Updating When You Add a New Vulnerability Type](#updating-when-you-add-a-new-vulnerability-type) (types, `normalizeVulnType`, `mapRuleId`, and this doc’s type table). **Existing type, new Snyk id:** usually **`src/parsers/snyk-code.ts` only** plus verification.
+
+---
+
+## Serving HTML Benchmark Reports
+
+Generated HTML benchmark reports are written under `public/<report-id>/`, with an `index.html` entry point. Use the `report:serve` helper to preview one report directory locally:
+
+```bash
+pnpm report:serve public/2026-05-14-wpq2k
+```
+
+This wraps the `serve` npm package and forwards the provided directory to it. By default, `serve` listens on `0.0.0.0:3000`; pass normal `serve` flags after the directory when needed, for example:
+
+```bash
+pnpm report:serve public/2026-05-14-wpq2k --listen 4000
+```
+
+With npm, include `--` before forwarded arguments:
+
+```bash
+npm run report:serve -- public/2026-05-14-wpq2k
+```
 
 ---
 
