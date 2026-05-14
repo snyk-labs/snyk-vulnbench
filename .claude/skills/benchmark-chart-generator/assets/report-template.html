@@ -84,18 +84,26 @@
       border-bottom: 1px solid var(--grid);
     }
 
+    .headline-group {
+      margin-bottom: 72px;
+      padding-bottom: 40px;
+      border-bottom: 2px solid var(--axis);
+    }
+
     .task-group:last-child {
       border-bottom: none;
     }
 
-    .task-group h2.task-title {
+    .task-group h2.task-title,
+    .headline-group h2.task-title {
       font-size: 1.3rem;
       font-weight: 700;
       margin: 0 0 4px;
       letter-spacing: -0.01em;
     }
 
-    .task-group .task-subtitle {
+    .task-group .task-subtitle,
+    .headline-group .task-subtitle {
       font-size: 0.85rem;
       color: var(--muted);
       margin: 0 0 24px;
@@ -229,13 +237,41 @@
       ].join("");
     }
 
+    function isFiniteNumber(x) {
+      return typeof x === "number" && Number.isFinite(x);
+    }
+
     function pct(x) {
+      if (!isFiniteNumber(x)) return "N/A";
       return (100 * x).toFixed(1) + "%";
     }
 
     function fmtMs(ms) {
+      if (!isFiniteNumber(ms)) return "N/A";
       if (ms >= 1000) return (ms / 1000).toFixed(1) + " s";
       return ms + " ms";
+    }
+
+    function fmtTokens(tokens) {
+      if (!isFiniteNumber(tokens)) return "N/A";
+      if (tokens >= 1000000) return (tokens / 1000000).toFixed(2) + "M";
+      if (tokens >= 1000) return (tokens / 1000).toFixed(1) + "K";
+      return String(Math.round(tokens));
+    }
+
+    function fmtCost(cost) {
+      if (!isFiniteNumber(cost)) return "N/A";
+      return "$" + cost.toFixed(cost >= 1 ? 2 : 3);
+    }
+
+    function niceMax(values, step) {
+      const max = Math.max(...values.filter(isFiniteNumber), 0);
+      if (max <= 0) return step;
+      return Math.ceil(max / step) * step;
+    }
+
+    function yTicks(max) {
+      return [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => t * max);
     }
 
     function renderBarChart(container, options) {
@@ -303,7 +339,8 @@
       gRoot.appendChild(yLabel);
 
       categories.forEach((label, i) => {
-        const v = values[i];
+        const rawValue = values[i];
+        const v = isFiniteNumber(rawValue) ? rawValue : 0;
         const h = (v / yMax) * innerH;
         const x = i * (barW + gap);
         const y = innerH - h;
@@ -321,7 +358,7 @@
           x: x + barW / 2,
           y: y - 8,
           "text-anchor": "middle",
-        }, [valueFormat(v, i)]);
+        }, [valueFormat(rawValue, i)]);
         gRoot.appendChild(valText);
 
         const words = label.split(" ");
@@ -431,8 +468,8 @@
         const gx = i * groupW + innerGap / 2;
         const cp = colorPairs[i];
         const vals = [
-          { v: recall[i], fill: cp.recall, name: "Recall" },
-          { v: precision[i], fill: cp.precision, name: "Precision" },
+          { v: isFiniteNumber(recall[i]) ? recall[i] : 0, fill: cp.recall, name: "Recall" },
+          { v: isFiniteNumber(precision[i]) ? precision[i] : 0, fill: cp.precision, name: "Precision" },
         ];
         vals.forEach((item, j) => {
           const x = gx + j * (barW + 6);
@@ -472,13 +509,29 @@
       container.appendChild(svg);
     }
 
-    function normalizeRuns(rows) {
+    function normalizeAggregateRows(rows) {
       return rows.map((r) => ({
         label: r.runConfigName,
         score: r.score,
-        durationMs: r.metrics.sessionDurationMs,
+        durationMs: r.sessionDurationMs,
+        recall: r.recall,
+        precision: r.precision,
+        totalTokens: r.totalTokens,
+        totalCostUsd: r.totalCostUsd,
+        isSnyk: r.runConfigType === "command",
+        barMain: r.runConfigType === "command" ? COLORS.snyk : COLORS.model,
+      }));
+    }
+
+    function normalizeLegacyRuns(rows) {
+      return rows.map((r) => ({
+        label: r.runConfigName,
+        score: r.score,
+        durationMs: r.metrics && r.metrics.sessionDurationMs,
         recall: r.details && r.details.recall,
         precision: r.details && r.details.precision,
+        totalTokens: r.metrics ? (r.metrics.totalLogicalInputTokens || 0) + (r.metrics.totalOutputTokens || 0) : null,
+        totalCostUsd: r.metrics && r.metrics.totalCostUsd,
         isSnyk: r.runConfigType === "command",
         barMain: r.runConfigType === "command" ? COLORS.snyk : COLORS.model,
       }));
@@ -487,69 +540,112 @@
     function groupByTask(rows) {
       const groups = {};
       for (const row of rows) {
-        const key = row.taskId;
+        const key = row.taskId || "__headline__";
         if (!groups[key]) groups[key] = [];
         groups[key].push(row);
       }
       return groups;
     }
 
-    function renderTaskGroup(container, taskId, rows) {
-      const group = document.createElement("div");
-      group.className = "task-group";
+    function renderMetricSection(group, runs, config) {
+      const section = document.createElement("section");
+      section.className = "chart-section";
+      section.innerHTML = `<h3>${config.heading}</h3><p class="chart-desc">${config.description}</p><div class="chart-wrap"></div>`;
+      group.appendChild(section);
 
-      const first = rows[0];
+      renderBarChart(section.querySelector(".chart-wrap"), {
+        title: config.title,
+        yAxisLabel: config.yAxisLabel,
+        categories: runs.map((r) => r.label),
+        values: runs.map(config.value),
+        valueFormat: config.valueFormat,
+        yMax: config.yMax,
+        yTicks: config.yTicks,
+        yTickFormat: config.yTickFormat,
+        barColors: runs.map((r) => r.barMain),
+      });
+    }
+
+    function renderComparisonGroup(container, options) {
+      const { title, subtitle, rows, headline } = options;
+      const group = document.createElement("div");
+      group.className = headline ? "headline-group" : "task-group";
+
       const titleEl = document.createElement("h2");
       titleEl.className = "task-title";
-      titleEl.textContent = first.taskName || taskId;
+      titleEl.textContent = title;
       group.appendChild(titleEl);
 
       const subtitleEl = document.createElement("p");
       subtitleEl.className = "task-subtitle";
-      subtitleEl.textContent = taskId;
+      subtitleEl.textContent = subtitle;
       group.appendChild(subtitleEl);
 
-      const runs = normalizeRuns(rows);
-      const labels = runs.map((r) => r.label);
-      const barColors = runs.map((r) => r.barMain);
+      const runs = normalizeAggregateRows(rows);
 
-      // Score chart
-      const scoreSection = document.createElement("section");
-      scoreSection.className = "chart-section";
-      scoreSection.innerHTML = `<h3>Composite score</h3><p class="chart-desc">Overall benchmark score for this task (higher is better).</p><div class="chart-wrap"></div>`;
-      group.appendChild(scoreSection);
-      renderBarChart(scoreSection.querySelector(".chart-wrap"), {
-        title: "Score — " + taskId,
+      renderMetricSection(group, runs, {
+        heading: headline ? "Headline score" : "Composite score",
+        description: headline
+          ? "Macro-averaged benchmark score across all fixtures (higher is better)."
+          : "Aggregated benchmark score for this task across repetitions (higher is better).",
+        title: "Score - " + title,
         yAxisLabel: "SCORE",
-        categories: labels,
-        values: runs.map((r) => r.score),
-        valueFormat: (v) => pct(v),
+        value: (r) => r.score,
+        valueFormat: pct,
         yMax: 1,
         yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
         yTickFormat: (t) => Math.round(t * 100) + "%",
-        barColors,
       });
 
-      // Duration chart
-      const durSection = document.createElement("section");
-      durSection.className = "chart-section";
-      durSection.innerHTML = `<h3>Session duration</h3><p class="chart-desc">Wall-clock time from start to completion.</p><div class="chart-wrap"></div>`;
-      group.appendChild(durSection);
       const maxDur = Math.max(...runs.map((r) => r.durationMs), 1);
       const yMaxMs = Math.ceil(maxDur / 5000) * 5000;
-      renderBarChart(durSection.querySelector(".chart-wrap"), {
-        title: "Duration — " + taskId,
+      renderMetricSection(group, runs, {
+        heading: "Session duration",
+        description: headline
+          ? "Macro-averaged wall-clock time from start to completion."
+          : "Mean wall-clock time across repetitions for this task.",
+        title: "Duration - " + title,
         yAxisLabel: "DURATION",
-        categories: labels,
-        values: runs.map((r) => r.durationMs),
-        valueFormat: (v) => fmtMs(v),
+        value: (r) => r.durationMs,
+        valueFormat: fmtMs,
         yMax: yMaxMs,
-        yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => t * yMaxMs),
+        yTicks: yTicks(yMaxMs),
         yTickFormat: (t) => (t >= 1000 ? Math.round(t / 1000) + "s" : String(Math.round(t))),
-        barColors,
       });
 
-      // Recall/Precision chart (only if data is available)
+      const yMaxTokens = niceMax(runs.map((r) => r.totalTokens), 25000);
+      renderMetricSection(group, runs, {
+        heading: "Total tokens",
+        description: headline
+          ? "Macro-averaged total tokens per config. Command-based runs are zero-token by design."
+          : "Mean total tokens across repetitions. Command-based runs are zero-token by design.",
+        title: "Total tokens - " + title,
+        yAxisLabel: "TOKENS",
+        value: (r) => r.totalTokens,
+        valueFormat: fmtTokens,
+        yMax: yMaxTokens,
+        yTicks: yTicks(yMaxTokens),
+        yTickFormat: fmtTokens,
+      });
+
+      const costValues = runs.map((r) => r.totalCostUsd).filter(isFiniteNumber);
+      if (costValues.length > 0) {
+        const yMaxCost = Math.max(0.01, Math.ceil(Math.max(...costValues) * 100) / 100);
+        renderMetricSection(group, runs, {
+          heading: "Estimated cost",
+          description: headline
+            ? "Macro-averaged session cost in USD. Command-based runs report N/A."
+            : "Mean session cost in USD across repetitions. Command-based runs report N/A.",
+          title: "Cost - " + title,
+          yAxisLabel: "COST",
+          value: (r) => r.totalCostUsd,
+          valueFormat: fmtCost,
+          yMax: yMaxCost,
+          yTicks: yTicks(yMaxCost),
+          yTickFormat: fmtCost,
+        });
+      }
+
       const hasRecallPrecision = runs.some((r) => r.recall != null && r.precision != null);
       if (hasRecallPrecision) {
         const rpSection = document.createElement("section");
@@ -564,7 +660,7 @@
         );
         renderGroupedRecallPrecision(
           rpSection.querySelector(".chart-wrap"),
-          labels,
+          runs.map((r) => r.label),
           runs.map((r) => r.recall || 0),
           runs.map((r) => r.precision || 0),
           recallPrecisionColors
@@ -575,14 +671,67 @@
     }
 
     function init() {
-      const ts = [...new Set(BENCHMARK_ROWS.map((r) => r.timestamp))].sort().join(" → ");
-      document.getElementById("report-meta").textContent = "Source timestamps: " + ts;
+      const rowCounts = BENCHMARK_ROWS.reduce((acc, row) => {
+        const type = row._type || "run";
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {});
+      document.getElementById("report-meta").textContent =
+        "Rows embedded: " +
+        Object.entries(rowCounts).map(([type, count]) => `${count} ${type}`).join(", ");
 
-      const groups = groupByTask(BENCHMARK_ROWS);
+      const configAggregates = BENCHMARK_ROWS.filter((r) => r._type === "config-aggregate");
+      const taskAggregates = BENCHMARK_ROWS.filter((r) => r._type === "task-aggregate");
       const root = document.getElementById("charts-root");
 
+      if (configAggregates.length > 0) {
+        const fixtureCounts = [...new Set(configAggregates.map((r) => r.fixtureCount).filter(isFiniteNumber))];
+        renderComparisonGroup(root, {
+          title: "Headline comparison",
+          subtitle: fixtureCounts.length === 1
+            ? `Macro-average across ${fixtureCounts[0]} fixtures`
+            : "Macro-average across fixtures",
+          rows: configAggregates,
+          headline: true,
+        });
+      }
+
+      const groups = groupByTask(taskAggregates);
       for (const [taskId, rows] of Object.entries(groups)) {
-        renderTaskGroup(root, taskId, rows);
+        const first = rows[0];
+        renderComparisonGroup(root, {
+          title: first.taskName || taskId,
+          subtitle: `${taskId} - aggregated across ${Math.max(...rows.map((r) => r.repetitions || 1))} repetition(s)`,
+          rows,
+          headline: false,
+        });
+      }
+
+      if (configAggregates.length === 0 && taskAggregates.length === 0) {
+        const legacyRuns = BENCHMARK_ROWS.filter((r) => (r._type || "run") === "run");
+        const legacyGroups = groupByTask(legacyRuns);
+        for (const [taskId, rows] of Object.entries(legacyGroups)) {
+          const first = rows[0];
+          const aggregateLikeRows = normalizeLegacyRuns(rows).map((run, i) => ({
+            _type: "task-aggregate",
+            taskId,
+            taskName: first.taskName,
+            runConfigName: run.label,
+            runConfigType: rows[i].runConfigType,
+            score: run.score,
+            recall: run.recall,
+            precision: run.precision,
+            sessionDurationMs: run.durationMs,
+            totalTokens: run.totalTokens,
+            totalCostUsd: run.totalCostUsd,
+          }));
+          renderComparisonGroup(root, {
+            title: first.taskName || taskId,
+            subtitle: `${taskId} - legacy raw run rows`,
+            rows: aggregateLikeRows,
+            headline: false,
+          });
+        }
       }
     }
 
