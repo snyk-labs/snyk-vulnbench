@@ -10,10 +10,30 @@ function mean(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
+function sampleStdDev(values: number[]): number {
+  if (values.length < 2) return 0;
+  const avg = mean(values);
+  const variance = values.reduce((sum, value) => sum + (value - avg) ** 2, 0) / (values.length - 1);
+  return Math.sqrt(variance);
+}
+
 function meanNullable(values: (number | null)[]): number | null {
   const nums = values.filter((v): v is number => v != null);
   if (nums.length === 0) return null;
   return mean(nums);
+}
+
+function headlineScoresByRepetition(results: EvalResult[]): number[] {
+  const byRepetition = new Map<number, EvalResult[]>();
+  for (const result of results) {
+    const runs = byRepetition.get(result.repetition) ?? [];
+    runs.push(result);
+    byRepetition.set(result.repetition, runs);
+  }
+
+  return Array.from(byRepetition.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, runs]) => mean(runs.map((r) => r.score)));
 }
 
 /**
@@ -44,6 +64,7 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
       thinking: first.thinking,
       repetitions: runs.length,
       score: mean(runs.map((r) => r.score)),
+      scoreStdDev: sampleStdDev(runs.map((r) => r.score)),
       recall: hasFindVulns
         ? mean(runs.filter((r) => !r.error && "recall" in r.details).map((r) => (r.details as FindVulnsDetails).recall))
         : null,
@@ -63,7 +84,10 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
  * Macro-average task-level scores into one headline row per config.
  * Each task contributes equally regardless of how many vulns it contains.
  */
-export function aggregateByConfig(taskResults: AggregatedTaskResult[]): AggregatedConfigResult[] {
+export function aggregateByConfig(
+  taskResults: AggregatedTaskResult[],
+  results: EvalResult[],
+): AggregatedConfigResult[] {
   const groups = new Map<string, AggregatedTaskResult[]>();
   for (const r of taskResults) {
     const arr = groups.get(r.runConfigId) ?? [];
@@ -71,17 +95,27 @@ export function aggregateByConfig(taskResults: AggregatedTaskResult[]): Aggregat
     groups.set(r.runConfigId, arr);
   }
 
+  const rawGroups = new Map<string, EvalResult[]>();
+  for (const r of results) {
+    const arr = rawGroups.get(r.runConfigId) ?? [];
+    arr.push(r);
+    rawGroups.set(r.runConfigId, arr);
+  }
+
   const aggregated: AggregatedConfigResult[] = [];
   for (const tasks of groups.values()) {
     const first = tasks[0];
     const hasRecall = tasks.some((t) => t.recall != null);
+    const repetitionScores = headlineScoresByRepetition(rawGroups.get(first.runConfigId) ?? []);
 
     aggregated.push({
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
       runConfigType: first.runConfigType,
       fixtureCount: tasks.length,
+      repetitions: repetitionScores.length,
       score: mean(tasks.map((t) => t.score)),
+      scoreStdDev: sampleStdDev(repetitionScores),
       recall: hasRecall ? meanNullable(tasks.map((t) => t.recall)) : null,
       precision: hasRecall ? meanNullable(tasks.map((t) => t.precision)) : null,
       sessionDurationMs: mean(tasks.map((t) => t.sessionDurationMs)),

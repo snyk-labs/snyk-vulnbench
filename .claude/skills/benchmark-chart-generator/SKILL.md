@@ -41,8 +41,8 @@ Read each JSONL file. Each line is one complete JSON object. Lines have a `_type
 field that determines what kind of row they are:
 
 - `"run"` -- a single raw `EvalResult` (one execution of one task+config)
-- `"task-aggregate"` -- mean scores for one (task, config) pair across repeated runs
-- `"config-aggregate"` -- headline numbers for one config, macro-averaged across all fixtures
+- `"task-aggregate"` -- mean scores and score standard deviation for one (task, config) pair across repeated runs
+- `"config-aggregate"` -- headline numbers and headline score standard deviation for one config, macro-averaged across all fixtures
 
 Lines without a `_type` field are legacy `"run"` rows (backward compatible).
 
@@ -50,8 +50,8 @@ Lines without a `_type` field are legacy `"run"` rows (backward compatible).
 
 Parse each line as JSON. **Choose the right aggregate rows for the report:**
 
-- **Headline comparison section**: always use `_type === "config-aggregate"` rows when present. These give one number per config, macro-averaged across all fixtures, and the report must start with this section.
-- **Per-fixture breakdown sections**: always use `_type === "task-aggregate"` rows when present. These give one number per (task, config) pair, with repeated runs already averaged.
+- **Headline comparison section**: always use `_type === "config-aggregate"` rows when present. These give one number per config, macro-averaged across all fixtures, plus `scoreStdDev` for headline error bars. The report must start with this section.
+- **Per-fixture breakdown sections**: always use `_type === "task-aggregate"` rows when present. These give one number per (task, config) pair, with repeated runs already averaged, plus `scoreStdDev` for per-fixture score error bars.
 - **Detailed per-run rows**: do not use `_type === "run"` rows for normal reports. They are raw executions and can double-count repeated runs. Use them only as a legacy fallback when a file has no aggregate rows at all, and warn the user that the report was generated from raw rows.
 
 For current JSONL files, collect valid `"config-aggregate"` and `"task-aggregate"` rows into the `BENCHMARK_ROWS` array. Do not inject raw `"run"` rows when aggregate rows exist.
@@ -66,6 +66,7 @@ For `"task-aggregate"` rows, validate:
 - `taskId`, `taskName`
 - `runConfigId`, `runConfigName`, `runConfigType`
 - `score` (number 0-1)
+- `scoreStdDev` (number >= 0, optional for older JSONL files; treat missing as 0)
 - `sessionDurationMs` (number)
 - `totalTokens` (number)
 - `totalCostUsd` (number or null)
@@ -74,6 +75,7 @@ For `"config-aggregate"` rows, validate:
 - `runConfigId`, `runConfigName`, `runConfigType`
 - `fixtureCount` (number)
 - `score` (number 0-1)
+- `scoreStdDev` (number >= 0, optional for older JSONL files; treat missing as 0)
 - `sessionDurationMs` (number)
 - `totalTokens` (number)
 - `totalCostUsd` (number or null)
@@ -101,7 +103,9 @@ For the full EvalResult schema and all available fields, see
 The template JS renders all `"config-aggregate"` rows as the headline comparison first,
 then groups `"task-aggregate"` rows by `taskId` so multi-task JSONL files produce one
 chart section per task. Each section should include score, duration, total tokens, cost,
-and recall/precision when those fields exist.
+and recall/precision when those fields exist. Score charts must render `scoreStdDev`
+as vertical error bars and label the score as `mean ± standard deviation` when
+`repetitions > 1`.
 
 ### Step 4: Write the output
 
@@ -119,6 +123,7 @@ Confirm the output file:
 - The `BENCHMARK_ROWS` array in the output has the expected number of aggregate entries
 - The output includes `"config-aggregate"` rows when the source file contains them
 - The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
+- Score charts show standard-deviation error bars and textual `±` labels when aggregate rows include `scoreStdDev` and `repetitions > 1`
 
 Report success to the user with the output path and how to open it.
 
@@ -137,8 +142,8 @@ template uses aggregate rows: `"config-aggregate"` for the report headline and
 | `_type` value | Description | When to use |
 |---|---|---|
 | `"run"` (or absent) | Raw `EvalResult` -- one execution | Legacy fallback only when aggregates are absent |
-| `"task-aggregate"` | Mean across repeated runs for one (task, config) pair | Individual task breakdown charts |
-| `"config-aggregate"` | Macro-average across all fixtures for one config | Headline comparison charts at the top of the report |
+| `"task-aggregate"` | Mean and score standard deviation across repeated runs for one (task, config) pair | Individual task breakdown charts with score error bars |
+| `"config-aggregate"` | Macro-average and score standard deviation across repetition-level headline scores for one config | Headline comparison charts at the top of the report with score error bars |
 
 ### Core fields on `"run"` rows
 
@@ -196,6 +201,7 @@ A `BreakdownEntry` has: `{ total: number, found: number, precision: number, reca
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `repetitions` | number | How many runs were averaged |
 | `score` | number (0-1) | Mean score across repetitions |
+| `scoreStdDev` | number | Sample standard deviation of score across repetitions. Use for score error bars. |
 | `recall` | number (0-1) or null | Mean recall (find-vulns only) |
 | `precision` | number (0-1) or null | Mean precision (find-vulns only) |
 | `sessionDurationMs` | number | Mean wall-clock time |
@@ -209,7 +215,9 @@ A `BreakdownEntry` has: `{ total: number, found: number, precision: number, reca
 | `runConfigId`, `runConfigName` | string | Config identifier and display name |
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `fixtureCount` | number | How many distinct tasks contributed |
+| `repetitions` | number | How many repetition-level headline scores contributed |
 | `score` | number (0-1) | Macro-averaged score across all fixtures |
+| `scoreStdDev` | number | Sample standard deviation of repetition-level headline scores. Use for headline score error bars. |
 | `recall` | number (0-1) or null | Macro-averaged recall (find-vulns only) |
 | `precision` | number (0-1) or null | Macro-averaged precision (find-vulns only) |
 | `sessionDurationMs` | number | Macro-averaged wall-clock time |
@@ -229,6 +237,7 @@ When the user asks for comparisons, use these patterns:
 | Cost comparison | `totalCostUsd` on aggregate rows | Bar chart, with null command costs shown as N/A |
 | Token usage comparison | `totalTokens` on aggregate rows | Bar chart |
 | Cost vs quality tradeoff | `totalCostUsd` vs `score` | Scatter plot |
+| Score stability across repetitions | `score` + `scoreStdDev` on aggregate rows | Bar chart with vertical error bars and `mean ± SD` labels |
 | Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` on raw rows | Detailed custom chart only when intentionally using raw run data |
 | Tool usage comparison | `metrics.toolStats[tool].count` per config | Grouped bars |
 | What did the model hallucinate? | `details.falsePositives` -- group by `.type` | Pie or horizontal bars |

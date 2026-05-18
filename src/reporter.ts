@@ -23,6 +23,12 @@ function coloredScore(score: number, label?: string): string {
   return s(scoreColor(score), text);
 }
 
+function scoreWithStdDev(score: number, stdDev: number, includeStdDev: boolean): string {
+  const pct = `${(score * 100).toFixed(0)}%`;
+  if (!includeStdDev) return pct;
+  return `${pct} ±${(stdDev * 100).toFixed(0)}pp`;
+}
+
 const LABEL_WIDTH = 12;
 
 function metricLine(label: string, value: string, indent = "    "): string {
@@ -202,14 +208,14 @@ export function printSummaryTable(
     console.log(`\n  ${s("dim", `Per-fixture scores ${repLabel}:`)}`);
 
     const header = hasFindVulns
-      ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
-      : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
+      ? ["Task", "Config", "Score ±SD", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
+      : ["Task", "Config", "Score ±SD", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
 
     const rows = taskAggregates.map((a) => {
       const base = [
         a.taskId,
         a.runConfigId,
-        `${(a.score * 100).toFixed(0)}%`,
+        scoreWithStdDev(a.score, a.scoreStdDev, true),
       ];
       if (hasFindVulns) {
         base.push(a.recall != null ? `${(a.recall * 100).toFixed(0)}%` : "-");
@@ -263,13 +269,13 @@ export function printSummaryTable(
     console.log(`\n  ${s(["bold", "dim"], headlineLabel)}`);
 
     const hdr = hasFindVulns
-      ? ["Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"]
-      : ["Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"];
+      ? ["Config", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"]
+      : ["Config", hasReps ? "Score ±SD" : "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"];
 
     const hRows = configAggregates.map((c) => {
       const base = [
         c.runConfigId,
-        `${(c.score * 100).toFixed(0)}%`,
+        scoreWithStdDev(c.score, c.scoreStdDev, hasReps),
       ];
       if (hasFindVulns) {
         base.push(c.recall != null ? `${(c.recall * 100).toFixed(0)}%` : "-");
@@ -294,6 +300,10 @@ export function printSummaryTable(
       console.log();
       console.log(`  ${s("dim", "Avg by config:")}  ${avgParts.join(s("dim", "   |   "))}`);
     }
+  }
+
+  if (hasReps) {
+    console.log(`  ${s("dim", "±SD is sample standard deviation across repetitions.")}`);
   }
 
   console.log();
