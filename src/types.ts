@@ -253,6 +253,8 @@ export interface AggregatedTaskResult {
   thinking: ThinkingConfig | null;
   repetitions: number;
   score: number;
+  /** Sample standard deviation of score across repetitions. Zero when repetitions < 2. */
+  scoreStdDev: number;
   recall: number | null;
   precision: number | null;
   sessionDurationMs: number;
@@ -266,7 +268,10 @@ export interface AggregatedConfigResult {
   runConfigName: string;
   runConfigType: "model" | "command";
   fixtureCount: number;
+  repetitions: number;
   score: number;
+  /** Sample standard deviation of repetition-level headline scores. Zero when repetitions < 2. */
+  scoreStdDev: number;
   recall: number | null;
   precision: number | null;
   sessionDurationMs: number;

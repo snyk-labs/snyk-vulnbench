@@ -232,7 +232,7 @@ async function main() {
   }
 
   const taskAggregates = aggregateByTask(results);
-  const configAggregates = aggregateByConfig(taskAggregates);
+  const configAggregates = aggregateByConfig(taskAggregates, results);
 
   printSummaryTable(results, taskAggregates, configAggregates);
 

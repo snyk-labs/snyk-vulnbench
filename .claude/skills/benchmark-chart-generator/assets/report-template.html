@@ -164,6 +164,12 @@
       fill: var(--text);
     }
 
+    .error-bar {
+      stroke: var(--axis);
+      stroke-width: 1.5;
+      stroke-linecap: round;
+    }
+
     .footnote {
       font-size: 0.75rem;
       font-style: italic;
@@ -246,6 +252,12 @@
       return (100 * x).toFixed(1) + "%";
     }
 
+    function pctWithStdDev(value, stdDev, repetitions) {
+      if (!isFiniteNumber(value)) return "N/A";
+      if (!isFiniteNumber(stdDev) || repetitions <= 1) return pct(value);
+      return `${(100 * value).toFixed(1)}% ± ${(100 * stdDev).toFixed(1)}pp`;
+    }
+
     function fmtMs(ms) {
       if (!isFiniteNumber(ms)) return "N/A";
       if (ms >= 1000) return (ms / 1000).toFixed(1) + " s";
@@ -285,6 +297,7 @@
         yTicks,
         yTickFormat,
         barColors,
+        errorValues = [],
       } = options;
 
       const W = 720;
@@ -345,6 +358,12 @@
         const x = i * (barW + gap);
         const y = innerH - h;
         const fill = barColors[i] || COLORS.model;
+        const err = isFiniteNumber(errorValues[i]) ? Math.max(0, errorValues[i]) : 0;
+        const upper = Math.min(yMax, v + err);
+        const lower = Math.max(0, v - err);
+        const yUpper = innerH - (upper / yMax) * innerH;
+        const yLower = innerH - (lower / yMax) * innerH;
+        const xMid = x + barW / 2;
 
         const bar = ns("path", {
           class: "bar",
@@ -353,10 +372,17 @@
         });
         gRoot.appendChild(bar);
 
+        if (err > 0) {
+          const cap = Math.max(10, barW * 0.35);
+          gRoot.appendChild(ns("line", { class: "error-bar", x1: xMid, x2: xMid, y1: yUpper, y2: yLower }));
+          gRoot.appendChild(ns("line", { class: "error-bar", x1: xMid - cap / 2, x2: xMid + cap / 2, y1: yUpper, y2: yUpper }));
+          gRoot.appendChild(ns("line", { class: "error-bar", x1: xMid - cap / 2, x2: xMid + cap / 2, y1: yLower, y2: yLower }));
+        }
+
         const valText = ns("text", {
           class: "value-label",
-          x: x + barW / 2,
-          y: y - 8,
+          x: xMid,
+          y: Math.max(12, (err > 0 ? yUpper : y) - 8),
           "text-anchor": "middle",
         }, [valueFormat(rawValue, i)]);
         gRoot.appendChild(valText);
@@ -512,7 +538,9 @@
     function normalizeAggregateRows(rows) {
       return rows.map((r) => ({
         label: r.runConfigName,
+        repetitions: r.repetitions || 1,
         score: r.score,
+        scoreStdDev: r.scoreStdDev,
         durationMs: r.sessionDurationMs,
         recall: r.recall,
         precision: r.precision,
@@ -526,7 +554,9 @@
     function normalizeLegacyRuns(rows) {
       return rows.map((r) => ({
         label: r.runConfigName,
+        repetitions: 1,
         score: r.score,
+        scoreStdDev: 0,
         durationMs: r.metrics && r.metrics.sessionDurationMs,
         recall: r.details && r.details.recall,
         precision: r.details && r.details.precision,
@@ -563,6 +593,7 @@
         yTicks: config.yTicks,
         yTickFormat: config.yTickFormat,
         barColors: runs.map((r) => r.barMain),
+        errorValues: config.errorValue ? runs.map(config.errorValue) : [],
       });
     }
 
@@ -586,12 +617,13 @@
       renderMetricSection(group, runs, {
         heading: headline ? "Headline score" : "Composite score",
         description: headline
-          ? "Macro-averaged benchmark score across all fixtures (higher is better)."
-          : "Aggregated benchmark score for this task across repetitions (higher is better).",
+          ? "Macro-averaged benchmark score across all fixtures (higher is better). Error bars show sample standard deviation across repetition-level headline scores."
+          : "Aggregated benchmark score for this task across repetitions (higher is better). Error bars show sample standard deviation across repeated runs.",
         title: "Score - " + title,
         yAxisLabel: "SCORE",
         value: (r) => r.score,
-        valueFormat: pct,
+        errorValue: (r) => r.scoreStdDev,
+        valueFormat: (value, i) => pctWithStdDev(value, runs[i].scoreStdDev, runs[i].repetitions),
         yMax: 1,
         yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
         yTickFormat: (t) => Math.round(t * 100) + "%",
