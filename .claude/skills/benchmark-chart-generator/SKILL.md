@@ -4,10 +4,12 @@ description: >
   Generates a self-contained HTML chart report from benchmark JSONL result files,
   matching the Snyk Evo brand styling. Use when the user says "generate charts",
   "make an HTML report from these results", "visualize the benchmark", "create a
-  chart page", or provides a JSONL file and asks for visual output. Use this skill
-  even if the user just says "chart this" or "turn these results into HTML" in the
-  context of benchmark data. Do NOT use for markdown reports (use benchmark-report-writer),
-  adding fixtures (use benchmark-add-new-fixture), or running benchmarks (use benchmark-run).
+  chart page", provides a JSONL file and asks for visual output, or pastes raw
+  spreadsheet/table data and asks for charts in the benchmark report style. Use this
+  skill even if the user just says "chart this" or "turn these results into HTML" in
+  the context of benchmark or benchmark-adjacent data. Do NOT use for markdown reports
+  (use benchmark-report-writer), adding fixtures (use benchmark-add-new-fixture), or
+  running benchmarks (use benchmark-run).
 license: Apache-2.0
 compatibility: >
   Requires read access to benchmark JSONL files in results/ and write access to public/.
@@ -29,6 +31,12 @@ directly in a browser or host statically.
 The template lives at `assets/report-template.html` relative to this skill. It
 contains all CSS, SVG chart rendering JS, and the Snyk Evo color palette. Your job
 is to read the JSONL data, inject it into the template, and write the output file.
+
+If the user provides pasted spreadsheet, CSV, markdown-table, or Google Sheets data
+instead of JSONL, normalize that table data into explicit JavaScript arrays and build
+a custom static page using the same Snyk Evo palette, typography, spacing, SVG chart
+style, rounded bars, section layout, and output path convention. Do not force raw
+article data into the benchmark JSONL schema when a custom chart page is clearer.
 
 ### Step 1: Gather inputs
 
@@ -107,6 +115,12 @@ and recall/precision when those fields exist. Score charts must render `scoreStd
 as vertical error bars and label the score as `mean ± standard deviation` when
 `repetitions > 1`.
 
+For custom chart renderers, compute the y-axis scale with label headroom, not just
+data coverage. Reserve about 10-15% space above the tallest visible value (including
+stacked totals) so value labels sit in white space above bars. Avoid clamping labels
+to the same y position as the bar top; if a label would hit the plot boundary, raise
+`yMax`, add top margin, or lower the bar scale until the label has visible padding.
+
 ### Step 4: Write the output
 
 Generate the output path: `public/<YYYY-MM-DD-XXXXX>/index.html` where:
@@ -124,6 +138,7 @@ Confirm the output file:
 - The output includes `"config-aggregate"` rows when the source file contains them
 - The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
 - Score charts show standard-deviation error bars and textual `±` labels when aggregate rows include `scoreStdDev` and `repetitions > 1`
+- Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top
 
 Report success to the user with the output path and how to open it.
 
@@ -246,7 +261,9 @@ When the user asks for comparisons, use these patterns:
 When building these custom charts, follow the same Snyk Evo styling and use the
 existing `renderBarChart` and `renderGroupedRecallPrecision` functions from the template
 as a starting point. Add new chart rendering functions as needed for scatter plots,
-stacked bars, or horizontal bars.
+stacked bars, or horizontal bars. For any bar-like chart, set `yMax` high enough for
+both the data and the value labels; stacked bars should scale against the largest
+stack total plus headroom.
 
 ## Color and styling reference
 
@@ -333,3 +350,12 @@ Solution: Generate a new slug and retry. The 5-character alphanumeric space (36^
 Error: JSONL file has zero valid rows after parsing.
 Cause: The file is empty, corrupted, or all rows failed validation.
 Solution: Report the error to the user with specifics about which fields were missing. Check that the file is actual JSONL (one JSON object per line, no wrapping array).
+
+---
+
+Error: Value labels touch the top of the tallest bar or chart boundary.
+Cause: The chart y-axis max was set to the data maximum with no headroom, so labels for
+the tallest bar get clamped into the same visual space as the bar.
+Solution: Increase `yMax` by roughly 10-15%, add a larger top margin, or calculate
+`yMax` from the largest stacked total plus label padding. Re-check the rendered chart
+before reporting success.
