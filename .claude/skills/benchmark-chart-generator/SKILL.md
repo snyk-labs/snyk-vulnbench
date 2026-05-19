@@ -115,6 +115,25 @@ and recall/precision when those fields exist. Score charts must render `scoreStd
 as vertical error bars and label the score as `mean ± standard deviation` when
 `repetitions > 1`.
 
+When aggregate rows contain enough comparable points, include scatter plots as
+supplementary views in addition to the standard bar charts. Do not replace score,
+duration, token, cost, or recall/precision charts with scatter plots. The default
+template can render these headline scatter sections from `"config-aggregate"` rows:
+- `totalCostUsd` vs `score` for model configs with known cost. This shows
+  quality/cost tradeoff; better points move toward the top-left.
+- `sessionDurationMs` vs `score` for all configs. This shows speed/quality tradeoff;
+  better points move toward the top-left.
+- `precision` vs `recall` for find-vulns aggregate rows. This shows detection quality;
+  better points move toward the top-right.
+
+For custom reports or future template work, other useful scatter plots from the JSONL
+schema are:
+- `totalTokens` vs `score` for model configs, to show context/quality efficiency.
+- `totalCostUsd` vs `recall` for find-vulns model configs, to show cost per coverage.
+- `scoreStdDev` vs `score` when `repetitions > 1`, to show quality vs stability.
+- `metrics.totalLogicalInputTokens + metrics.totalOutputTokens` vs `score` on raw
+  `"run"` rows only when intentionally using raw rows as a legacy fallback.
+
 For custom chart renderers, compute the y-axis scale with label headroom, not just
 data coverage. Reserve about 10-15% space above the tallest visible value (including
 stacked totals) so value labels sit in white space above bars. Avoid clamping labels
@@ -138,6 +157,7 @@ Confirm the output file:
 - The output includes `"config-aggregate"` rows when the source file contains them
 - The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
 - Score charts show standard-deviation error bars and textual `±` labels when aggregate rows include `scoreStdDev` and `repetitions > 1`
+- Scatter plots are present as additive sections when there are at least two valid comparable aggregate points
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top
 
 Report success to the user with the output path and how to open it.
@@ -252,6 +272,10 @@ When the user asks for comparisons, use these patterns:
 | Cost comparison | `totalCostUsd` on aggregate rows | Bar chart, with null command costs shown as N/A |
 | Token usage comparison | `totalTokens` on aggregate rows | Bar chart |
 | Cost vs quality tradeoff | `totalCostUsd` vs `score` | Scatter plot |
+| Speed vs quality tradeoff | `sessionDurationMs` vs `score` | Scatter plot |
+| Context vs quality tradeoff | `totalTokens` vs `score` for model configs | Scatter plot |
+| Detection quality tradeoff | `precision` vs `recall` for find-vulns rows | Scatter plot |
+| Quality vs stability | `scoreStdDev` vs `score` when repetitions > 1 | Scatter plot |
 | Score stability across repetitions | `score` + `scoreStdDev` on aggregate rows | Bar chart with vertical error bars and `mean ± SD` labels |
 | Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` on raw rows | Detailed custom chart only when intentionally using raw run data |
 | Tool usage comparison | `metrics.toolStats[tool].count` per config | Grouped bars |
@@ -271,8 +295,10 @@ Colors are assigned by `runConfigType`, not row order:
 - `"command"` rows (Snyk Code SAST) get `--snyk-purple` (#9043c6)
 - `"model"` rows (AI agents) get neutral gray (#4a4a4a)
 
-The template handles all styling automatically. Do not modify CSS or chart JS during
-normal skill use -- just inject the aggregate data and placeholders.
+The template handles normal styling automatically. During normal JSONL report
+generation, inject aggregate data and placeholders; keep the built-in bar and scatter
+sections intact. Modify CSS or chart JS only when the user asks for a custom chart
+type or provides non-JSONL data that needs a purpose-built page.
 
 ## Examples
 
@@ -326,6 +352,19 @@ Actions:
 4. Write output and report
 
 Result: A chart page showing only the Snyk Code SAST results (useful for single-tool analysis, though comparison charts are more informative with both model and command rows).
+
+---
+
+User says: "Generate charts from the latest benchmark results and include tradeoffs"
+
+Actions:
+1. Read the latest JSONL file and select aggregate rows.
+2. Build the standard report with headline and per-task bar charts.
+3. Preserve the template's additive scatter sections for supported headline tradeoffs:
+   score vs cost, score vs duration, and recall vs precision when available.
+4. Verify the scatter sections appear only when there are at least two valid points.
+
+Result: A report with the usual benchmark charts plus tradeoff scatter plots that make cost, speed, and detection-quality relationships visible.
 
 ## Troubleshooting
 

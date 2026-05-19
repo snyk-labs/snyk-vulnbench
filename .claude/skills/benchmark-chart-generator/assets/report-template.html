@@ -535,6 +535,83 @@
       container.appendChild(svg);
     }
 
+    function valueRange(values, floor = 0, padding = 0.12) {
+      const finiteValues = values.filter(isFiniteNumber);
+      const max = Math.max(...finiteValues, floor);
+      const min = Math.min(...finiteValues, floor);
+      if (max === min) return { min: floor, max: max === 0 ? 1 : max * (1 + padding) };
+      return { min: floor, max: max + (max - min) * padding };
+    }
+
+    function renderScatterChart(container, options) {
+      const {
+        title,
+        points,
+        xValue,
+        yValue,
+        xAxisLabel,
+        yAxisLabel,
+        xFormat,
+        yFormat,
+        xRange,
+        yRange,
+        yTicks,
+      } = options;
+
+      const W = 720;
+      const H = 300;
+      const margin = { top: 32, right: 28, bottom: 64, left: 64 };
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom;
+      const xMin = xRange.min;
+      const xMax = xRange.max;
+      const yMin = yRange.min;
+      const yMax = yRange.max;
+      const xTicks = yTicks ? yTicks.map((_, i) => xMin + ((xMax - xMin) * i) / (yTicks.length - 1)) : [0, 0.25, 0.5, 0.75, 1].map((t) => xMin + (xMax - xMin) * t);
+
+      const xScale = (value) => ((value - xMin) / (xMax - xMin)) * innerW;
+      const yScale = (value) => innerH - ((value - yMin) / (yMax - yMin)) * innerH;
+      const svg = ns("svg", {
+        viewBox: `0 0 ${W} ${H}`,
+        width: "100%",
+        height: H,
+        role: "img",
+        "aria-label": title,
+      });
+      const gRoot = ns("g", { transform: `translate(${margin.left},${margin.top})` });
+      svg.appendChild(gRoot);
+
+      for (const t of xTicks) {
+        const x = xScale(t);
+        gRoot.appendChild(ns("line", { class: "grid", x1: x, x2: x, y1: 0, y2: innerH }));
+        gRoot.appendChild(ns("text", { class: "tick-label", x, y: innerH + 22, "text-anchor": "middle", "font-size": "11", fill: "#5c5c5c" }, [xFormat(t)]));
+      }
+
+      for (const t of yTicks) {
+        const y = yScale(t);
+        gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
+        gRoot.appendChild(ns("text", { class: "tick-label", x: -10, y: y + 4, "text-anchor": "end", "font-size": "11", fill: "#5c5c5c" }, [yFormat(t)]));
+      }
+
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: innerW, y1: innerH, y2: innerH }));
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: 0, y1: 0, y2: innerH }));
+      gRoot.appendChild(ns("text", { class: "y-label", x: -innerH / 2, y: -50, transform: "rotate(-90)", "text-anchor": "middle" }, [yAxisLabel]));
+      gRoot.appendChild(ns("text", { class: "y-label", x: innerW / 2, y: innerH + 52, "text-anchor": "middle" }, [xAxisLabel]));
+
+      points.forEach((point) => {
+        const x = xScale(xValue(point));
+        const y = yScale(yValue(point));
+        const anchor = x > innerW * 0.72 ? "end" : "start";
+        const labelX = anchor === "end" ? x - 12 : x + 12;
+        gRoot.appendChild(ns("circle", { cx: x, cy: y, r: 7, fill: point.barMain }));
+        gRoot.appendChild(ns("text", { class: "value-label", x: labelX, y: y - 7, "text-anchor": anchor, "font-size": "11" }, [point.label]));
+        gRoot.appendChild(ns("text", { class: "tick-label", x: labelX, y: y + 10, "text-anchor": anchor, "font-size": "10", fill: "#5c5c5c" }, [`${xFormat(xValue(point))} / ${yFormat(yValue(point))}`]));
+      });
+
+      container.innerHTML = "";
+      container.appendChild(svg);
+    }
+
     function normalizeAggregateRows(rows) {
       return rows.map((r) => ({
         label: r.runConfigName,
@@ -595,6 +672,15 @@
         barColors: runs.map((r) => r.barMain),
         errorValues: config.errorValue ? runs.map(config.errorValue) : [],
       });
+    }
+
+    function renderScatterSection(group, config) {
+      if (config.points.length < 2) return;
+      const section = document.createElement("section");
+      section.className = "chart-section";
+      section.innerHTML = `<h3>${config.heading}</h3><p class="chart-desc">${config.description}</p><div class="chart-wrap"></div>`;
+      group.appendChild(section);
+      renderScatterChart(section.querySelector(".chart-wrap"), config);
     }
 
     function renderComparisonGroup(container, options) {
@@ -697,6 +783,59 @@
           runs.map((r) => r.precision || 0),
           recallPrecisionColors
         );
+      }
+
+      if (headline) {
+        const costPoints = runs.filter((r) => !r.isSnyk && isFiniteNumber(r.totalCostUsd) && isFiniteNumber(r.score));
+        renderScatterSection(group, {
+          heading: "Score vs estimated cost",
+          description: "Supplementary tradeoff view for model configs with known cost. Better points move toward the top-left: higher score at lower cost.",
+          title: "Score vs estimated cost - " + title,
+          points: costPoints,
+          xValue: (r) => r.totalCostUsd,
+          yValue: (r) => r.score,
+          xAxisLabel: "COST",
+          yAxisLabel: "SCORE",
+          xFormat: fmtCost,
+          yFormat: pct,
+          xRange: valueRange(costPoints.map((r) => r.totalCostUsd)),
+          yRange: { min: 0, max: 1 },
+          yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
+        });
+
+        const durationPoints = runs.filter((r) => isFiniteNumber(r.durationMs) && isFiniteNumber(r.score));
+        renderScatterSection(group, {
+          heading: "Score vs session duration",
+          description: "Supplementary speed/quality view across all configs. Better points move toward the top-left: higher score in less wall-clock time.",
+          title: "Score vs session duration - " + title,
+          points: durationPoints,
+          xValue: (r) => r.durationMs,
+          yValue: (r) => r.score,
+          xAxisLabel: "DURATION",
+          yAxisLabel: "SCORE",
+          xFormat: fmtMs,
+          yFormat: pct,
+          xRange: valueRange(durationPoints.map((r) => r.durationMs)),
+          yRange: { min: 0, max: 1 },
+          yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
+        });
+
+        const recallPrecisionPoints = runs.filter((r) => isFiniteNumber(r.recall) && isFiniteNumber(r.precision));
+        renderScatterSection(group, {
+          heading: "Recall vs precision",
+          description: "Supplementary find-vulns view. Better points move toward the top-right: more known vulnerabilities found with fewer false positives.",
+          title: "Recall vs precision - " + title,
+          points: recallPrecisionPoints,
+          xValue: (r) => r.precision,
+          yValue: (r) => r.recall,
+          xAxisLabel: "PRECISION",
+          yAxisLabel: "RECALL",
+          xFormat: pct,
+          yFormat: pct,
+          xRange: { min: 0, max: 1 },
+          yRange: { min: 0, max: 1 },
+          yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
+        });
       }
 
       container.appendChild(group);
