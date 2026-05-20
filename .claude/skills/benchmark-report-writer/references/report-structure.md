@@ -21,8 +21,8 @@ Benchmark Design
   ↓
 Results
   ├─ Headline leaderboard (table)
-  ├─ Per-task breakdown (chart(s))
-  └─ Cost / efficiency view (chart, if tokens measured)
+  ├─ Per-task breakdown (table + optional generated visual)
+  └─ Cost / efficiency view (table + optional generated visual, if tokens measured)
   ↓
 Qualitative Analysis (2–4 sub-sections — the "what the numbers mean")
   ↓
@@ -49,16 +49,16 @@ Appendix (methodology detail, full data, reproduction instructions)
 - State the core question in plain English ("How much does adding an MCP security tool improve vulnerability-finding quality?").
 - Close with a one-sentence preview of what the results show, pointing to the Results section.
 
-**Benchmark Design (target: 300–600 words, plus diagrams)**
+**Benchmark Design (target: 300–600 words, plus optional methodology diagrams)**
 - Split into clear subsections. Each subsection is one thing; don't mix "what we measure" with "how we score".
-- Include the benchmark pipeline diagram if one exists in the source guide — lift it as mermaid.
+- Include the benchmark pipeline diagram only if one exists in the source guide and helps explain the setup. Do not create benchmark result charts in this section.
 - Describe fixtures in concrete terms ("a 200-line Express app with 5 intentionally planted vulnerabilities"). Abstract descriptions ("vulnerable code samples") fail to convey the realism or difficulty.
 - Describe scoring with a worked example where it helps ("An agent that reports 4 of 5 real vulns and zero false positives scores F1 = 0.89").
 
-**Results (target: 400–600 words, chart-heavy)**
+**Results (target: 400–600 words, table-first with optional generated visuals)**
 - Lead with the leaderboard — a markdown table with task × config × headline metric(s).
-- Follow with 1–3 charts that each answer a distinct question. See `visualizations.md` for which chart answers which question.
-- Keep prose between charts to one paragraph describing what the chart shows and the one observation that matters most.
+- If `article-visuals.md` is available, follow with 1–3 visual placeholders that each answer a distinct question. See `visualizations.md` for how to place generated visuals.
+- Keep prose between tables and visuals to one paragraph describing what the reader should notice.
 - Do not restate every number from the table in prose.
 
 **Qualitative Analysis (target: 600–1,500 words — the longest section)**
@@ -67,7 +67,7 @@ Appendix (methodology detail, full data, reproduction instructions)
   - "Tool-use patterns differ sharply between models"
   - "Most failures cluster in a single vulnerability class"
   - "The judge-LLM disagrees with ground truth in predictable ways"
-- Each sub-section: thesis in the heading → 1–2 paragraphs of explanation → a supporting number or mini-chart → implication for the reader.
+- Each sub-section: thesis in the heading → 1–2 paragraphs of explanation → a supporting number, table row, or generated visual placeholder → implication for the reader.
 - This is where the writeup earns its keep. Without qualitative analysis, the report is just a leaderboard.
 
 **Limitations (target: 150–300 words)**
@@ -97,7 +97,7 @@ Positioning / philosophy (why this approach, how it's different)
   ↓
 Customer or partner validation (optional — only if real quotes exist)
   ↓
-Benchmark Results (bar charts, comparison tables — the visual core)
+Benchmark Results (comparison tables plus generated visual placeholders when available)
   ↓
 Deeper capability section (qualitative observations, one or two)
   ↓
@@ -121,7 +121,7 @@ Intro (shorter — ~150 words setting up the question)
   ↓
 Benchmark Design (heavier than default — ~400–800 words)
   ↓
-Results (short — table + 1 chart)
+Results (short — table + optional generated visual)
   ↓
 Qualitative Analysis (the largest section — ~1,500–2,500 words, 4–6 sub-sections)
   ↓
@@ -143,7 +143,7 @@ Problem framing (~200 words)
   ↓
 Our approach (~300 words — the key design decisions only)
   ↓
-Results (~300 words — 1–2 charts max)
+Results (~300 words — table plus 1–2 generated visuals max)
   ↓
 What's next (~100 words)
 ```

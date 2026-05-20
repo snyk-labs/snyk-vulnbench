@@ -196,12 +196,12 @@
     <div id="charts-root"></div>
 
     <footer>
-      Static report generated from embedded benchmark JSONL rows. See <code>public/README.md</code> for how to refresh the data.
+      Static report generated from embedded benchmark chart specs. See <code>article-visuals.md</code> for article placeholders and captions.
     </footer>
   </div>
 
   <script>
-    const BENCHMARK_ROWS = __BENCHMARK_ROWS__;
+    const CHART_SPECS = __CHART_SPECS__;
 
     const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     const COLORS = {
@@ -853,68 +853,215 @@
       container.appendChild(group);
     }
 
-    function init() {
-      const rowCounts = BENCHMARK_ROWS.reduce((acc, row) => {
-        const type = row._type || "run";
-        acc[type] = (acc[type] || 0) + 1;
-        return acc;
-      }, {});
-      document.getElementById("report-meta").textContent =
-        "Rows embedded: " +
-        Object.entries(rowCounts).map(([type, count]) => `${count} ${type}`).join(", ");
+    function safeId(id) {
+      return String(id || "chart").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
 
-      const configAggregates = BENCHMARK_ROWS.filter((r) => r._type === "config-aggregate");
-      const taskAggregates = BENCHMARK_ROWS.filter((r) => r._type === "task-aggregate");
-      const root = document.getElementById("charts-root");
+    function chartAnchor(spec) {
+      return "chart-" + safeId(spec.id);
+    }
 
-      if (configAggregates.length > 0) {
-        const fixtureCounts = [...new Set(configAggregates.map((r) => r.fixtureCount).filter(isFiniteNumber))];
-        renderComparisonGroup(root, {
-          title: "Headline comparison",
-          subtitle: fixtureCounts.length === 1
-            ? `Macro-average across ${fixtureCounts[0]} fixtures`
-            : "Macro-average across fixtures",
-          rows: configAggregates,
-          headline: true,
-        });
+    function specRows(spec) {
+      return (spec.dataSummary && spec.dataSummary.rows) || spec.rows || [];
+    }
+
+    function specGroups(spec) {
+      return (spec.dataSummary && spec.dataSummary.groups) || spec.groups || [];
+    }
+
+    function specPoints(spec) {
+      return (spec.dataSummary && spec.dataSummary.points) || spec.points || [];
+    }
+
+    function colorForRunConfigType(type) {
+      return type === "command" || type === "snyk" ? COLORS.snyk : COLORS.model;
+    }
+
+    function colorPairForRunConfigType(type) {
+      return type === "command" || type === "snyk"
+        ? { recall: COLORS.snykRecall, precision: COLORS.snykPrecision }
+        : { recall: COLORS.modelRecall, precision: COLORS.modelPrecision };
+    }
+
+    function unitFor(spec, axis) {
+      const key = axis ? axis + "Unit" : "unit";
+      return spec[key] || (spec.dataSummary && spec.dataSummary[key]) || (spec.dataSummary && spec.dataSummary.unit) || "number";
+    }
+
+    function formatSpecValue(unit, value, stdDev, repetitions) {
+      if (unit === "percent") return pctWithStdDev(value, stdDev, repetitions || 1);
+      if (unit === "milliseconds") return fmtMsWithStdDev(value, stdDev, repetitions || 1);
+      if (unit === "tokens") return fmtTokens(value);
+      if (unit === "usd") return fmtCost(value);
+      if (!isFiniteNumber(value)) return "N/A";
+      return String(Number.isInteger(value) ? value : Number(value).toFixed(2));
+    }
+
+    function formatSpecAxis(unit, value) {
+      if (unit === "percent") return pct(value);
+      if (unit === "milliseconds") return fmtMs(value);
+      if (unit === "tokens") return fmtTokens(value);
+      if (unit === "usd") return fmtCost(value);
+      if (!isFiniteNumber(value)) return "N/A";
+      return String(Number.isInteger(value) ? value : Number(value).toFixed(2));
+    }
+
+    function defaultYMax(unit, values, errors) {
+      if (unit === "percent") return 1;
+      const adjustedValues = values.map((value, i) => {
+        const safeValue = isFiniteNumber(value) ? value : 0;
+        const safeError = isFiniteNumber(errors[i]) ? Math.max(0, errors[i]) : 0;
+        return safeValue + safeError;
+      });
+      if (unit === "milliseconds") return niceMax(adjustedValues, 5000);
+      if (unit === "tokens") return niceMax(adjustedValues, 25000);
+      if (unit === "usd") return Math.max(0.01, Math.ceil(Math.max(...adjustedValues, 0) * 100) / 100);
+      return Math.max(1, Math.max(...adjustedValues, 0) * 1.15);
+    }
+
+    function defaultTicks(unit, max) {
+      if (unit === "percent") return [0, 0.2, 0.4, 0.6, 0.8, 1];
+      return yTicks(max);
+    }
+
+    function makeChartSection(group, spec) {
+      const section = document.createElement("section");
+      section.className = "chart-section";
+      section.id = chartAnchor(spec);
+      section.dataset.chartId = spec.id;
+
+      const titleEl = document.createElement("h3");
+      titleEl.textContent = spec.title || spec.heading || spec.id;
+      section.appendChild(titleEl);
+
+      const descEl = document.createElement("p");
+      descEl.className = "chart-desc";
+      descEl.textContent = spec.description || spec.caption || "";
+      section.appendChild(descEl);
+
+      const wrap = document.createElement("div");
+      wrap.className = "chart-wrap";
+      section.appendChild(wrap);
+      group.appendChild(section);
+      return wrap;
+    }
+
+    function renderSpecBar(group, spec) {
+      const rows = specRows(spec);
+      if (rows.length === 0) return;
+      const unit = unitFor(spec);
+      const values = rows.map((row) => row.value);
+      const errors = rows.map((row) => row.stdDev || row.error || 0);
+      const yMax = spec.yMax || defaultYMax(unit, values, errors);
+      const wrap = makeChartSection(group, spec);
+      renderBarChart(wrap, {
+        title: spec.title || spec.id,
+        yAxisLabel: spec.yAxisLabel || String(spec.metric || unit).toUpperCase(),
+        categories: rows.map((row) => row.label),
+        values,
+        valueFormat: (value, i) => formatSpecValue(unit, value, errors[i], rows[i] && rows[i].repetitions),
+        yMax,
+        yTicks: spec.yTicks || defaultTicks(unit, yMax),
+        yTickFormat: (tick) => formatSpecAxis(unit, tick),
+        barColors: rows.map((row) => colorForRunConfigType(row.runConfigType || row.configType || row.role)),
+        errorValues: errors,
+      });
+    }
+
+    function renderSpecGroupedBar(group, spec) {
+      const groups = specGroups(spec);
+      if (groups.length === 0) return;
+      const wrap = makeChartSection(group, spec);
+      renderGroupedRecallPrecision(
+        wrap,
+        groups.map((item) => item.label),
+        groups.map((item) => item.recall),
+        groups.map((item) => item.precision),
+        groups.map((item) => colorPairForRunConfigType(item.runConfigType || item.configType || item.role))
+      );
+    }
+
+    function renderSpecScatter(group, spec) {
+      const points = specPoints(spec).map((point) => ({
+        ...point,
+        barMain: colorForRunConfigType(point.runConfigType || point.configType || point.role),
+      }));
+      if (points.length < 2) return;
+      const xUnit = unitFor(spec, "x");
+      const yUnit = unitFor(spec, "y");
+      const yRange = spec.yRange || (yUnit === "percent" ? { min: 0, max: 1 } : valueRange(points.map((point) => point.y)));
+      const wrap = makeChartSection(group, spec);
+      renderScatterChart(wrap, {
+        title: spec.title || spec.id,
+        points,
+        xValue: (point) => point.x,
+        yValue: (point) => point.y,
+        xAxisLabel: spec.xAxisLabel || "X",
+        yAxisLabel: spec.yAxisLabel || "Y",
+        xFormat: (value) => formatSpecAxis(xUnit, value),
+        yFormat: (value) => formatSpecAxis(yUnit, value),
+        xRange: spec.xRange || valueRange(points.map((point) => point.x)),
+        yRange,
+        yTicks: spec.yTicks || defaultTicks(yUnit, yRange.max),
+      });
+    }
+
+    function renderSpecChart(group, spec) {
+      if (spec.chartType === "bar") {
+        renderSpecBar(group, spec);
+      } else if (spec.chartType === "grouped-bar") {
+        renderSpecGroupedBar(group, spec);
+      } else if (spec.chartType === "scatter") {
+        renderSpecScatter(group, spec);
+      } else {
+        const wrap = makeChartSection(group, spec);
+        const note = document.createElement("p");
+        note.className = "chart-desc";
+        note.textContent = `Custom chart type "${spec.chartType}" is described in chart-manifest.json but is not rendered by this template.`;
+        wrap.appendChild(note);
       }
+    }
 
-      const groups = groupByTask(taskAggregates);
-      for (const [taskId, rows] of Object.entries(groups)) {
-        const first = rows[0];
-        renderComparisonGroup(root, {
-          title: first.taskName || taskId,
-          subtitle: `${taskId} - aggregated across ${Math.max(...rows.map((r) => r.repetitions || 1))} repetition(s)`,
-          rows,
-          headline: false,
-        });
-      }
-
-      if (configAggregates.length === 0 && taskAggregates.length === 0) {
-        const legacyRuns = BENCHMARK_ROWS.filter((r) => (r._type || "run") === "run");
-        const legacyGroups = groupByTask(legacyRuns);
-        for (const [taskId, rows] of Object.entries(legacyGroups)) {
-          const first = rows[0];
-          const aggregateLikeRows = normalizeLegacyRuns(rows).map((run, i) => ({
-            _type: "task-aggregate",
-            taskId,
-            taskName: first.taskName,
-            runConfigName: run.label,
-            runConfigType: rows[i].runConfigType,
-            score: run.score,
-            recall: run.recall,
-            precision: run.precision,
-            sessionDurationMs: run.durationMs,
-            totalTokens: run.totalTokens,
-            totalCostUsd: run.totalCostUsd,
-          }));
-          renderComparisonGroup(root, {
-            title: first.taskName || taskId,
-            subtitle: `${taskId} - legacy raw run rows`,
-            rows: aggregateLikeRows,
-            headline: false,
-          });
+    function groupChartSpecs(specs) {
+      const groups = [];
+      const byId = new Map();
+      for (const spec of specs) {
+        const section = spec.section || { id: "charts", title: "Charts", subtitle: "" };
+        const id = section.id || "charts";
+        if (!byId.has(id)) {
+          const entry = { section, specs: [] };
+          byId.set(id, entry);
+          groups.push(entry);
         }
+        byId.get(id).specs.push(spec);
+      }
+      return groups;
+    }
+
+    function init() {
+      const specs = CHART_SPECS.filter((spec) => spec && spec.id);
+      document.getElementById("report-meta").textContent = `Charts embedded: ${specs.length}`;
+
+      const root = document.getElementById("charts-root");
+      for (const { section, specs: sectionSpecs } of groupChartSpecs(specs)) {
+        const group = document.createElement("div");
+        group.className = section.kind === "headline" ? "headline-group" : "task-group";
+
+        const titleEl = document.createElement("h2");
+        titleEl.className = "task-title";
+        titleEl.textContent = section.title || "Charts";
+        group.appendChild(titleEl);
+
+        const subtitleEl = document.createElement("p");
+        subtitleEl.className = "task-subtitle";
+        subtitleEl.textContent = section.subtitle || "";
+        group.appendChild(subtitleEl);
+
+        for (const spec of sectionSpecs) {
+          renderSpecChart(group, spec);
+        }
+
+        root.appendChild(group);
       }
     }
 

@@ -24,7 +24,7 @@
 
 ## Benchmark Design
 
-<!-- 300–600 words total, plus diagrams. Subsections below. -->
+<!-- 300–600 words total. Include a methodology diagram only if one already exists in the benchmark guide and helps explain the setup. -->
 
 ### What we measure
 
@@ -48,19 +48,11 @@
 
 ### Pipeline
 
-<!-- Lift the pipeline diagram from the benchmark guide if one exists. Simplify if the original is more detailed than the report needs. -->
-
-```mermaid
-flowchart LR
-    A[Fixture + Task] --> B[Agent Session]
-    B --> C[Final Output]
-    C --> D{Scoring}
-    D --> E[EvalResult]
-```
+<!-- Optional: link to or copy an existing methodology diagram from the benchmark guide. Do not create benchmark result charts here. -->
 
 ## Results
 
-<!-- 400–600 words, chart-heavy. Lead with the leaderboard, follow with 1–3 charts, keep prose between charts to one paragraph per chart. -->
+<!-- 400–600 words. Lead with the leaderboard table. If chart-generator artifacts were provided, insert visual placeholders from article-visuals.md where they support the narrative. -->
 
 ### Overall leaderboard
 
@@ -72,29 +64,30 @@ flowchart LR
 
 ### Per-task breakdown
 
-```mermaid
-xychart-beta
-    title "F1 score by config — [task]"
-    x-axis ["config-a", "config-b"]
-    y-axis "F1 (%)" 0 --> 100
-    bar [89, 72]
-```
+| Task | Config | Score | Recall | Precision | Notes |
+|---|---|---|---|---|---|
+| [task] | [config] | [x%] | [x%] | [x%] | [short note] |
 
-[One paragraph describing the chart's takeaway.]
+<!-- Optional generated visual from article-visuals.md. Replace with an exact placeholder ID or delete this block. -->
+<!-- VISUAL: [per-task-or-heatmap-chart-id] -->
+
+*Figure: [caption copied from article-visuals.md]*
+
+[One paragraph describing the pattern the table and optional visual support.]
 
 ### Cost vs. quality
 
 <!-- Include only if token spend was measured. -->
 
-```mermaid
-quadrantChart
-    title Cost vs. quality
-    x-axis "Low cost" --> "High cost"
-    y-axis "Low F1" --> "High F1"
-    quadrant-2 "Sweet spot"
-    "[config-a]": [0.7, 0.9]
-    "[config-b]": [0.4, 0.7]
-```
+| Config | Score | Tokens | Estimated cost | Time |
+|---|---|---|---|---|
+| [config-a] | [x%] | [n] | [$n] | [n]s |
+| [config-b] | [x%] | [n] | [$n] | [n]s |
+
+<!-- Optional generated visual from article-visuals.md. Replace with an exact placeholder ID or delete this block. -->
+<!-- VISUAL: [score-vs-cost-or-duration-chart-id] -->
+
+*Figure: [caption copied from article-visuals.md]*
 
 [One paragraph describing the tradeoff pattern.]
 

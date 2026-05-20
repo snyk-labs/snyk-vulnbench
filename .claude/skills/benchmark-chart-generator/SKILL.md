@@ -1,20 +1,20 @@
 ---
 name: benchmark-chart-generator
 description: >
-  Generates a self-contained HTML chart report from benchmark JSONL result files,
-  matching the Snyk Evo brand styling. Use when the user says "generate charts",
-  "make an HTML report from these results", "visualize the benchmark", "create a
-  chart page", provides a JSONL file and asks for visual output, or pastes raw
-  spreadsheet/table data and asks for charts in the benchmark report style. Use this
-  skill even if the user just says "chart this" or "turn these results into HTML" in
-  the context of benchmark or benchmark-adjacent data. Do NOT use for markdown reports
+  Generates benchmark chart artifacts from JSONL result files: a self-contained HTML
+  report, a compact chart manifest, and an article-ready visuals guide with placeholders
+  and captions. Use when the user says "generate charts", "make an HTML report",
+  "visualize the benchmark", "create article visuals", provides a JSONL file and asks
+  for visual output, or pastes table data and asks for charts in the benchmark report
+  style. Use this skill even if the user just says "chart this" or "turn these results
+  into HTML" in the context of benchmark data. Do NOT use for markdown reports
   (use benchmark-report-writer), adding fixtures (use benchmark-add-new-fixture), or
   running benchmarks (use benchmark-run).
 license: Apache-2.0
 compatibility: >
   Requires read access to benchmark JSONL files in results/ and write access to public/.
-  No external dependencies -- output is a single self-contained HTML file that opens
-  directly in a browser.
+  No external dependencies -- output is static HTML plus compact JSON/Markdown handoff
+  files that can be opened or read directly.
 metadata:
   author: lirantal
   version: 1.0.0
@@ -24,13 +24,16 @@ metadata:
 
 # Instructions
 
-Turn benchmark JSONL results into a polished HTML chart page with Snyk Evo styling --
-no manual HTML editing required. The output is a self-contained file you can open
-directly in a browser or host statically.
+Turn benchmark JSONL results into polished chart artifacts with Snyk Evo styling --
+no manual HTML editing required. The primary output is a self-contained `index.html`
+that opens directly in a browser, plus `chart-manifest.json` and `article-visuals.md`
+so an article-writing agent can understand and reference the visuals without reading
+the full JSONL payload.
 
 The template lives at `assets/report-template.html` relative to this skill. It
 contains all CSS, SVG chart rendering JS, and the Snyk Evo color palette. Your job
-is to read the JSONL data, inject it into the template, and write the output file.
+is to read the JSONL data, build compact chart specs, inject those specs into the
+template, and write all three output artifacts from the same source of truth.
 
 If the user provides pasted spreadsheet, CSV, markdown-table, or Google Sheets data
 instead of JSONL, normalize that table data into explicit JavaScript arrays and build
@@ -62,7 +65,10 @@ Parse each line as JSON. **Choose the right aggregate rows for the report:**
 - **Per-fixture breakdown sections**: always use `_type === "task-aggregate"` rows when present. These give one number per (task, config) pair, with repeated runs already averaged, plus `scoreStdDev` and `sessionDurationStdDevMs` for per-fixture error bars.
 - **Detailed per-run rows**: do not use `_type === "run"` rows for normal reports. They are raw executions and can double-count repeated runs. Use them only as a legacy fallback when a file has no aggregate rows at all, and warn the user that the report was generated from raw rows.
 
-For current JSONL files, collect valid `"config-aggregate"` and `"task-aggregate"` rows into the `BENCHMARK_ROWS` array. Do not inject raw `"run"` rows when aggregate rows exist.
+For current JSONL files, collect valid `"config-aggregate"` and `"task-aggregate"`
+rows as source data for `CHART_SPECS`. Do not inject raw `"run"` rows into the HTML
+when aggregate rows exist. The generated HTML should receive compact chart specs, not
+the original JSONL objects.
 
 For `"run"` rows, validate that every row has these required fields:
 - `taskId`, `taskName`
@@ -101,56 +107,122 @@ If a row is missing critical fields (`score`, `sessionDurationMs`, `totalTokens`
 For the full EvalResult schema and all available fields, see
 [`docs/benchmark.md` — EvalResult](../../docs/benchmark.md#evalresult--the-final-record).
 
-### Step 3: Build the HTML
+### Step 3: Build compact chart specs
 
-1. Read the template from this skill's `assets/report-template.html`.
-2. Collect all valid aggregate rows into a JSON array: `"config-aggregate"` rows first, followed by `"task-aggregate"` rows. This makes the embedded data easy to inspect and ensures the template can render the headline section first.
-3. Replace the three placeholders in the template:
-   - `__BENCHMARK_ROWS__` -- the JSON array (use `JSON.stringify` formatting, or paste the raw array)
-   - `__REPORT_TITLE__` -- derive from the data: use the shared `taskName` if all rows share one task, otherwise use "Benchmark Results"
-   - `__REPORT_SUBTITLE__` -- derive from the data: use `taskId` if single-task, otherwise "Multi-task comparison" or a comma-separated list of task IDs
+Build a `CHART_SPECS` array from the validated rows. This array is the source of
+truth for every generated artifact: the HTML report, the machine-readable manifest,
+and the article handoff markdown. Do not make the article agent infer chart contents
+from the HTML or read the full JSONL when a compact spec can describe the visual.
 
-The template JS renders all `"config-aggregate"` rows as the headline comparison first,
-then groups `"task-aggregate"` rows by `taskId` so multi-task JSONL files produce one
-chart section per task. Each section should include score, duration, total tokens, cost,
-and recall/precision when those fields exist. Score charts must render `scoreStdDev`
-as vertical error bars, and duration charts must render `sessionDurationStdDevMs`
-as vertical error bars. Label repeated-run values as `mean ± standard deviation`
-when `repetitions > 1`.
+Each chart spec must use this shape:
 
-When aggregate rows contain enough comparable points, include scatter plots as
-supplementary views in addition to the standard bar charts. Do not replace score,
-duration, token, cost, or recall/precision charts with scatter plots. The default
-template can render these headline scatter sections from `"config-aggregate"` rows:
-- `totalCostUsd` vs `score` for model configs with known cost. This shows
-  quality/cost tradeoff; better points move toward the top-left.
-- `sessionDurationMs` vs `score` for all configs. This shows speed/quality tradeoff;
-  better points move toward the top-left.
-- `precision` vs `recall` for find-vulns aggregate rows. This shows detection quality;
-  better points move toward the top-right.
+```json
+{
+  "id": "headline-score",
+  "title": "Headline score",
+  "chartType": "bar",
+  "scope": "config-aggregate",
+  "metric": "score",
+  "unit": "percent",
+  "section": {
+    "id": "headline",
+    "title": "Headline comparison",
+    "subtitle": "Macro-average across 10 fixtures",
+    "kind": "headline"
+  },
+  "placeholder": "<!-- VISUAL: headline-score -->",
+  "htmlAnchor": "index.html#chart-headline-score",
+  "caption": "Macro-averaged benchmark score across all fixtures. Error bars show standard deviation across repeated runs.",
+  "recommendedUse": "Use in the main Results section when introducing the overall comparison.",
+  "dataSummary": {
+    "unit": "percent",
+    "rows": [
+      {
+        "label": "Claude Opus 4.6 (high)",
+        "runConfigType": "model",
+        "value": 0.84,
+        "stdDev": 0.07,
+        "repetitions": 5
+      }
+    ]
+  },
+  "talkingPoints": [
+    "Repeated runs are summarized as mean plus standard deviation.",
+    "Score is shown as a percentage, so 0.84 renders as 84.0%."
+  ]
+}
+```
 
-For custom reports or future template work, other useful scatter plots from the JSONL
-schema are:
-- `totalTokens` vs `score` for model configs, to show context/quality efficiency.
-- `totalCostUsd` vs `recall` for find-vulns model configs, to show cost per coverage.
-- `scoreStdDev` vs `score` when `repetitions > 1`, to show quality vs stability.
-- `metrics.totalLogicalInputTokens + metrics.totalOutputTokens` vs `score` on raw
-  `"run"` rows only when intentionally using raw rows as a legacy fallback.
+Required fields:
+- `id`: stable lowercase slug, safe for anchors and article placeholders.
+- `title`: display title for the chart.
+- `chartType`: one of `"bar"`, `"grouped-bar"`, or `"scatter"` for the default template.
+- `scope`: source row scope such as `"config-aggregate"`, `"task-aggregate"`, or `"legacy-run-fallback"`.
+- `metric`: primary metric, such as `"score"`, `"sessionDurationMs"`, `"totalTokens"`, `"totalCostUsd"`, `"recall-precision"`, or `"score-vs-cost"`.
+- `unit`: `"percent"`, `"milliseconds"`, `"tokens"`, `"usd"`, or `"number"` for bar charts.
+- `section`: where the chart appears in the HTML. Use `kind: "headline"` for the top comparison and `kind: "task"` for per-fixture sections.
+- `placeholder`: markdown-safe placeholder, always `<!-- VISUAL: <id> -->`.
+- `htmlAnchor`: relative anchor, always `index.html#chart-<id>`.
+- `caption`: publication-ready caption that explains the metric and aggregation.
+- `recommendedUse`: one sentence telling an article agent where this visual belongs.
+- `dataSummary`: compact values used by the renderer and article agent.
 
-For multi-task JSONL reports, add benchmark-shape views that reveal patterns across
-fixtures and configs. These are additive sections, not replacements for the standard
-per-task charts:
-- **Task/config heatmap:** Use `"task-aggregate"` rows. Rows are `taskName` or
-  `taskId`, columns are `runConfigName`, and cell color is `score` from 0-1. Include
-  the percentage label in each cell. This quickly shows which fixtures are hard,
-  which configs dominate, and whether failures cluster around specific tasks.
-- **Baseline delta chart:** Use `"task-aggregate"` rows when configs form obvious
-  pairs, such as `with MCP` vs `without MCP`, `Snyk` vs no Snyk, `high effort` vs
-  `low effort`, or another baseline named by the user. For each matched task/config
-  pair, compute `delta = comparison.score - baseline.score`. Visualize positive and
-  negative deltas with a diverging bar chart centered at zero. Label deltas in
-  percentage points and keep the original score charts too, because deltas explain
-  movement but not absolute quality.
+For bar charts, use `dataSummary.rows`:
+
+```json
+{
+  "dataSummary": {
+    "unit": "percent",
+    "rows": [
+      { "label": "Config A", "runConfigType": "model", "value": 0.72, "stdDev": 0.04, "repetitions": 5 },
+      { "label": "Snyk Code", "runConfigType": "command", "value": 1, "stdDev": 0, "repetitions": 5 }
+    ]
+  }
+}
+```
+
+For recall/precision grouped bars, use `chartType: "grouped-bar"` and
+`dataSummary.groups`:
+
+```json
+{
+  "chartType": "grouped-bar",
+  "metric": "recall-precision",
+  "dataSummary": {
+    "unit": "percent",
+    "groups": [
+      { "label": "Config A", "runConfigType": "model", "recall": 0.8, "precision": 0.9 },
+      { "label": "Snyk Code", "runConfigType": "command", "recall": 1, "precision": 1 }
+    ]
+  }
+}
+```
+
+For scatter charts, use `dataSummary.points` and axis units:
+
+```json
+{
+  "chartType": "scatter",
+  "metric": "score-vs-cost",
+  "xAxisLabel": "COST",
+  "yAxisLabel": "SCORE",
+  "xUnit": "usd",
+  "yUnit": "percent",
+  "dataSummary": {
+    "points": [
+      { "label": "Config A", "runConfigType": "model", "x": 0.12, "y": 0.72 }
+    ]
+  }
+}
+```
+
+Mapping rules:
+- Create a headline section from `"config-aggregate"` rows when present. Include score, duration, total tokens, cost when cost exists, recall/precision when present, and supported scatter tradeoff charts when at least two comparable points exist.
+- Create one task section per `taskId` from `"task-aggregate"` rows. Include score, duration, total tokens, cost when cost exists, and recall/precision when present.
+- Put `"config-aggregate"` chart specs first, followed by task-level specs in task ID order. This keeps the HTML and article handoff easy to scan.
+- Keep values numeric in `dataSummary`; format them only in captions or article prose.
+- Include `stdDev` and `repetitions` on bar rows whenever the source aggregate contains standard deviation data.
+- For custom charts such as heatmaps or baseline delta charts, add a clear `chartType` value and enough `dataSummary` content for the renderer and article handoff. If the default template cannot render that type yet, still include it in `chart-manifest.json` and mark it in `article-visuals.md` as a planned/custom visual.
 
 For custom chart renderers, compute the y-axis scale with label headroom, not just
 data coverage. Reserve about 10-15% space above the tallest visible value (including
@@ -158,37 +230,129 @@ stacked totals) so value labels sit in white space above bars. Avoid clamping la
 to the same y position as the bar top; if a label would hit the plot boundary, raise
 `yMax`, add top margin, or lower the bar scale until the label has visible padding.
 
-### Step 4: Write the output
+### Step 4: Build the three artifacts
 
-Generate the output path: `public/<YYYY-MM-DD-XXXXX>/index.html` where:
+Read the template from this skill's `assets/report-template.html`, then replace:
+- `__CHART_SPECS__` -- the compact chart spec array.
+- `__REPORT_TITLE__` -- derive from the data: use the shared `taskName` if all rows share one task, otherwise use "Benchmark Results".
+- `__REPORT_SUBTITLE__` -- derive from the data: use `taskId` if single-task, otherwise "Multi-task comparison" or a comma-separated list of task IDs.
+
+Write these files under the same output directory:
+
+1. `index.html`
+   - Self-contained static HTML report.
+   - Embeds `CHART_SPECS`, not raw JSONL rows.
+   - Renders SVG charts in the browser with stable anchors like `#chart-headline-score`.
+
+2. `chart-manifest.json`
+   - Machine-readable chart catalog.
+   - Write the same chart specs, plus top-level metadata:
+
+```json
+{
+  "schemaVersion": 1,
+  "reportTitle": "Benchmark Results",
+  "reportSubtitle": "Multi-task comparison",
+  "generatedAt": "2026-05-20T00:00:00.000Z",
+  "sourceFiles": ["results/benchmark-example.jsonl"],
+  "htmlReport": "index.html",
+  "charts": []
+}
+```
+
+3. `article-visuals.md`
+   - Preferred handoff for article-writing agents.
+   - Keep it concise and ordered like the HTML report.
+   - Include each chart's figure number, placeholder, use, caption, source anchor, data scope, metric, and 1-3 talking points.
+
+Use this markdown format for each chart:
+
+```md
+### FIG-1: Headline score
+Placeholder: `<!-- VISUAL: headline-score -->`
+
+Use: Main Results section, when introducing the overall benchmark comparison.
+
+Caption: Macro-averaged benchmark score across all fixtures. Error bars show standard deviation across repeated runs.
+
+Source: `index.html#chart-headline-score`
+Data: `config-aggregate`, metric `score`.
+
+Talking points:
+- Repeated runs are summarized as mean plus standard deviation.
+- Higher score is better.
+```
+
+### Step 5: Write the output
+
+Generate the output directory: `public/<YYYY-MM-DD-XXXXX>/` where:
 - `YYYY-MM-DD` is today's date
 - `XXXXX` is a random 5-character alphanumeric slug for uniqueness
 
-Create the directory and write the file. Report the full path to the user.
+Create the directory and write `index.html`, `chart-manifest.json`, and
+`article-visuals.md`. Report all three paths to the user.
 
-### Step 5: Verify
+### Step 6: Verify
 
-Confirm the output file:
-- Exists and is non-empty
-- Contains valid HTML (check for `<!DOCTYPE html>` at the start)
-- The `BENCHMARK_ROWS` array in the output has the expected number of aggregate entries
-- The output includes `"config-aggregate"` rows when the source file contains them
-- The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
-- Score and duration charts show standard-deviation error bars and textual `±` labels when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`
-- Scatter plots are present as additive sections when there are at least two valid comparable aggregate points
-- Multi-task reports include a task/config heatmap when `"task-aggregate"` rows cover at least two tasks and two configs
-- Delta charts are included only when a clear baseline/comparison pairing exists or the user names the baseline
-- Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top
+Confirm the output files:
+- `index.html`, `chart-manifest.json`, and `article-visuals.md` exist and are non-empty.
+- `index.html` contains valid HTML (check for `<!DOCTYPE html>` at the start).
+- `index.html` contains `const CHART_SPECS =` and does not contain `const BENCHMARK_ROWS =` during normal aggregate-report generation.
+- `chart-manifest.json` parses as JSON and has `schemaVersion`, `htmlReport`, and a non-empty `charts` array.
+- Every chart in `chart-manifest.json` has `id`, `title`, `chartType`, `scope`, `metric`, `placeholder`, `htmlAnchor`, `caption`, `recommendedUse`, and `dataSummary`.
+- Every `htmlAnchor` in the manifest has a matching `id="chart-..."` or equivalent renderer-created anchor in the HTML template.
+- `article-visuals.md` includes one figure entry per manifest chart and uses the same placeholders.
+- Score and duration charts include standard-deviation values when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`.
+- Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
+- Multi-task reports include task-level chart specs when `"task-aggregate"` rows cover at least two tasks.
+- Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top.
 
-Report success to the user with the output path and how to open it.
+Report success to the user with the output directory and a note that `article-visuals.md`
+is the recommended input for the article-writing agent.
 
-Done when: the HTML file exists at the output path, contains the correct data, and
-the user has been told where to find it.
+Done when: all three artifacts exist, the HTML renders from compact chart specs, the
+manifest describes every visual, and the user has been told where to find the files.
+
+## Article handoff workflow
+
+When the user plans to write an article from benchmark results, treat
+`article-visuals.md` as the primary handoff artifact. The article-writing agent should
+receive this file, not the full JSONL and not the full generated HTML, unless the user
+explicitly asks for a full-data review.
+
+The handoff file should let the article agent:
+- Choose which visual belongs in each article section.
+- Insert stable placeholders such as `<!-- VISUAL: headline-score -->`.
+- Reuse publication-ready captions.
+- Mention the exact data scope and metric behind each visual.
+- Make high-level observations without spending context on raw per-run data.
+
+Keep `chart-manifest.json` for automated workflows and editorial tooling. It should
+be exact enough for a script or agent to validate placeholders, map them to HTML
+anchors, or later export each chart as SVG/PNG without re-reading the benchmark JSONL.
+
+## Legacy raw-run fallback
+
+Prefer aggregate rows whenever they exist. If a JSONL file has only raw `"run"` rows
+or legacy rows without `_type`, compact them before rendering:
+
+1. Group raw rows by `taskId` and `runConfigName`.
+2. If repeated runs are present, compute the mean score, mean duration, mean tokens,
+   mean cost, and sample standard deviation for score and duration.
+3. Build chart specs with `scope: "legacy-run-fallback"` so readers know the source
+   was not a modern aggregate row.
+4. Include a short warning in `article-visuals.md`: "Generated from legacy raw run
+   rows because no aggregate rows were present."
+5. Do not embed the original raw rows into `index.html`; render from compact chart
+   specs even in fallback mode.
+
+Done when: old result files still produce useful visuals, but large raw datasets are
+not copied wholesale into the HTML or article handoff.
 
 ## Available data fields for charting
 
-JSONL files contain three row types, distinguished by the `_type` field. The default
-template uses aggregate rows: `"config-aggregate"` for the report headline and
+JSONL files contain three row types, distinguished by the `_type` field. Build chart
+specs from aggregate rows: `"config-aggregate"` for the report headline and
 `"task-aggregate"` for individual task sections. For the full schema see
 [`docs/benchmark.md`](../../docs/benchmark.md#evalresult--the-final-record).
 
@@ -321,9 +485,9 @@ Colors are assigned by `runConfigType`, not row order:
 - `"model"` rows (AI agents) get neutral gray (#4a4a4a)
 
 The template handles normal styling automatically. During normal JSONL report
-generation, inject aggregate data and placeholders; keep the built-in bar and scatter
-sections intact. Modify CSS or chart JS only when the user asks for a custom chart
-type or provides non-JSONL data that needs a purpose-built page.
+generation, inject compact `CHART_SPECS`; keep the built-in bar, grouped-bar, and
+scatter renderers intact. Modify CSS or chart JS only when the user asks for a custom
+chart type or provides non-JSONL data that needs a purpose-built page.
 
 ## Examples
 
@@ -331,13 +495,14 @@ User says: "Generate a chart from results/benchmark-2026-05-12T10-46-33-179Z.jso
 
 Actions:
 1. Read the specified JSONL file
-2. Parse both lines into a JSON array (2 rows: one model, one command)
-3. Read the template from this skill's assets/report-template.html
-4. Replace `__BENCHMARK_ROWS__` with the 2-element array, set title to the shared taskName, set subtitle to the taskId
-5. Generate output path, e.g. `public/2026-05-12-a7k2m/index.html`
-6. Write the file and confirm to the user
+2. Parse and validate aggregate rows, or use legacy raw rows only if no aggregates exist
+3. Build compact chart specs for score, duration, cost/tokens, and recall/precision when present
+4. Read the template and replace `__CHART_SPECS__`, title, and subtitle placeholders
+5. Generate output directory, e.g. `public/2026-05-12-a7k2m/`
+6. Write `index.html`, `chart-manifest.json`, and `article-visuals.md`
+7. Confirm all paths to the user
 
-Result: A styled HTML report at `public/2026-05-12-a7k2m/index.html` with score, duration, and recall/precision charts comparing the model vs Snyk Code.
+Result: A styled HTML report plus a compact chart manifest and article handoff guide with placeholders for score, duration, and recall/precision visuals.
 
 ---
 
@@ -346,11 +511,12 @@ User says: "Chart the latest benchmark results"
 Actions:
 1. List `results/` directory, pick the file with the most recent timestamp in its filename
 2. Read and parse the JSONL
-3. Build HTML from template with appropriate title/subtitle
-4. Write to `public/<today-slug>/index.html`
-5. Report the path
+3. Build chart specs from aggregate rows
+4. Build HTML and article handoff artifacts from those specs
+5. Write to `public/<today-slug>/`
+6. Report the output directory and recommend `article-visuals.md` for article drafting
 
-Result: The most recent benchmark run visualized as an HTML chart page.
+Result: The most recent benchmark run visualized as an HTML chart page, with manifest metadata available for downstream article agents.
 
 ---
 
@@ -359,12 +525,12 @@ User says: "Make charts from these two files: results/benchmark-2026-05-11T15-59
 Actions:
 1. Read both files, concatenate all rows (e.g. 4 rows from file 1, 2 rows from file 2 = 6 total)
 2. Parse and validate all 6 rows
-3. The template groups by taskId automatically, so multiple tasks get separate chart sections
-4. Set title to "Benchmark Results", subtitle to the list of unique taskIds
-5. Write to `public/<today-slug>/index.html`
-6. Report the path and note that the page has multiple task sections
+3. Build headline specs from config aggregates and task specs grouped by `taskId`
+4. Set title to "Benchmark Results", subtitle to the list of unique task IDs
+5. Write `index.html`, `chart-manifest.json`, and `article-visuals.md` to `public/<today-slug>/`
+6. Report the path and note that the page and visual guide have multiple task sections
 
-Result: A multi-section chart page with one group of charts per taskId, all in a single HTML file.
+Result: A multi-section chart package with one group of charts per task ID and an article guide that lists each figure placeholder.
 
 ---
 
@@ -373,10 +539,10 @@ User says: "Visualize just the Snyk Code results from the last run"
 Actions:
 1. Find the latest JSONL file in results/
 2. Parse all rows, filter to only rows where `runConfigType === "command"`
-3. Build HTML with the filtered subset
-4. Write output and report
+3. Build chart specs from the filtered subset
+4. Write all three output artifacts and report
 
-Result: A chart page showing only the Snyk Code SAST results (useful for single-tool analysis, though comparison charts are more informative with both model and command rows).
+Result: A chart package showing only the Snyk Code SAST results, with article placeholders that make the single-tool scope explicit.
 
 ---
 
@@ -384,12 +550,12 @@ User says: "Generate charts from the latest benchmark results and include tradeo
 
 Actions:
 1. Read the latest JSONL file and select aggregate rows.
-2. Build the standard report with headline and per-task bar charts.
-3. Preserve the template's additive scatter sections for supported headline tradeoffs:
+2. Build chart specs for the standard headline and per-task bar charts.
+3. Add scatter chart specs for supported headline tradeoffs:
    score vs cost, score vs duration, and recall vs precision when available.
-4. Verify the scatter sections appear only when there are at least two valid points.
+4. Verify the scatter specs and article placeholders appear only when there are at least two valid points.
 
-Result: A report with the usual benchmark charts plus tradeoff scatter plots that make cost, speed, and detection-quality relationships visible.
+Result: A report with the usual benchmark charts plus tradeoff scatter plots, and an article guide that tells the writer where each tradeoff visual belongs.
 
 ---
 
@@ -397,11 +563,11 @@ User says: "Generate a multi-task benchmark report and show which fixtures are h
 
 Actions:
 1. Read the JSONL file and select `"task-aggregate"` rows.
-2. Build the standard headline and per-task charts.
-3. Add a task/config heatmap when there are at least two tasks and two configs.
+2. Build the standard headline and per-task chart specs.
+3. Add a task/config heatmap spec when there are at least two tasks and two configs.
 4. Use task names or IDs as rows, config names as columns, `score` as cell color, and percentage labels in cells.
 
-Result: A report that preserves the normal charts and adds a matrix view showing task difficulty and config strengths at a glance.
+Result: A report that preserves the normal charts and adds a matrix view in the manifest and article guide showing task difficulty and config strengths at a glance.
 
 ---
 
@@ -410,10 +576,10 @@ User says: "Show the effect of Snyk MCP compared with no MCP"
 Actions:
 1. Read `"task-aggregate"` rows and identify matched config pairs from names or user-provided baseline/comparison labels.
 2. For each task, compute `comparison.score - baseline.score`.
-3. Add a diverging delta chart centered at zero, labeling improvements and regressions in percentage points.
+3. Add a diverging delta chart spec centered at zero, labeling improvements and regressions in percentage points.
 4. Keep the absolute score charts so readers can see both the delta and the underlying score.
 
-Result: A report with the usual benchmark charts plus a baseline comparison section that shows where the config helped, hurt, or made no difference.
+Result: A chart package with the usual benchmark charts plus a baseline comparison visual that the article guide can reference directly.
 
 ## Troubleshooting
 
@@ -425,7 +591,7 @@ Solution: Search for `report-template.html` in `.claude/skills/benchmark-chart-g
 
 Error: `details.recall` or `details.precision` is undefined for some rows.
 Cause: `fix-vulns` category tasks produce `FixVulnsDetails` which has `vulnsFixed`/`vulnsAttempted` instead of recall/precision.
-Solution: This is handled automatically -- the template only renders the recall/precision chart when at least one row in a task group has those fields. No action needed.
+Solution: Only create recall/precision chart specs when at least one source row has both fields. No action needed for fix-vulns reports.
 
 ---
 
@@ -447,3 +613,15 @@ the tallest bar get clamped into the same visual space as the bar.
 Solution: Increase `yMax` by roughly 10-15%, add a larger top margin, or calculate
 `yMax` from the largest stacked total plus label padding. Re-check the rendered chart
 before reporting success.
+
+---
+
+Error: Generated HTML still embeds the full JSONL data.
+Cause: The generator replaced the old row placeholder or copied source rows directly instead of building `CHART_SPECS`.
+Solution: Rebuild compact chart specs from the parsed rows, replace only `__CHART_SPECS__`, and verify `index.html` does not contain `const BENCHMARK_ROWS =`.
+
+---
+
+Error: Article placeholders do not match rendered chart anchors.
+Cause: `chart-manifest.json`, `article-visuals.md`, and `index.html` were generated from different chart IDs or a chart ID was edited manually.
+Solution: Regenerate all three artifacts from the same `CHART_SPECS` array. Each placeholder must be `<!-- VISUAL: <id> -->` and each anchor must be `index.html#chart-<id>`.

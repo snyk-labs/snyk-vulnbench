@@ -92,7 +92,7 @@ Fix the cause, not just the surface.
 - Headings: `#` for title, `##` for main sections, `###` for sub-sections. Don't go deeper than four levels.
 - Use bulleted lists for lists of 3+ items. For 2 items, prose is usually better.
 - Use tables for leaderboards, per-task breakdowns, and methodology appendices. Don't use tables to format what should be prose.
-- Prefer mermaid charts over prose descriptions of data. A 4-bar chart says more than the paragraph it replaces.
+- Use generated visuals from `article-visuals.md` when they clarify a pattern the table hides. If no chart artifacts exist, prefer clear tables and prose over creating charts in the report writer.
 - Code blocks for CLI commands, JSON schemas, and short file snippets. Don't quote long source files inline — link or summarize.
 
 ## Pacing and length
