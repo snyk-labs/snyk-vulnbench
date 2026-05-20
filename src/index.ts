@@ -160,7 +160,7 @@ async function main() {
     tasks = tasks.filter((t) => ids.has(t.id));
   }
 
-  // Filter configs — supports comma-separated list: --config sonnet-4-6,snyk-code
+  // Filter configs — supports comma-separated list: --config sonnet-4-6-high,snyk-code
   let configs = DEFAULT_RUN_CONFIGS;
   if (opts.configs) {
     const ids = new Set(opts.configs);

@@ -53,14 +53,18 @@ When the user specifies a numeric range like "1 to 3" or "1-3", expand it into t
 
 | User says | Resolves to |
 |-----------|-------------|
-| "opus" or "opus 4.6" | `--config opus-4-6` |
-| "sonnet" or "sonnet 4.6" | `--config sonnet-4-6` |
+| "opus" or "opus 4.6" | `--config opus-4-6-high,opus-4-6-medium` |
+| "opus high" or "opus 4.6 high" | `--config opus-4-6-high` |
+| "opus medium" or "opus 4.6 medium" | `--config opus-4-6-medium` |
+| "sonnet" or "sonnet 4.6" | `--config sonnet-4-6-high,sonnet-4-6-medium` |
+| "sonnet high" or "sonnet 4.6 high" | `--config sonnet-4-6-high` |
+| "sonnet medium" or "sonnet 4.6 medium" | `--config sonnet-4-6-medium` |
 | "snyk" or "snyk code" | `--config snyk-code` |
-| "opus and snyk" | `--config opus-4-6,snyk-code` |
+| "opus and snyk" | `--config opus-4-6-high,opus-4-6-medium,snyk-code` |
 | "all models" or "all configs" | omit `--config` (runs all) |
 | (not mentioned) | omit `--config` (runs all) |
 
-Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" all resolve to `opus-4-6`. If new config IDs appear in `run-configs.json` that you haven't seen before, match by substring.
+Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" resolve to all matching effort-specific config IDs unless the user names an effort. If new config IDs appear in `run-configs.json` that you haven't seen before, match by substring.
 
 **Additional flags:**
 
@@ -127,10 +131,10 @@ If the user wants a detailed report or writeup, suggest using the `benchmark-rep
 
 Actions:
 1. List tasks → find `js-project-tigerteam-find-vulns`, `js-project-shadowfox-find-vulns`, `js-project-ironclad-find-vulns`
-2. Resolve config "opus" → `opus-4-6`
-3. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config opus-4-6`
+2. Resolve config "opus" → `opus-4-6-high,opus-4-6-medium`
+3. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config opus-4-6-high,opus-4-6-medium`
 
-Result: 3 find-vulns tasks run against Claude Opus 4.6, scores printed and saved to results file.
+Result: 3 find-vulns tasks run against both Claude Opus 4.6 effort configs, scores printed and saved to results file.
 
 ---
 
@@ -138,10 +142,10 @@ Result: 3 find-vulns tasks run against Claude Opus 4.6, scores printed and saved
 
 Actions:
 1. User said "js-project-shadowfox" without specifying find or fix → include both: `js-project-shadowfox-find-vulns,js-project-shadowfox-fix-vulns`
-2. Resolve configs → `sonnet-4-6,snyk-code`
-3. Run: `pnpm tsx src/index.ts --task js-project-shadowfox-find-vulns,js-project-shadowfox-fix-vulns --config sonnet-4-6,snyk-code`
+2. Resolve configs → `sonnet-4-6-high,sonnet-4-6-medium,snyk-code`
+3. Run: `pnpm tsx src/index.ts --task js-project-shadowfox-find-vulns,js-project-shadowfox-fix-vulns --config sonnet-4-6-high,sonnet-4-6-medium,snyk-code`
 
-Result: 2 tasks x 2 configs = 4 runs. Sonnet runs both find and fix; Snyk Code runs find only (command configs skip fix-vulns automatically).
+Result: 2 tasks x 3 configs = 6 runs. Both Sonnet effort configs run both find and fix; Snyk Code runs find only (command configs skip fix-vulns automatically).
 
 ---
 
@@ -182,11 +186,11 @@ Result: Benchmark runs for js-project-purplehaze across all configured models an
 
 Actions:
 1. List tasks → find `js-project-tigerteam-find-vulns`, `js-project-shadowfox-find-vulns`, `js-project-ironclad-find-vulns`
-2. Resolve config "sonnet" → `sonnet-4-6`
+2. Resolve config "sonnet" → `sonnet-4-6-high,sonnet-4-6-medium`
 3. Resolve "3 reps" → `--repetitions 3`
-4. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config sonnet-4-6 --repetitions 3`
+4. Run: `pnpm tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns,js-project-ironclad-find-vulns --config sonnet-4-6-high,sonnet-4-6-medium --repetitions 3`
 
-Result: 3 tasks x 1 config x 3 repetitions = 9 runs. Summary shows per-fixture means and a macro-averaged headline score for Sonnet.
+Result: 3 tasks x 2 configs x 3 repetitions = 18 runs. Summary shows per-fixture means and macro-averaged headline scores for each Sonnet effort config.
 
 ---
 

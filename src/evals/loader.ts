@@ -123,6 +123,7 @@ export function loadRunConfigs(): RunConfig[] {
   if (!Array.isArray(raw)) {
     throw new Error(`${RUN_CONFIGS_FILE} must be a JSON array of RunConfig objects`);
   }
+  validateUniqueRunConfigIds(raw);
 
   return raw.map((entry) => {
     if (!entry.id || !entry.name) {
@@ -140,4 +141,21 @@ export function loadRunConfigs(): RunConfig[] {
       return entry as unknown as ModelRunConfig;
     }
   });
+}
+
+function validateUniqueRunConfigIds(configs: Array<Record<string, unknown>>): void {
+  const seenIds = new Set<string>();
+  const duplicateIds = new Set<string>();
+
+  for (const config of configs) {
+    if (typeof config.id !== "string") continue;
+    if (seenIds.has(config.id)) {
+      duplicateIds.add(config.id);
+    }
+    seenIds.add(config.id);
+  }
+
+  if (duplicateIds.size > 0) {
+    throw new Error(`Run configs contain duplicate id(s): ${[...duplicateIds].join(", ")}`);
+  }
 }
