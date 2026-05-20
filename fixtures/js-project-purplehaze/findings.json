@@ -19,6 +19,14 @@
         "description": "Cookie has the Secure attribute set to false. Set it to true to protect the cookie from man-in-the-middle attacks."
       },
       {
+        "id": "js-csrf-missing-5",
+        "type": "csrf",
+        "severity": "medium",
+        "file": "server.js",
+        "line": 17,
+        "description": "CSRF protection is disabled for your Express app. This allows the attackers to execute requests on a user's behalf."
+      },
+      {
         "id": "js-xpowered-by-header-5",
         "type": "information-exposure",
         "severity": "medium",
