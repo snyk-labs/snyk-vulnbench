@@ -134,6 +134,21 @@ schema are:
 - `metrics.totalLogicalInputTokens + metrics.totalOutputTokens` vs `score` on raw
   `"run"` rows only when intentionally using raw rows as a legacy fallback.
 
+For multi-task JSONL reports, add benchmark-shape views that reveal patterns across
+fixtures and configs. These are additive sections, not replacements for the standard
+per-task charts:
+- **Task/config heatmap:** Use `"task-aggregate"` rows. Rows are `taskName` or
+  `taskId`, columns are `runConfigName`, and cell color is `score` from 0-1. Include
+  the percentage label in each cell. This quickly shows which fixtures are hard,
+  which configs dominate, and whether failures cluster around specific tasks.
+- **Baseline delta chart:** Use `"task-aggregate"` rows when configs form obvious
+  pairs, such as `with MCP` vs `without MCP`, `Snyk` vs no Snyk, `high effort` vs
+  `low effort`, or another baseline named by the user. For each matched task/config
+  pair, compute `delta = comparison.score - baseline.score`. Visualize positive and
+  negative deltas with a diverging bar chart centered at zero. Label deltas in
+  percentage points and keep the original score charts too, because deltas explain
+  movement but not absolute quality.
+
 For custom chart renderers, compute the y-axis scale with label headroom, not just
 data coverage. Reserve about 10-15% space above the tallest visible value (including
 stacked totals) so value labels sit in white space above bars. Avoid clamping labels
@@ -158,6 +173,8 @@ Confirm the output file:
 - The output includes `"task-aggregate"` rows instead of raw `"run"` rows for task charts
 - Score charts show standard-deviation error bars and textual `±` labels when aggregate rows include `scoreStdDev` and `repetitions > 1`
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points
+- Multi-task reports include a task/config heatmap when `"task-aggregate"` rows cover at least two tasks and two configs
+- Delta charts are included only when a clear baseline/comparison pairing exists or the user names the baseline
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top
 
 Report success to the user with the output path and how to open it.
@@ -276,6 +293,8 @@ When the user asks for comparisons, use these patterns:
 | Context vs quality tradeoff | `totalTokens` vs `score` for model configs | Scatter plot |
 | Detection quality tradeoff | `precision` vs `recall` for find-vulns rows | Scatter plot |
 | Quality vs stability | `scoreStdDev` vs `score` when repetitions > 1 | Scatter plot |
+| Which fixtures are hard? | `taskId` x `runConfigName` from `"task-aggregate"` rows, colored by `score` | Heatmap |
+| Compare against a baseline | Matched `"task-aggregate"` rows, `comparison.score - baseline.score` | Diverging delta bars |
 | Score stability across repetitions | `score` + `scoreStdDev` on aggregate rows | Bar chart with vertical error bars and `mean ± SD` labels |
 | Token usage breakdown | `metrics.totalLogicalInputTokens`, `metrics.totalOutputTokens` on raw rows | Detailed custom chart only when intentionally using raw run data |
 | Tool usage comparison | `metrics.toolStats[tool].count` per config | Grouped bars |
@@ -365,6 +384,30 @@ Actions:
 4. Verify the scatter sections appear only when there are at least two valid points.
 
 Result: A report with the usual benchmark charts plus tradeoff scatter plots that make cost, speed, and detection-quality relationships visible.
+
+---
+
+User says: "Generate a multi-task benchmark report and show which fixtures are hard"
+
+Actions:
+1. Read the JSONL file and select `"task-aggregate"` rows.
+2. Build the standard headline and per-task charts.
+3. Add a task/config heatmap when there are at least two tasks and two configs.
+4. Use task names or IDs as rows, config names as columns, `score` as cell color, and percentage labels in cells.
+
+Result: A report that preserves the normal charts and adds a matrix view showing task difficulty and config strengths at a glance.
+
+---
+
+User says: "Show the effect of Snyk MCP compared with no MCP"
+
+Actions:
+1. Read `"task-aggregate"` rows and identify matched config pairs from names or user-provided baseline/comparison labels.
+2. For each task, compute `comparison.score - baseline.score`.
+3. Add a diverging delta chart centered at zero, labeling improvements and regressions in percentage points.
+4. Keep the absolute score charts so readers can see both the delta and the underlying score.
+
+Result: A report with the usual benchmark charts plus a baseline comparison section that shows where the config helped, hurt, or made no difference.
 
 ## Troubleshooting
 
