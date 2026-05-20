@@ -264,6 +264,12 @@
       return ms + " ms";
     }
 
+    function fmtMsWithStdDev(ms, stdDevMs, repetitions) {
+      if (!isFiniteNumber(ms)) return "N/A";
+      if (!isFiniteNumber(stdDevMs) || repetitions <= 1) return fmtMs(ms);
+      return `${fmtMs(ms)} ± ${fmtMs(stdDevMs)}`;
+    }
+
     function fmtTokens(tokens) {
       if (!isFiniteNumber(tokens)) return "N/A";
       if (tokens >= 1000000) return (tokens / 1000000).toFixed(2) + "M";
@@ -619,6 +625,7 @@
         score: r.score,
         scoreStdDev: r.scoreStdDev,
         durationMs: r.sessionDurationMs,
+        durationStdDevMs: r.sessionDurationStdDevMs,
         recall: r.recall,
         precision: r.precision,
         totalTokens: r.totalTokens,
@@ -635,6 +642,7 @@
         score: r.score,
         scoreStdDev: 0,
         durationMs: r.metrics && r.metrics.sessionDurationMs,
+        durationStdDevMs: 0,
         recall: r.details && r.details.recall,
         precision: r.details && r.details.precision,
         totalTokens: r.metrics ? (r.metrics.totalLogicalInputTokens || 0) + (r.metrics.totalOutputTokens || 0) : null,
@@ -715,17 +723,21 @@
         yTickFormat: (t) => Math.round(t * 100) + "%",
       });
 
-      const maxDur = Math.max(...runs.map((r) => r.durationMs), 1);
+      const maxDur = Math.max(
+        ...runs.map((r) => r.durationMs + (isFiniteNumber(r.durationStdDevMs) ? r.durationStdDevMs : 0)),
+        1
+      );
       const yMaxMs = Math.ceil(maxDur / 5000) * 5000;
       renderMetricSection(group, runs, {
         heading: "Session duration",
         description: headline
-          ? "Macro-averaged wall-clock time from start to completion."
-          : "Mean wall-clock time across repetitions for this task.",
+          ? "Macro-averaged wall-clock time from start to completion. Error bars show sample standard deviation across repetition-level headline runtimes."
+          : "Mean wall-clock time across repetitions for this task. Error bars show sample standard deviation across repeated runs.",
         title: "Duration - " + title,
         yAxisLabel: "DURATION",
         value: (r) => r.durationMs,
-        valueFormat: fmtMs,
+        errorValue: (r) => r.durationStdDevMs,
+        valueFormat: (value, i) => fmtMsWithStdDev(value, runs[i].durationStdDevMs, runs[i].repetitions),
         yMax: yMaxMs,
         yTicks: yTicks(yMaxMs),
         yTickFormat: (t) => (t >= 1000 ? Math.round(t / 1000) + "s" : String(Math.round(t))),

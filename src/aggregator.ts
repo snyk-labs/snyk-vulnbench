@@ -36,6 +36,19 @@ function headlineScoresByRepetition(results: EvalResult[]): number[] {
     .map(([, runs]) => mean(runs.map((r) => r.score)));
 }
 
+function headlineDurationsByRepetition(results: EvalResult[]): number[] {
+  const byRepetition = new Map<number, EvalResult[]>();
+  for (const result of results) {
+    const runs = byRepetition.get(result.repetition) ?? [];
+    runs.push(result);
+    byRepetition.set(result.repetition, runs);
+  }
+
+  return Array.from(byRepetition.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, runs]) => mean(runs.map((r) => r.metrics.sessionDurationMs)));
+}
+
 /**
  * Collapse repeated runs into one row per (task, config) pair.
  * Each numeric metric is the arithmetic mean across repetitions.
@@ -72,6 +85,7 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
         ? mean(runs.filter((r) => !r.error && "recall" in r.details).map((r) => (r.details as FindVulnsDetails).precision))
         : null,
       sessionDurationMs: mean(runs.map((r) => r.metrics.sessionDurationMs)),
+      sessionDurationStdDevMs: sampleStdDev(runs.map((r) => r.metrics.sessionDurationMs)),
       totalTokens: mean(runs.map((r) => r.metrics.totalLogicalInputTokens + r.metrics.totalOutputTokens)),
       totalCostUsd: meanNullable(runs.map((r) => r.metrics.totalCostUsd)),
     });
@@ -106,7 +120,9 @@ export function aggregateByConfig(
   for (const tasks of groups.values()) {
     const first = tasks[0];
     const hasRecall = tasks.some((t) => t.recall != null);
-    const repetitionScores = headlineScoresByRepetition(rawGroups.get(first.runConfigId) ?? []);
+    const rawRuns = rawGroups.get(first.runConfigId) ?? [];
+    const repetitionScores = headlineScoresByRepetition(rawRuns);
+    const repetitionDurations = headlineDurationsByRepetition(rawRuns);
 
     aggregated.push({
       runConfigId: first.runConfigId,
@@ -119,6 +135,7 @@ export function aggregateByConfig(
       recall: hasRecall ? meanNullable(tasks.map((t) => t.recall)) : null,
       precision: hasRecall ? meanNullable(tasks.map((t) => t.precision)) : null,
       sessionDurationMs: mean(tasks.map((t) => t.sessionDurationMs)),
+      sessionDurationStdDevMs: sampleStdDev(repetitionDurations),
       totalTokens: mean(tasks.map((t) => t.totalTokens)),
       totalCostUsd: meanNullable(tasks.map((t) => t.totalCostUsd)),
     });

@@ -262,6 +262,8 @@ export interface AggregatedTaskResult {
   recall: number | null;
   precision: number | null;
   sessionDurationMs: number;
+  /** Sample standard deviation of wall-clock runtime across repetitions. Zero when repetitions < 2. */
+  sessionDurationStdDevMs: number;
   totalTokens: number;
   totalCostUsd: number | null;
 }
@@ -279,6 +281,8 @@ export interface AggregatedConfigResult {
   recall: number | null;
   precision: number | null;
   sessionDurationMs: number;
+  /** Sample standard deviation of repetition-level headline runtimes. Zero when repetitions < 2. */
+  sessionDurationStdDevMs: number;
   totalTokens: number;
   totalCostUsd: number | null;
 }

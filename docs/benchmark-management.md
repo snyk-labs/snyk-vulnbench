@@ -601,7 +601,7 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `command` | Yes | `string` | Command template. Use `{fixturePath}` as a placeholder for the fixture directory path. |
 | `parser` | Yes | `string` | Parser key from the registry in `src/parsers/index.ts` (e.g. `"snyk-code"`). |
 
-Command configs only support find-vulns tasks. They produce `"runConfigType": "command"` in JSONL output and have zeroed token/turn metrics (only `sessionDurationMs` and `filesScanned` are populated).
+Command configs only support find-vulns tasks. They produce `"runConfigType": "command"` in JSONL output and have zeroed token/turn metrics (only `sessionDurationMs` and `filesScanned` are populated on raw run rows; aggregate rows also include `sessionDurationStdDevMs` when repetitions are used).
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 

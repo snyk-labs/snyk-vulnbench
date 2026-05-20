@@ -110,7 +110,7 @@ User says: "Here's our benchmark guide and the latest JSONL file. Draft the writ
 
 Actions:
 1. Read the guide to understand methodology; use it directly to write the Benchmark Design section rather than re-describing from scratch.
-2. Load the JSONL and extract aggregates programmatically.
+2. Load the JSONL and extract aggregates programmatically, including `scoreStdDev` and `sessionDurationStdDevMs` when repeated runs are present.
 3. Write sections in order; lift the guide's pipeline flowchart inline (as mermaid) if one exists.
 4. Deliver the report and flag any gaps where the guide didn't supply enough context.
 

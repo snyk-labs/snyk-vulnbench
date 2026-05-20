@@ -95,7 +95,7 @@ From the chat-summary.txt context:
 - Score = fraction of known vulns that were remediated
 
 ### Aggregation
-When multiple fixtures run, per-fixture scores are **macro-averaged** (unweighted mean) into a single headline number per config. When `--repetitions N` is used, repeated runs of the same (task, config) pair are averaged before the macro-average. See `docs/benchmark.md` → [Aggregation and Headline Scores](docs/benchmark.md#aggregation-and-headline-scores).
+When multiple fixtures run, per-fixture scores are **macro-averaged** (unweighted mean) into a single headline number per config. When `--repetitions N` is used, repeated runs of the same (task, config) pair are averaged before the macro-average, with score and runtime standard deviation reported for aggregate rows. See `docs/benchmark.md` → [Aggregation and Headline Scores](docs/benchmark.md#aggregation-and-headline-scores).
 
 ## Authentication
 

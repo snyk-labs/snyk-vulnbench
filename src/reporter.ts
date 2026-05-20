@@ -29,6 +29,12 @@ function scoreWithStdDev(score: number, stdDev: number, includeStdDev: boolean):
   return `${pct} ±${(stdDev * 100).toFixed(0)}pp`;
 }
 
+function durationWithStdDev(ms: number, stdDevMs: number, includeStdDev: boolean): string {
+  const seconds = `${(ms / 1000).toFixed(1)}s`;
+  if (!includeStdDev) return seconds;
+  return `${seconds} ±${(stdDevMs / 1000).toFixed(1)}s`;
+}
+
 const LABEL_WIDTH = 12;
 
 function metricLine(label: string, value: string, indent = "    "): string {
@@ -208,8 +214,8 @@ export function printSummaryTable(
     console.log(`\n  ${s("dim", `Per-fixture scores ${repLabel}:`)}`);
 
     const header = hasFindVulns
-      ? ["Task", "Config", "Score ±SD", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
-      : ["Task", "Config", "Score ±SD", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
+      ? ["Task", "Config", "Score ±SD", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"]
+      : ["Task", "Config", "Score ±SD", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"];
 
     const rows = taskAggregates.map((a) => {
       const base = [
@@ -225,7 +231,7 @@ export function printSummaryTable(
       if (hasCost) {
         base.push(a.totalCostUsd != null ? `$${a.totalCostUsd.toFixed(4)}` : "-");
       }
-      base.push(`${(a.sessionDurationMs / 1000).toFixed(1)}s`);
+      base.push(durationWithStdDev(a.sessionDurationMs, a.sessionDurationStdDevMs, true));
       return base;
     });
 
@@ -269,8 +275,8 @@ export function printSummaryTable(
     console.log(`\n  ${s(["bold", "dim"], headlineLabel)}`);
 
     const hdr = hasFindVulns
-      ? ["Config", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"]
-      : ["Config", hasReps ? "Score ±SD" : "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time", "Fixtures"];
+      ? ["Config", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"]
+      : ["Config", hasReps ? "Score ±SD" : "Score", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"];
 
     const hRows = configAggregates.map((c) => {
       const base = [
@@ -285,7 +291,7 @@ export function printSummaryTable(
       if (hasCost) {
         base.push(c.totalCostUsd != null ? `$${c.totalCostUsd.toFixed(4)}` : "-");
       }
-      base.push(`${(c.sessionDurationMs / 1000).toFixed(1)}s`);
+      base.push(durationWithStdDev(c.sessionDurationMs, c.sessionDurationStdDevMs, hasReps));
       base.push(String(c.fixtureCount));
       return base;
     });
@@ -303,7 +309,7 @@ export function printSummaryTable(
   }
 
   if (hasReps) {
-    console.log(`  ${s("dim", "±SD is sample standard deviation across repetitions.")}`);
+    console.log(`  ${s("dim", "±SD is sample standard deviation across repetitions for score and time.")}`);
   }
 
   console.log();

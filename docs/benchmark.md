@@ -644,12 +644,12 @@ The reporter handles all output. It has five functions:
 
 **`printResult(result)`** — prints a label-aligned block for one run immediately after it completes. Each metric gets its own line with a fixed-width dim label, making it easy to scan vertically. See [Metrics Deep-Dive](#metrics-deep-dive) for annotated mock output.
 
-**`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. When repetitions > 1, the per-fixture table shows mean scores with `±SD` error bars. When multiple tasks are involved, a headline section shows per-config macro-averaged scores and, when repetitions exist, headline score standard deviation. Columns: task/config id, score (color-coded), recall, precision, total tokens, cost, wall time. See [Sample Output — Summary Table](#sample-output--summary-table).
+**`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. When repetitions > 1, the per-fixture table shows mean scores and mean wall time with `±SD` error bars. When multiple tasks are involved, a headline section shows per-config macro-averaged scores and runtimes, and when repetitions exist, headline score and runtime standard deviation. Columns: task/config id, score (color-coded), recall, precision, total tokens, cost, wall time. See [Sample Output — Summary Table](#sample-output--summary-table).
 
 **`saveResults(results, dir, taskAggregates, configAggregates)`** — writes results to `results/benchmark-<timestamp>.jsonl`. Each line is a JSON object tagged with a `_type` discriminator:
 - `"run"` — raw `EvalResult` (one per execution)
-- `"task-aggregate"` — `AggregatedTaskResult` (one per task+config pair, mean across repetitions)
-- `"config-aggregate"` — `AggregatedConfigResult` (one per config, macro-averaged across fixtures)
+- `"task-aggregate"` — `AggregatedTaskResult` (one per task+config pair, mean plus score/runtime standard deviation across repetitions)
+- `"config-aggregate"` — `AggregatedConfigResult` (one per config, macro-averaged across fixtures, with headline score/runtime standard deviation)
 
 JSONL (JSON Lines) format means one complete JSON object per line, making it easy to:
 - Load into analysis tools (Python pandas, etc.)
@@ -881,7 +881,7 @@ When multiple fixtures and/or repeated runs are involved, raw per-run scores nee
 
 Frontier eval suites — SWE-bench, HumanEval, MBPP, MMLU, and the benchmark sections of model cards from Anthropic, OpenAI, and others — all face the same problem: they run a model against dozens or hundreds of tasks and need to report *one number* on a chart. The standard approach is **macro-averaging**: compute the metric independently for each task, then take the arithmetic mean across tasks. SWE-bench's headline "resolve rate" is literally `resolved / total_tasks` — a macro-average of binary pass/fail. This ensures each test scenario contributes equally regardless of how many sub-items it contains, which is the right default when fixtures represent qualitatively different codebases rather than interchangeable samples from the same distribution.
 
-Non-determinism adds a second dimension. Model responses vary between runs, so a single execution may not be representative. The standard practice is to run each (task, config) pair multiple times (typically 3–5), take the mean across those repetitions as the per-fixture score, and then macro-average those fixture-level means into the headline number. The benchmark also calculates score error bars as sample standard deviation, so reports can show both the average score and the observed run-to-run spread.
+Non-determinism adds a second dimension. Model responses vary between runs, so a single execution may not be representative. The standard practice is to run each (task, config) pair multiple times (typically 3–5), take the mean across those repetitions as the per-fixture score, and then macro-average those fixture-level means into the headline number. The benchmark also calculates score and runtime error bars as sample standard deviation, so reports can show both the average result and the observed run-to-run spread.
 
 The rest of this section details exactly how the benchmark implements this two-step collapse — repetitions first, then macro-averaging — and the design decisions that shaped it.
 
@@ -901,8 +901,8 @@ flowchart LR
 | Level | What it represents | How it's computed |
 |---|---|---|
 | **Per-run** | One execution of `runEval(task, config)` | Raw scores: F1, recall, precision, time, tokens, cost |
-| **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions, plus score standard deviation across those repetitions |
-| **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures, plus score standard deviation across repetition-level headline scores |
+| **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions, plus score and runtime standard deviation across those repetitions |
+| **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures, plus score and runtime standard deviation across repetition-level headline values |
 
 The per-config level produces the **headline numbers** — the single values shown on comparison charts (e.g. "Opus F1: 83%, Sonnet F1: 71%, Snyk Code F1: 92%").
 
@@ -960,48 +960,54 @@ Each raw `EvalResult` carries `repetition` (1-indexed) and `totalRepetitions` fi
 
 ### Error Bars and Standard Deviation
 
-When `--repetitions N` is greater than 1, the benchmark reports score error bars as **sample standard deviation** (`scoreStdDev`). This is a descriptive statistic: it summarizes how much the observed scores moved from run to run. It is the right first signal when the question is, "If I run this benchmark again, how much could the score plausibly swing because of model nondeterminism?"
+When `--repetitions N` is greater than 1, the benchmark reports score error bars as **sample standard deviation** (`scoreStdDev`) and runtime error bars as **sample standard deviation** (`sessionDurationStdDevMs`). These are descriptive statistics: they summarize how much observed scores and wall-clock durations moved from run to run. They are the right first signal when the question is, "If I run this benchmark again, how much could the score or runtime plausibly swing?"
 
 The calculation is:
 
 ```text
 mean = sum(values) / n
-scoreStdDev = sqrt(sum((value - mean)^2) / (n - 1))
+stdDev = sqrt(sum((value - mean)^2) / (n - 1))
 ```
 
-The benchmark uses the sample formula (`n - 1`) for all repetition counts greater than 1, whether `N` is 3, 5, 10, or larger. Repeated benchmark runs are treated as a sample of possible future runs, not as the entire population of all possible model outputs. When `N` is 1, `scoreStdDev` is `0` because there is no observed spread; read that as "not measured", not "guaranteed stable".
+The benchmark uses the sample formula (`n - 1`) for all repetition counts greater than 1, whether `N` is 3, 5, 10, or larger. Repeated benchmark runs are treated as a sample of possible future runs, not as the entire population of all possible model outputs. When `N` is 1, standard-deviation fields are `0` because there is no observed spread; read that as "not measured", not "guaranteed stable".
 
-There are two levels of score standard deviation:
+There are two standard-deviation fields at each aggregate level:
 
 | JSONL row | Field | What it measures |
 |---|---|---|
 | `"task-aggregate"` | `scoreStdDev` | Run-to-run spread for one `(task, config)` pair |
+| `"task-aggregate"` | `sessionDurationStdDevMs` | Runtime spread for one `(task, config)` pair |
 | `"config-aggregate"` | `scoreStdDev` | Run-to-run spread of the headline score for one config |
+| `"config-aggregate"` | `sessionDurationStdDevMs` | Runtime spread of the headline duration for one config |
 
-The headline standard deviation is calculated from one headline score per repetition, not by averaging per-fixture standard deviations:
+The headline standard deviation is calculated from one headline value per repetition, not by averaging per-fixture standard deviations:
 
 ```text
 repHeadline(config_j, rep_k) = mean over fixtures of score(fixture_i, config_j, rep_k)
 headline_score(config_j) = mean over repetitions of repHeadline(config_j, rep_k)
 headline_scoreStdDev(config_j) = sampleStdDev(repHeadline(config_j, rep_k))
+
+repDuration(config_j, rep_k) = mean over fixtures of sessionDurationMs(fixture_i, config_j, rep_k)
+headline_sessionDurationMs(config_j) = mean over repetitions of repDuration(config_j, rep_k)
+headline_sessionDurationStdDevMs(config_j) = sampleStdDev(repDuration(config_j, rep_k))
 ```
 
-That makes the chart error bar answer the headline question directly: "How much did this config's benchmark-level score vary across repeated benchmark passes?"
+That makes the chart error bar answer the headline question directly: "How much did this config's benchmark-level score or runtime vary across repeated benchmark passes?"
 
-This is intentionally different from a 95% confidence interval. A confidence interval estimates uncertainty in the true mean and usually needs more repetitions to be stable. Standard deviation is simpler and more directly communicates observed variability: `72% ± 8pp` means repeated runs typically moved about 8 percentage points around the mean.
+This is intentionally different from a 95% confidence interval. A confidence interval estimates uncertainty in the true mean and usually needs more repetitions to be stable. Standard deviation is simpler and more directly communicates observed variability: `72% ± 8pp` means repeated scores typically moved about 8 percentage points around the mean, while `42.0s ± 3.1s` means repeated runtimes moved about 3.1 seconds around the mean.
 
 ---
 
 ### What Metrics Are Aggregated
 
-All numeric metrics are averaged at both the per-fixture and per-config levels. Score also gets a standard-deviation field for error bars:
+All numeric metrics are averaged at both the per-fixture and per-config levels. Score and wall time also get standard-deviation fields for error bars:
 
 | Metric | Per-fixture | Per-config |
 |---|---|---|
 | **Score (F1)** | Mean across reps, plus `scoreStdDev` across reps | Macro-avg across fixtures, plus `scoreStdDev` across repetition-level headline scores |
 | **Recall** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
 | **Precision** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
-| **Wall time** (`sessionDurationMs`) | Mean across reps | Macro-avg across fixtures |
+| **Wall time** (`sessionDurationMs`) | Mean across reps, plus `sessionDurationStdDevMs` across reps | Macro-avg across fixtures, plus `sessionDurationStdDevMs` across repetition-level headline runtimes |
 | **Total tokens** (logical input + output) | Mean across reps | Macro-avg across fixtures |
 | **Cost** (`totalCostUsd`) | Mean across reps (null if any run lacked it) | Macro-avg across fixtures |
 
@@ -1010,8 +1016,8 @@ Aggregate rows are written to the JSONL output file alongside raw results, tagge
 | `_type` | What it contains |
 |---|---|
 | `"run"` | Raw `EvalResult` — one execution |
-| `"task-aggregate"` | `AggregatedTaskResult` — mean and score standard deviation across reps for one (task, config) |
-| `"config-aggregate"` | `AggregatedConfigResult` — macro-avg across fixtures for one config, with headline score standard deviation |
+| `"task-aggregate"` | `AggregatedTaskResult` — mean plus score and runtime standard deviation across reps for one (task, config) |
+| `"config-aggregate"` | `AggregatedConfigResult` — macro-avg across fixtures for one config, with headline score and runtime standard deviation |
 
 Downstream consumers (chart generators, `jq` queries) can filter by `_type` to select the appropriate aggregation level.
 
@@ -1021,7 +1027,7 @@ Downstream consumers (chart generators, `jq` queries) can filter by `_type` to s
 
 **Weighted averaging: out of scope.** All fixtures contribute equally to the headline number. This is the simplest, most transparent, and most defensible approach. It could be revisited if fixtures are deliberately grouped by difficulty tier, but for now the benchmark treats all fixtures as equally important test scenarios.
 
-**Error bars: standard deviation, not confidence intervals.** The benchmark reports score error bars as sample standard deviation because the goal is to show observed run-to-run variability. Confidence intervals remain out of scope for the built-in reporter; downstream analysis can still compute them from the raw `"run"` rows if needed.
+**Error bars: standard deviation, not confidence intervals.** The benchmark reports score and runtime error bars as sample standard deviation because the goal is to show observed run-to-run variability. Confidence intervals remain out of scope for the built-in reporter; downstream analysis can still compute them from the raw `"run"` rows if needed.
 
 **Micro-averaging: not used.** As explained above, micro-averaging would let large fixtures dominate the headline number. Macro-averaging is the field standard for heterogeneous eval suites.
 
@@ -1349,7 +1355,7 @@ After all runs complete, `printSummaryTable()` prints a comparison. For find-vul
   snyk-code     96%     96%    96%        0        -   10.1s         2
 ```
 
-**With repetitions** (`--repetitions 3`) — per-fixture and headline score columns show `mean ± sample standard deviation`:
+**With repetitions** (`--repetitions 3`) — per-fixture and headline score/time columns show `mean ± sample standard deviation`:
 
 ```
 ══════════════════════════════════════════════════════════════════════
@@ -1358,19 +1364,19 @@ After all runs complete, `printSummaryTable()` prints a comparison. For find-vul
 
   Per-fixture scores (mean of 3):
 
-  Task                               Config      Score ±SD  Recall  Prec.   Tokens     Cost    Time
-  ───────────────────────────────    ──────────  ─────────  ──────  ─────  ───────  ───────  ──────
-  js-project-tigerteam-find-vulns   sonnet-4-6   70% ±8pp     74%    66%   55,800  $0.0498   39.8s
-  js-project-tigerteam-find-vulns   snyk-code    100% ±0pp   100%   100%        0        -    9.9s
+  Task                               Config      Score ±SD  Recall  Prec.   Tokens     Cost       Time ±SD
+  ───────────────────────────────    ──────────  ─────────  ──────  ─────  ───────  ───────  ──────────────
+  js-project-tigerteam-find-vulns   sonnet-4-6   70% ±8pp     74%    66%   55,800  $0.0498   39.8s ±2.1s
+  js-project-tigerteam-find-vulns   snyk-code    100% ±0pp   100%   100%        0        -    9.9s ±0.4s
 
   Headline scores (mean across repetitions):
 
-  Config      Score ±SD  Recall  Prec.   Tokens     Cost    Time  Fixtures
-  ──────────  ─────────  ──────  ─────  ───────  ───────  ──────  ────────
-  sonnet-4-6   70% ±8pp     74%    66%   55,800  $0.0498   39.8s         1
-  snyk-code    100% ±0pp   100%   100%        0        -    9.9s         1
+  Config      Score ±SD  Recall  Prec.   Tokens     Cost       Time ±SD  Fixtures
+  ──────────  ─────────  ──────  ─────  ───────  ───────  ──────────────  ────────
+  sonnet-4-6   70% ±8pp     74%    66%   55,800  $0.0498   39.8s ±2.1s         1
+  snyk-code    100% ±0pp   100%   100%        0        -    9.9s ±0.4s         1
 
-  ±SD is sample standard deviation across repetitions.
+  ±SD is sample standard deviation across repetitions for score and time.
 ```
 
 Reading across a row (same task, different configs) tells you which model/tool combination performs better and at what cost. Reading down a column (same config, different tasks) tells you how a given model handles different languages and vulnerability types. The headline section provides the single number per config that goes on comparison charts.
@@ -1470,6 +1476,7 @@ Each JSONL file contains three row types distinguished by `_type`. Raw run resul
   "recall": 0.714,
   "precision": 0.625,
   "sessionDurationMs": 40254,
+  "sessionDurationStdDevMs": 2135,
   "totalTokens": 56164,
   "totalCostUsd": 0.0508587
 }
@@ -1490,6 +1497,7 @@ Each JSONL file contains three row types distinguished by `_type`. Raw run resul
   "recall": 0.757,
   "precision": 0.695,
   "sessionDurationMs": 37677,
+  "sessionDurationStdDevMs": 1890,
   "totalTokens": 52182,
   "totalCostUsd": 0.0465
 }
@@ -1500,11 +1508,11 @@ The JSONL file can be queried directly:
 # Show all raw run scores
 jq 'select(._type == "run") | .score' results/benchmark-*.jsonl
 
-# Get headline scores and error bars per config (for charts)
-jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, recall: .recall}' results/benchmark-*.jsonl
+# Get headline scores, runtimes, and error bars per config (for charts)
+jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs, recall: .recall}' results/benchmark-*.jsonl
 
-# Get per-fixture scores and run-to-run spread
-jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev}' results/benchmark-*.jsonl
+# Get per-fixture scores, runtimes, and run-to-run spread
+jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs}' results/benchmark-*.jsonl
 
 # Compare model vs SAST scores for the same task
 jq 'select(._type == "run" and .taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
@@ -1536,7 +1544,7 @@ jq 'select(._type == "run" and .effort == "high")' results/benchmark-*.jsonl
 
 `--repetitions N` repeats every selected `(task, config)` pair, regardless of config type. That means model configs run N separate agent sessions, and command configs such as `snyk-code` run N separate CLI executions of their configured command, for example `snyk code test {fixturePath} --json`.
 
-This is useful for model configs because model outputs can vary between runs. SAST command configs are usually deterministic, so repeating them often produces the same score with `0pp` standard deviation; keep `--repetitions 1` when you only need a quick SAST baseline.
+This is useful for model configs because model outputs and runtime can vary between runs. SAST command configs are usually deterministic in score, so repeating them often produces the same score with `0pp` standard deviation, though runtime can still vary with local CLI and network conditions. Keep `--repetitions 1` when you only need a quick SAST baseline.
 
 ### Q: How do I read the token counts? What does "7 uncached" mean? Where does my prompt and file content show up?
 
