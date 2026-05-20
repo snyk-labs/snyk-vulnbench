@@ -1,0 +1,30 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Small Express plugin installer service with shell-based package installation.",
+  "vulnerabilities": [
+    {
+      "id": "jcl-command-injection-1",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "app.js",
+      "line": 17,
+      "description": "User-controlled plugin package data flows into child_process.spawn through a shell command."
+    },
+    {
+      "id": "jcl-insecure-transport-1",
+      "type": "insecure-transport",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 43,
+      "description": "The service is created with a plaintext HTTP server."
+    },
+    {
+      "id": "jcl-no-rate-limit-1",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 20,
+      "description": "The plugin installation endpoint performs expensive command execution without rate limiting."
+    }
+  ]
+}

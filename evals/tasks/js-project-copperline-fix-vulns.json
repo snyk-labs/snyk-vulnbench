@@ -1,0 +1,7 @@
+{
+  "id": "js-project-copperline-fix-vulns",
+  "name": "JS Snippet (Plugin Installer): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-copperline",
+  "maxTurns": 30
+}

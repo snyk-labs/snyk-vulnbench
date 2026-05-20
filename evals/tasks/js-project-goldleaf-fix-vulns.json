@@ -1,0 +1,7 @@
+{
+  "id": "js-project-goldleaf-fix-vulns",
+  "name": "JS Snippet (Report Preview): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-goldleaf",
+  "maxTurns": 30
+}

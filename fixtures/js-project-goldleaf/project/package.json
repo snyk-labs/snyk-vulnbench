@@ -1,0 +1,16 @@
+{
+  "name": "js-project-goldleaf",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Small saved report preview API for operations dashboards",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

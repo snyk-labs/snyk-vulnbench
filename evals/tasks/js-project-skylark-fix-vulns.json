@@ -1,0 +1,7 @@
+{
+  "id": "js-project-skylark-fix-vulns",
+  "name": "JS Snippet (Shelf Validator): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-skylark",
+  "maxTurns": 30
+}

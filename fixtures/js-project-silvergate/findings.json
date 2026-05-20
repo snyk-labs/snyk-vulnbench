@@ -1,0 +1,38 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Small Express workspace handoff service with redirect and cross-origin response handling.",
+  "vulnerabilities": [
+    {
+      "id": "jsg-insecure-transport-1",
+      "type": "insecure-transport",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 5,
+      "description": "The handoff service is created with a plaintext HTTP server."
+    },
+    {
+      "id": "jsg-open-redirect-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 18,
+      "description": "A user-controlled query parameter is passed directly to res.redirect."
+    },
+    {
+      "id": "jsg-open-redirect-2",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 21,
+      "description": "A route parameter is used to build a protocol-relative redirect URL."
+    },
+    {
+      "id": "jsg-cors-1",
+      "type": "origin-validation-error",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 10,
+      "description": "The service reflects request origin data into Access-Control-Allow-Origin while allowing credentials."
+    }
+  ]
+}

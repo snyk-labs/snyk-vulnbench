@@ -1,0 +1,30 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Small Express shelf validation page with a client-side dashboard widget loader.",
+  "vulnerabilities": [
+    {
+      "id": "jsk-dom-xss-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "public/dashboard.js",
+      "line": 8,
+      "description": "A URL search parameter is assigned to a dynamically-created script element source."
+    },
+    {
+      "id": "jsk-redos-1",
+      "type": "redos",
+      "severity": "high",
+      "file": "app.js",
+      "line": 15,
+      "description": "A nested quantified regular expression is evaluated against user-controlled shelf code input."
+    },
+    {
+      "id": "jsk-redos-2",
+      "type": "redos",
+      "severity": "high",
+      "file": "app.js",
+      "line": 16,
+      "description": "A dynamically constructed nested quantified regular expression is evaluated against user-controlled shelf code input."
+    }
+  ]
+}

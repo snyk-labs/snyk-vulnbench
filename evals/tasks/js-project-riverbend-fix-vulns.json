@@ -1,0 +1,7 @@
+{
+  "id": "js-project-riverbend-fix-vulns",
+  "name": "JS Snippet (Import Profile): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "js-project-riverbend",
+  "maxTurns": 30
+}

@@ -1,0 +1,7 @@
+{
+  "id": "js-project-riverbend-find-vulns",
+  "name": "JS Snippet (Import Profile): Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "js-project-riverbend",
+  "maxTurns": 20
+}

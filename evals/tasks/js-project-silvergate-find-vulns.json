@@ -1,0 +1,7 @@
+{
+  "id": "js-project-silvergate-find-vulns",
+  "name": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "js-project-silvergate",
+  "maxTurns": 20
+}

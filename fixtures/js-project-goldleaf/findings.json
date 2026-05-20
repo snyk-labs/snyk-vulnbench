@@ -1,0 +1,22 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Small Express report preview service that builds saved dashboard metric objects.",
+  "vulnerabilities": [
+    {
+      "id": "jgl-code-injection-1",
+      "type": "code-injection",
+      "severity": "high",
+      "file": "app.js",
+      "line": 12,
+      "description": "User-controlled report metric data reaches eval and is executed as JavaScript code."
+    },
+    {
+      "id": "jgl-improper-code-sanitization-1",
+      "type": "improper-code-sanitization",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 12,
+      "description": "JSON.stringify is used as an attempted sanitizer before generated JavaScript is evaluated."
+    }
+  ]
+}

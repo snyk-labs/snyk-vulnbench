@@ -1,0 +1,14 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Small Express supplier import profile service with dynamic field mapping.",
+  "vulnerabilities": [
+    {
+      "id": "jrb-prototype-pollution-1",
+      "type": "prototype-pollution",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 17,
+      "description": "User-controlled nested property names are written directly into an object profile."
+    }
+  ]
+}

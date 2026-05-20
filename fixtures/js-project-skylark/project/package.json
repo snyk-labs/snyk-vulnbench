@@ -1,0 +1,16 @@
+{
+  "name": "js-project-skylark",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Small warehouse shelf validation page with dashboard widgets",
+  "main": "app.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}
