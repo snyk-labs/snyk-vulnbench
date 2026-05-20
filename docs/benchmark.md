@@ -39,7 +39,7 @@
    - [Sample Output — fix-vulns Run](#sample-output--fix-vulns-run)
    - [Sample Output — Summary Table](#sample-output--summary-table)
    - [Sample Output — JSONL Record](#sample-output--jsonl-record)
-8. [FAQ — Understanding Token and Cost Reports](#faq--understanding-token-and-cost-reports)
+8. [FAQ](#faq)
 9. [Adding Your Own Tasks and Configs](#adding-your-own-tasks-and-configs)
 
 ---
@@ -1530,7 +1530,13 @@ jq 'select(._type == "run" and .effort == "high")' results/benchmark-*.jsonl
 
 ---
 
-## FAQ — Understanding Token and Cost Reports
+## FAQ
+
+### Q: Does `--repetitions` repeat only model configs, or SAST command configs too?
+
+`--repetitions N` repeats every selected `(task, config)` pair, regardless of config type. That means model configs run N separate agent sessions, and command configs such as `snyk-code` run N separate CLI executions of their configured command, for example `snyk code test {fixturePath} --json`.
+
+This is useful for model configs because model outputs can vary between runs. SAST command configs are usually deterministic, so repeating them often produces the same score with `0pp` standard deviation; keep `--repetitions 1` when you only need a quick SAST baseline.
 
 ### Q: How do I read the token counts? What does "7 uncached" mean? Where does my prompt and file content show up?
 
