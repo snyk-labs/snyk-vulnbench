@@ -34,8 +34,8 @@ function mapRuleId(ruleId: string): string {
   if (/commandinjection/.test(id)) return "command-injection";
   // Snyk: javascript/CodeInjection — JavaScript code execution through eval-like sinks
   if (/codeinjection/.test(id)) return "code-injection";
-  // Snyk: javascript/UseCsurfForExpress — missing CSRF middleware; substring "csrf" matches
-  if (/csrf/.test(id)) return "csrf";
+  // Snyk: javascript/UseCsurfForExpress — missing CSRF middleware; rule id uses "csurf"
+  if (/csrf|csurf|crosssiterequestforgery/.test(id)) return "csrf";
   // Snyk: javascript/OR — Open Redirect uses abbreviated rule id (message text says "Open Redirect")
   if (/openredirect|\/or$/.test(id)) return "open-redirect";
   // Snyk: javascript/Ssrf (PascalCase) → lowercase still contains substring "ssrf"

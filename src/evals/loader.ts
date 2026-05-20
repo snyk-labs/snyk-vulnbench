@@ -38,7 +38,26 @@ function loadVulns(fixtureName: string): Vulnerability[] {
   if (!Array.isArray(raw.vulnerabilities)) {
     throw new Error(`findings.json for fixture "${fixtureName}" must have a top-level "vulnerabilities" array`);
   }
+  validateUniqueVulnIds(fixtureName, raw.vulnerabilities);
   return raw.vulnerabilities;
+}
+
+function validateUniqueVulnIds(fixtureName: string, vulnerabilities: Vulnerability[]): void {
+  const seenIds = new Set<string>();
+  const duplicateIds = new Set<string>();
+
+  for (const vuln of vulnerabilities) {
+    if (seenIds.has(vuln.id)) {
+      duplicateIds.add(vuln.id);
+    }
+    seenIds.add(vuln.id);
+  }
+
+  if (duplicateIds.size > 0) {
+    throw new Error(
+      `findings.json for fixture "${fixtureName}" contains duplicate vulnerability id(s): ${[...duplicateIds].join(", ")}`,
+    );
+  }
 }
 
 function resolveCategory(categoryId: string) {

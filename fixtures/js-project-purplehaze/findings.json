@@ -67,14 +67,6 @@
         "description": "Unsanitized input from an HTTP parameter flows into redirect, where it is used as input for request redirection. This may result in an Open Redirect vulnerability."
       },
       {
-        "id": "js-csrf-missing-5",
-        "type": "csrf",
-        "severity": "medium",
-        "file": "server.js",
-        "line": 17,
-        "description": "CSRF protection is disabled for your Express app. This allows the attackers to execute requests on a user's behalf."
-      },
-      {
         "id": "js-command-injection-5",
         "type": "command-injection",
         "severity": "high",
