@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StockPilot Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Warehouse operations</p>
+        <h1>StockPilot Admin</h1>
+        <p>Review inventory, prepare supplier imports, install warehouse plugins, and preview reporting widgets.</p>
+      </section>
+
+      <section class="card">
+        <h2>Inventory Search</h2>
+        <form id="search-form">
+          <input id="inventory-query" name="q" placeholder="Search SKU or item name">
+          <button type="submit">Search</button>
+        </form>
+        <ul id="inventory-results"></ul>
+      </section>
+
+      <section class="grid">
+        <form id="plugin-form" class="card">
+          <h2>Plugin Installer</h2>
+          <label>
+            Package
+            <input name="package" value="@stockpilot/label-printer">
+          </label>
+          <button type="submit">Install</button>
+          <pre id="plugin-output"></pre>
+        </form>
+
+        <form id="import-form" class="card">
+          <h2>Supplier Import Profile</h2>
+          <label>
+            Profile section
+            <input name="section" value="columns">
+          </label>
+          <label>
+            Field
+            <input name="key" value="sku">
+          </label>
+          <label>
+            Value
+            <input name="value" value="Supplier SKU">
+          </label>
+          <button type="submit">Save Mapping</button>
+          <pre id="import-output"></pre>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Report Preview</h2>
+        <p>The dashboard remembers the metric key used for local report previews.</p>
+        <form id="report-form">
+          <input name="metricKey" value="monthlyTurnover">
+          <button type="submit">Preview</button>
+        </form>
+        <pre id="report-output"></pre>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

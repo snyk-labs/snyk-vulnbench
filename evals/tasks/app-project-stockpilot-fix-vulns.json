@@ -1,0 +1,7 @@
+{
+  "id": "app-project-stockpilot-fix-vulns",
+  "name": "App JS 2 (Express/Static): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-stockpilot",
+  "maxTurns": 40
+}

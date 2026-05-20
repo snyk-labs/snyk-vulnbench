@@ -271,6 +271,7 @@ Each entry in `vulnerabilities`:
 | `"xss"` | Cross-site scripting — reflected HTML, unsafe DOM sinks (e.g. `innerHTML`), or unsafe rendering of LLM/tool output |
 | `"path-traversal"` | User-controlled filename/path used to access files without sanitization |
 | `"command-injection"` | User input passed to a shell command, exec, eval, or similar |
+| `"code-injection"` | User input reaches JavaScript code execution primitives such as `eval` (Snyk: `javascript/CodeInjection`) |
 | `"hardcoded-credentials"` | API keys, passwords, DB credentials, session/signing secrets, or other embedded secrets |
 | `"insecure-deserialization"` | Deserializing untrusted data with unsafe formats (pickle, Java ObjectInputStream, etc.) |
 | `"idor"` | Insecure Direct Object Reference — accessing resources without authorization checks |
@@ -280,7 +281,10 @@ Each entry in `vulnerabilities`:
 | `"information-exposure"` | Framework fingerprinting, verbose errors/stack traces, or HTTP/session surface issues that weaken confidentiality (e.g. `X-Powered-By`, session cookies missing `Secure`) |
 | `"allocation-of-resources-without-limits-or-throttling"` | Endpoint performs expensive work without rate limiting, enabling DoS. Aliases: "resource exhaustion", "missing rate limiting", "denial of service" |
 | `"csrf"` | Cross-Site Request Forgery — state-changing requests accepted without anti-CSRF tokens or equivalent |
+| `"redos"` | Regular Expression Denial of Service from vulnerable patterns with excessive backtracking (Snyk: `javascript/reDOSPolynomial`) |
+| `"improper-code-sanitization"` | User-controlled data reaches dynamic code execution after ineffective sanitization, often through `eval` (Snyk: `javascript/ImproperCodeSanitization`) |
 | `"improper-type-validation"` | Untrusted input used as objects/properties without type checks (e.g. type confusion); distinct from prototype pollution |
+| `"insecure-transport"` | Sensitive HTTP service or redirect flow uses plaintext HTTP where HTTPS is expected (Snyk: `javascript/HttpToHttps`) |
 | `"prototype-pollution"` | Unsafe merge or dynamic property paths that can pollute `Object.prototype` (Snyk: `javascript/PrototypePollution`, CWE-1321) |
 | `"origin-validation-error"` | Overly permissive cross-origin policy (e.g. `Access-Control-Allow-Origin: *` with credentialed requests); Snyk labels this **Origin Validation Error** (`javascript/TooPermissiveCorsHeader`, CWE-942 / CWE-346) |
 | `"other"` | Any vulnerability that doesn't fit the above categories |

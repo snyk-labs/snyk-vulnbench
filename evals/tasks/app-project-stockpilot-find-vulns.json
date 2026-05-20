@@ -1,0 +1,7 @@
+{
+  "id": "app-project-stockpilot-find-vulns",
+  "name": "App JS 2 (Express/Static): Find Vulnerabilities",
+  "category": "app-find-vulns",
+  "fixture": "app-project-stockpilot",
+  "maxTurns": 35
+}
