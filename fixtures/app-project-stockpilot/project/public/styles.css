@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  background: #f5f7fb;
+  color: #172033;
+  font-family: Arial, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  background: #2357d5;
+  color: white;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+}
+
+input {
+  border: 1px solid #ccd4e5;
+  border-radius: 8px;
+  padding: 0.65rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+pre {
+  background: #111827;
+  border-radius: 8px;
+  color: #d7e0f4;
+  min-height: 3rem;
+  overflow: auto;
+  padding: 1rem;
+}
+
+.shell {
+  margin: 0 auto;
+  max-width: 980px;
+  padding: 2rem;
+}
+
+.hero {
+  background: linear-gradient(135deg, #10215c, #2357d5);
+  border-radius: 18px;
+  color: white;
+  margin-bottom: 1.5rem;
+  padding: 2rem;
+}
+
+.eyebrow {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e1e7f5;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(23, 32, 51, 0.06);
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+#search-form,
+#report-form {
+  display: flex;
+  gap: 0.75rem;
+}
+
+#inventory-query,
+#report-form input {
+  flex: 1;
+}

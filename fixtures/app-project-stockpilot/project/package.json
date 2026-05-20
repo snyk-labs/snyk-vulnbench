@@ -1,0 +1,16 @@
+{
+  "name": "stockpilot-admin",
+  "version": "1.0.0",
+  "description": "StockPilot warehouse operations admin sample",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^4.22.2"
+  }
+}

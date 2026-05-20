@@ -32,6 +32,8 @@ function mapRuleId(ruleId: string): string {
   // Snyk: javascript/PT — Path Traversal abbreviated; "pathtraversal" covers longer rule ids
   if (/pathtraversal|pt$/.test(id)) return "path-traversal";
   if (/commandinjection/.test(id)) return "command-injection";
+  // Snyk: javascript/CodeInjection — JavaScript code execution through eval-like sinks
+  if (/codeinjection/.test(id)) return "code-injection";
   // Snyk: javascript/UseCsurfForExpress — missing CSRF middleware; substring "csrf" matches
   if (/csrf/.test(id)) return "csrf";
   // Snyk: javascript/OR — Open Redirect uses abbreviated rule id (message text says "Open Redirect")
@@ -57,6 +59,12 @@ function mapRuleId(ruleId: string): string {
   // Snyk: javascript/NoRateLimitingForExpensiveWebOperation — substring "ratelimit" already matches; listed explicitly for discoverability
   if (/ratelimit|nothrottle|resourceexhaust|noratelimitingforexpensiveweboperation/.test(id))
     return "allocation-of-resources-without-limits-or-throttling";
+  // Snyk: javascript/reDOSPolynomial — vulnerable regular expressions with polynomial backtracking
+  if (/redos|redospolynomial|regularexpressiondenial/.test(id)) return "redos";
+  // Snyk: javascript/ImproperCodeSanitization — data flows into eval-like code execution after weak sanitization
+  if (/impropercodesanitization|unsafeeval/.test(id)) return "improper-code-sanitization";
+  // Snyk: javascript/HttpToHttps — HTTP server/listener should use HTTPS for sensitive traffic
+  if (/httptohttps|insecuretransport|cleartexttransmission/.test(id)) return "insecure-transport";
   // Snyk: javascript/PrototypePollution (CWE-1321)
   if (/prototypepollution/.test(id)) return "prototype-pollution";
   // Snyk: javascript/TooPermissiveCorsHeader — SARIF shortDescription "Origin Validation Error" (CWE-942 / CWE-346)

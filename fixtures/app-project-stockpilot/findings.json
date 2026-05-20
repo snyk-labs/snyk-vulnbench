@@ -1,0 +1,102 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "StockPilot warehouse admin app with plugin installation, supplier import mapping, report previews, redirects, and static dashboard widgets.",
+  "vulnerabilities": [
+    {
+      "id": "stockpilot-code-injection-1",
+      "type": "code-injection",
+      "severity": "high",
+      "file": "app.js",
+      "line": 31,
+      "description": "User-controlled report preference data reaches dynamic JavaScript execution through eval."
+    },
+    {
+      "id": "stockpilot-command-injection-1",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "app.js",
+      "line": 24,
+      "description": "User-controlled plugin package input is interpolated into a shell command executed with child_process.spawn."
+    },
+    {
+      "id": "stockpilot-dom-xss-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "public/app.js",
+      "line": 8,
+      "description": "A URL search parameter is assigned to a dynamically-created script element source."
+    },
+    {
+      "id": "stockpilot-insecure-transport-1",
+      "type": "insecure-transport",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 101,
+      "description": "The application creates and serves the admin API over a plaintext HTTP server."
+    },
+    {
+      "id": "stockpilot-improper-code-sanitization-1",
+      "type": "improper-code-sanitization",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 31,
+      "description": "JSON.stringify is used in an attempted sanitization flow before evaluating generated JavaScript code."
+    },
+    {
+      "id": "stockpilot-no-rate-limit-1",
+      "type": "allocation-of-resources-without-limits-or-throttling",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 72,
+      "description": "The plugin installation endpoint performs expensive package installation work without rate limiting or throttling."
+    },
+    {
+      "id": "stockpilot-open-redirect-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 95,
+      "description": "A user-controlled continuation URL is passed directly to res.redirect."
+    },
+    {
+      "id": "stockpilot-open-redirect-2",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 98,
+      "description": "A route parameter is used to build a protocol-relative redirect target."
+    },
+    {
+      "id": "stockpilot-prototype-pollution-1",
+      "type": "prototype-pollution",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 68,
+      "description": "User-controlled nested property names are written directly into an object profile."
+    },
+    {
+      "id": "stockpilot-cors-1",
+      "type": "origin-validation-error",
+      "severity": "medium",
+      "file": "app.js",
+      "line": 104,
+      "description": "The API reflects permissive cross-origin access while allowing credentialed browser requests."
+    },
+    {
+      "id": "stockpilot-redos-1",
+      "type": "redos",
+      "severity": "high",
+      "file": "app.js",
+      "line": 47,
+      "description": "A nested quantified regular expression is evaluated against user-controlled stock code input."
+    },
+    {
+      "id": "stockpilot-redos-2",
+      "type": "redos",
+      "severity": "high",
+      "file": "app.js",
+      "line": 48,
+      "description": "A dynamically constructed nested quantified regular expression is evaluated against user-controlled stock code input."
+    }
+  ]
+}
