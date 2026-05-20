@@ -1,16 +1,37 @@
 [
   {
     "id": "opus-4-6",
-    "name": "Claude Opus 4.6 (no MCP)",
+    "name": "Claude Opus 4.6",
     "model": "claude-opus-4-6",
     "effort": "high",
     "maxTurns": 30
   },
   {
     "id": "sonnet-4-6",
-    "name": "Claude Sonnet 4.6 (no MCP)",
+    "name": "Claude Sonnet 4.6",
     "model": "claude-sonnet-4-6",
     "effort": "high",
+    "maxTurns": 30
+  },
+  {
+    "id": "opus-4-6",
+    "name": "Claude Opus 4.6",
+    "model": "claude-opus-4-6",
+    "effort": "medium",
+    "maxTurns": 30
+  },
+  {
+    "id": "sonnet-4-6",
+    "name": "Claude Sonnet 4.6",
+    "model": "claude-sonnet-4-6",
+    "effort": "medium",
+    "maxTurns": 30
+  },
+  {
+    "id": "opus-4-7",
+    "name": "Claude Opus 4.7",
+    "model": "claude-opus-4-7",
+    "effort": "max",
     "maxTurns": 30
   },
   {
