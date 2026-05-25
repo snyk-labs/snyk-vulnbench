@@ -35,11 +35,18 @@ contains all CSS, SVG chart rendering JS, and the Snyk Evo color palette. Your j
 is to read the JSONL data, build compact chart specs, inject those specs into the
 template, and write all three output artifacts from the same source of truth.
 
+The generated HTML report must preserve the built-in section navigation UX: prominent
+purple-accented `h2` section cards, a one-level table of contents near the top that
+links to every report section, and a sticky left-side section rail on wide screens
+that highlights the current section while scrolling. Treat these as part of the
+standard report shell, not optional decoration.
+
 If the user provides pasted spreadsheet, CSV, markdown-table, or Google Sheets data
 instead of JSONL, normalize that table data into explicit JavaScript arrays and build
 a custom static page using the same Snyk Evo palette, typography, spacing, SVG chart
-style, rounded bars, section layout, and output path convention. Do not force raw
-article data into the benchmark JSONL schema when a custom chart page is clearer.
+style, rounded bars, section layout, top table of contents, sticky section rail, and
+output path convention. Do not force raw article data into the benchmark JSONL schema
+when a custom chart page is clearer.
 
 ### Step 1: Gather inputs
 
@@ -265,6 +272,7 @@ Write these files under the same output directory:
    - Self-contained static HTML report.
    - Embeds `CHART_SPECS`, not raw JSONL rows.
    - Renders SVG charts in the browser with stable anchors like `#chart-headline-score`.
+   - Renders one-level section navigation from `spec.section`: the top table of contents links to each `h2` section, and the sticky left rail highlights the current section while scrolling.
 
 2. `chart-manifest.json`
    - Machine-readable chart catalog.
@@ -320,6 +328,7 @@ Confirm the output files:
 - `index.html`, `chart-manifest.json`, and `article-visuals.md` exist and are non-empty.
 - `index.html` contains valid HTML (check for `<!DOCTYPE html>` at the start).
 - `index.html` contains `const CHART_SPECS =` and does not contain `const BENCHMARK_ROWS =` during normal aggregate-report generation.
+- `index.html` includes the standard section navigation shell: `#report-toc`, `#section-rail`, `sectionAnchor`, and `setupSectionSpy`.
 - `chart-manifest.json` parses as JSON and has `schemaVersion`, `htmlReport`, and a non-empty `charts` array.
 - Every chart in `chart-manifest.json` has `id`, `title`, `chartType`, `scope`, `metric`, `placeholder`, `htmlAnchor`, `caption`, `recommendedUse`, and `dataSummary`.
 - Every `htmlAnchor` in the manifest has a matching `id="chart-..."` or equivalent renderer-created anchor in the HTML template.
