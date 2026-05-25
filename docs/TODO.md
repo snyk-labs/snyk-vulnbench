@@ -33,3 +33,4 @@ Potential consideration for improvements from the above:
 1. The scorer should first go through all findings reported and then capture the one closest to the matching criteria for the ground truth, rather than its current implementation which is a first-seen match is accounted for (which is a naive loop approach)
 2. The scorer should also match the file as part of its criteria for a match 
 3. The scorer should also match the line number as part of its criteria for a match but allow for a +-5 lines of difference match. Meaning, a ground-truth report for line number 15 should be matched if the reported finding is on line 10 or line 20 or anything between 10 to 20, but shouldn't match if it's anything else lower or higher line number.
+4. Support for configurable scorers per benchmark execution. We would have the ability to choose from different scorer implementations and configure this for the benchmark execution to use one of them.
