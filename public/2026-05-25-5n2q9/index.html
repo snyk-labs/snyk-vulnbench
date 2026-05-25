@@ -21,6 +21,8 @@
       --muted: #5c5c5c;
       --grid: #e8e8e8;
       --axis: #000000;
+      --surface: #fafafa;
+      --surface-strong: #f4eef9;
       --radius: 6px;
       --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
@@ -39,6 +41,10 @@
 
     * {
       box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
     }
 
     body {
@@ -78,16 +84,125 @@
       color: var(--muted);
     }
 
+    .report-toc {
+      margin-top: 28px;
+      padding: 18px;
+      border: 1px solid var(--grid);
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(144, 67, 198, 0.08), rgba(0, 188, 255, 0.06)),
+        var(--surface);
+    }
+
+    .toc-heading {
+      margin: 0 0 12px;
+      color: var(--snyk-purple);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .toc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .toc-link,
+    .rail-link {
+      color: var(--text);
+      text-decoration: none;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .toc-link {
+      display: block;
+      min-height: 100%;
+      padding: 9px 11px;
+      border: 1px solid rgba(144, 67, 198, 0.16);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.84rem;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .toc-link:hover,
+    .toc-link:focus-visible,
+    .toc-link.active {
+      border-color: rgba(144, 67, 198, 0.48);
+      background: rgba(144, 67, 198, 0.12);
+      color: var(--snyk-purple);
+      outline: none;
+    }
+
+    .section-rail {
+      position: fixed;
+      top: 108px;
+      left: max(20px, calc((100vw - 1380px) / 2 + 20px));
+      z-index: 10;
+      width: 220px;
+      max-height: calc(100vh - 136px);
+      overflow: auto;
+      padding: 14px;
+      border: 1px solid var(--grid);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 18px 50px rgba(17, 17, 17, 0.08);
+    }
+
+    .rail-title {
+      margin-bottom: 10px;
+      color: var(--snyk-purple);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .rail-list {
+      display: grid;
+      gap: 3px;
+    }
+
+    .rail-link {
+      display: block;
+      padding: 8px 10px 8px 12px;
+      border-left: 3px solid transparent;
+      border-radius: 0 8px 8px 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .rail-link:hover,
+    .rail-link:focus-visible,
+    .rail-link.active {
+      border-left-color: var(--snyk-purple);
+      background: var(--surface-strong);
+      color: var(--snyk-purple);
+      outline: none;
+    }
+
     .task-group {
-      margin-bottom: 64px;
-      padding-bottom: 32px;
+      position: relative;
+      margin-bottom: 76px;
+      padding-bottom: 40px;
       border-bottom: 1px solid var(--grid);
+      scroll-margin-top: 32px;
     }
 
     .headline-group {
-      margin-bottom: 72px;
-      padding-bottom: 40px;
+      position: relative;
+      margin-bottom: 84px;
+      padding-bottom: 44px;
       border-bottom: 2px solid var(--axis);
+      scroll-margin-top: 32px;
     }
 
     .task-group:last-child {
@@ -96,17 +211,27 @@
 
     .task-group h2.task-title,
     .headline-group h2.task-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin: 0 0 4px;
+      padding: 14px 18px 14px 22px;
+      border-left: 5px solid var(--snyk-purple);
+      border-radius: 12px;
+      background:
+        linear-gradient(90deg, rgba(144, 67, 198, 0.14), rgba(0, 188, 255, 0.07)),
+        #ffffff;
+      color: var(--snyk-purple);
+      font-size: 1.55rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin: 0 0 8px;
       letter-spacing: -0.01em;
+      box-shadow: 0 10px 28px rgba(17, 17, 17, 0.05);
     }
 
     .task-group .task-subtitle,
     .headline-group .task-subtitle {
       font-size: 0.85rem;
       color: var(--muted);
-      margin: 0 0 24px;
+      margin: 0 0 28px;
+      padding-left: 27px;
     }
 
     section.chart-section {
@@ -217,14 +342,45 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
+
+    @media (max-width: 1280px) {
+      .section-rail {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 32px 18px 48px;
+      }
+
+      .task-group h2.task-title,
+      .headline-group h2.task-title {
+        font-size: 1.32rem;
+      }
+
+      .task-group .task-subtitle,
+      .headline-group .task-subtitle {
+        padding-left: 0;
+      }
+    }
   </style>
 </head>
 <body>
+  <aside id="section-rail" class="section-rail" aria-label="Report section navigation" hidden>
+    <div class="rail-title">Sections</div>
+    <nav id="section-rail-list" class="rail-list"></nav>
+  </aside>
+
   <div class="page">
     <header>
       <h1>Benchmark Results</h1>
       <p class="subtitle">Multi-task comparison: js-project-copperline-find-vulns, js-project-goldleaf-find-vulns, js-project-ironclad-find-vulns, js-project-nightowl-find-vulns, js-project-purplehaze-find-vulns, js-project-riverbend-find-vulns, js-project-shadowfox-find-vulns, js-project-silvergate-find-vulns, js-project-skylark-find-vulns, js-project-tigerteam-find-vulns</p>
       <p class="meta" id="report-meta"></p>
+      <nav id="report-toc" class="report-toc" aria-labelledby="report-toc-title" hidden>
+        <p id="report-toc-title" class="toc-heading">Sections</p>
+        <ol id="report-toc-list" class="toc-list"></ol>
+      </nav>
     </header>
 
     <div id="charts-root"></div>
@@ -4747,6 +4903,97 @@
       return "chart-" + safeId(spec.id);
     }
 
+    function sectionAnchor(section) {
+      return "section-" + safeId((section && (section.id || section.title)) || "charts");
+    }
+
+    function setActiveSection(sectionId) {
+      document.querySelectorAll("[data-section-target]").forEach((link) => {
+        const active = link.dataset.sectionTarget === sectionId;
+        link.classList.toggle("active", active);
+        if (active) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+    }
+
+    function buildSectionNavigation(sectionGroups) {
+      const navItems = sectionGroups.map(({ section }) => ({
+        id: sectionAnchor(section),
+        title: section.title || "Charts",
+        subtitle: section.subtitle || "",
+      }));
+
+      if (navItems.length === 0) return;
+
+      const toc = document.getElementById("report-toc");
+      const tocList = document.getElementById("report-toc-list");
+      const rail = document.getElementById("section-rail");
+      const railList = document.getElementById("section-rail-list");
+
+      tocList.innerHTML = "";
+      railList.innerHTML = "";
+
+      for (const item of navItems) {
+        const tocItem = document.createElement("li");
+        const tocLink = document.createElement("a");
+        tocLink.className = "toc-link";
+        tocLink.href = "#" + item.id;
+        tocLink.textContent = item.title;
+        tocLink.title = item.subtitle ? `${item.title} - ${item.subtitle}` : item.title;
+        tocLink.dataset.sectionTarget = item.id;
+        tocItem.appendChild(tocLink);
+        tocList.appendChild(tocItem);
+
+        const railLink = document.createElement("a");
+        railLink.className = "rail-link";
+        railLink.href = "#" + item.id;
+        railLink.textContent = item.title;
+        railLink.title = item.subtitle ? `${item.title} - ${item.subtitle}` : item.title;
+        railLink.dataset.sectionTarget = item.id;
+        railList.appendChild(railLink);
+      }
+
+      toc.hidden = false;
+      rail.hidden = false;
+      setActiveSection(navItems[0].id);
+    }
+
+    function setupSectionSpy(sectionIds) {
+      const sections = sectionIds.map((id) => document.getElementById(id)).filter(Boolean);
+      if (sections.length === 0) return;
+
+      let ticking = false;
+      const updateActive = () => {
+        const marker = Math.min(180, window.innerHeight * 0.28);
+        let current = sections[0].id;
+
+        for (const section of sections) {
+          if (section.getBoundingClientRect().top <= marker) {
+            current = section.id;
+          } else {
+            break;
+          }
+        }
+
+        setActiveSection(current);
+        ticking = false;
+      };
+
+      const requestUpdate = () => {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(updateActive);
+        }
+      };
+
+      document.addEventListener("scroll", requestUpdate, { passive: true });
+      window.addEventListener("resize", requestUpdate);
+      updateActive();
+    }
+
     function specRows(spec) {
       return (spec.dataSummary && spec.dataSummary.rows) || spec.rows || [];
     }
@@ -4930,14 +5177,20 @@
       document.getElementById("report-meta").textContent = `Charts embedded: ${specs.length}`;
 
       const root = document.getElementById("charts-root");
-      for (const { section, specs: sectionSpecs } of groupChartSpecs(specs)) {
+      const sectionGroups = groupChartSpecs(specs);
+      buildSectionNavigation(sectionGroups);
+
+      for (const { section, specs: sectionSpecs } of sectionGroups) {
         const group = document.createElement("div");
         group.className = section.kind === "headline" ? "headline-group" : "task-group";
+        group.id = sectionAnchor(section);
 
         const titleEl = document.createElement("h2");
         titleEl.className = "task-title";
+        titleEl.id = group.id + "-title";
         titleEl.textContent = section.title || "Charts";
         group.appendChild(titleEl);
+        group.setAttribute("aria-labelledby", titleEl.id);
 
         const subtitleEl = document.createElement("p");
         subtitleEl.className = "task-subtitle";
@@ -4950,6 +5203,8 @@
 
         root.appendChild(group);
       }
+
+      setupSectionSpy(sectionGroups.map(({ section }) => sectionAnchor(section)));
     }
 
     init();
