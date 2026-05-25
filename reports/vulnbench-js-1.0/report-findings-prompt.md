@@ -31,9 +31,12 @@ Guidance:
 ## Context
 
 Benchmark resources and context to pull the data from for the article write-up:
-- The full benchmarking results file is in JSONL format in the `reports/vulnbench-js-1.0/` directory. This is the structured JSON data.
-    - Inside the structured JSONL file, you will find the headline numbers for the report in JSON lines with this object key/value: `"_type":"config-aggregate"`.
-- The static HTML report is in the `reports/vulnbench-js-1.0/benchmark-report.html` file. This is the visual representation of the data, so we can embed and integrate visuals into the written article.
+- The full benchmarking results file is in JSONL format in the `reports/vulnbench-js-1.0/` directory. This is the structured JSON data, in this directory:
+  - Inside the structured JSONL file, you will find the headline numbers for the report in JSON lines with this object key/value: `"_type":"config-aggregate"`.
+  - Find the `article-visuals.md` file.
+  - Find the `chart-manifest.json` file.
+  - The static HTML report is in the `reports/vulnbench-js-1.0/index.html` file. This is the visual representation of the data, so that I can later use it to embed and integrate visuals into the written article.
+  - 
 
 ## Talking points 
 
