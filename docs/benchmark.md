@@ -797,13 +797,13 @@ Scenario B is the better result — and F1 correctly ranks it higher.
 
 ### How Vuln Type Matching Works
 
-The scorer (`scoreFindVulns` in `src/scorer.ts`) matches **parsed findings** (from an LLM or from a SAST command config — see below) to known vulnerabilities by their **normalized type**, not by file, line, Snyk rule id, or description. This is intentional:
+The scorer (`scoreFindVulns` in `src/scorer.ts`) matches **parsed findings** (from an LLM or from a SAST command config — see below) to known vulnerabilities by their **normalized type**, not by file, line, severity, Snyk rule id, or description. This is intentional:
 
 - An agent might say "line 29" instead of "line 28" — exact line matching would unfairly penalize this
 - An agent might phrase it as "SQL injection" or "SQLi" or "SQL Injection" — `normalizeVulnType` maps these to the same `VulnType` string (e.g. `"sql-injection"`) before comparing
 - Each known vuln can only be matched once (no double-counting)
 
-**Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>/findings.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file` and `line` on findings are stored in `details.agentFindings` for inspection and JSONL output but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
+**Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>/findings.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file`, `line`, and `severity` on findings are stored in `details.agentFindings` for inspection, JSONL output, and grouped breakdowns, but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
 
 This means a later, more precisely located finding can be reported as a **false positive** if an earlier same-type finding already consumed the matching ground-truth row. For example, if the ground truth has one `command-injection` at `app.js:17`, and an agent reports `command-injection` at `app.js:22` followed by `command-injection` at `app.js:17`, the first report is credited as the true positive and the second is counted as a duplicate false positive. The same can happen for repeated `allocation-of-resources-without-limits-or-throttling` findings: the first one consumes the one known resource-exhaustion slot, even if a later finding has the exact ground-truth line.
 
