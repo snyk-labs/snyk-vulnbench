@@ -573,7 +573,7 @@ flowchart TD
     A["Agent output text\n(contains FINDINGS_JSON block)"] --> B
     B["Parse JSON array\nfrom FINDINGS_JSON: block"] --> C
     C["Normalize each finding:\n• type string → VulnType enum\n• severity string → Severity enum"] --> D
-    D["Match findings to\nknown vulns by type"] --> E
+    D["Greedily match findings to\nknown vulns by normalized type\n(file/line are metadata)"] --> E
 
     E --> F["True Positives\nAgent found a real vuln"]
     E --> G["False Positives\nAgent reported a fake vuln"]
@@ -692,7 +692,7 @@ For **find-vulns**:
 {
   agentFindings: Vulnerability[];           // what the agent actually reported
   truePositives: VulnMatch[];              // correctly identified vulns ({ id, type, severity })
-  falsePositives: Vulnerability[];         // agent findings with no matching ground-truth vuln
+  falsePositives: Vulnerability[];         // unmatched agent findings, including duplicate reports after a same-type ground-truth vuln is already consumed
   falseNegatives: VulnMatch[];             // missed vulns ({ id, type, severity })
   precision: number;                        // 0–1
   recall: number;                           // 0–1
@@ -804,6 +804,8 @@ The scorer (`scoreFindVulns` in `src/scorer.ts`) matches **parsed findings** (fr
 - Each known vuln can only be matched once (no double-counting)
 
 **Algorithm (greedy, type-only):** `knownVulns` comes from the task in **array order** (as loaded from `fixtures/<fixture-name>/findings.json`). The scorer walks **findings in the order they appear** in the JSON array. For each finding, it picks the **first** ground-truth row that is not yet matched and whose `type` equals the finding’s type (`vulnTypesMatch` — strict equality on `VulnType` after normalization). `file` and `line` on findings are stored in `details.agentFindings` for inspection and JSONL output but **play no role** in true positive / false positive / false negative counts. (A code comment in `scorer.ts` mentions “within same file”; the implementation does **not** filter by file.)
+
+This means a later, more precisely located finding can be reported as a **false positive** if an earlier same-type finding already consumed the matching ground-truth row. For example, if the ground truth has one `command-injection` at `app.js:17`, and an agent reports `command-injection` at `app.js:22` followed by `command-injection` at `app.js:17`, the first report is credited as the true positive and the second is counted as a duplicate false positive. The same can happen for repeated `allocation-of-resources-without-limits-or-throttling` findings: the first one consumes the one known resource-exhaustion slot, even if a later finding has the exact ground-truth line.
 
 If you add a fixture with two different SQL injections in the same file, give them different IDs (`sqli-1`, `sqli-2`) so they appear as two ground-truth rows. The scorer will match **at most two** `sql-injection` findings to them, in **pairing order**: the *i*-th reported `sql-injection` finding in the parsed array pairs with the *i*-th still-unmatched `sql-injection` in `knownVulns` order — not by comparing line numbers to the JSON `line` fields.
 
