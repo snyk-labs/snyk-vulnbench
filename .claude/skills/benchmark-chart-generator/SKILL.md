@@ -224,6 +224,28 @@ Mapping rules:
 - Include `stdDev` and `repetitions` on bar rows whenever the source aggregate contains standard deviation data.
 - For custom charts such as heatmaps or baseline delta charts, add a clear `chartType` value and enough `dataSummary` content for the renderer and article handoff. If the default template cannot render that type yet, still include it in `chart-manifest.json` and mark it in `article-visuals.md` as a planned/custom visual.
 
+Pareto-style scatter rules:
+- Use `chartType: "scatter"` for Pareto-style plots unless the template has been extended with a dedicated `pareto-scatter` renderer. The default template renders ordinary scatter charts, so encode Pareto interpretation in `caption`, `recommendedUse`, and `talkingPoints`.
+- For `score-vs-cost`, use `x = totalCostUsd` and `y = score`, include only rows where `runConfigType === "model"` and `totalCostUsd` is a number, and exclude Snyk Code SAST because command rows have `totalCostUsd: null` and are not comparable to model session costs. Lower x and higher y are better.
+- For `score-vs-duration`, use `x = sessionDurationMs` and `y = score`, include both model and command rows, including Snyk Code SAST, because wall-clock duration and score are shared benchmark metrics. Lower x and higher y are better.
+- For `recall-vs-precision`, use `x = recall` and `y = precision`, include both model and command rows when both fields are numeric. This plot is most useful for `find-vulns` results because it shows behavior differences: precision-oriented configs avoid false positives, while recall-oriented configs find more real vulnerabilities but may hallucinate more. Higher x and higher y are better.
+- For `score-stability`, use `x = scoreStdDev` and `y = score`, include both model and command rows when `repetitions > 1`. This shows quality plus run stability; Snyk Code SAST often has `scoreStdDev: 0`, which is meaningful because command runs are deterministic relative to repeated model runs. Lower x and higher y are better.
+- Add a `talkingPoints` item naming the apparent Pareto frontier or the dominant point when the aggregate data makes it obvious. Treat a point as dominated when another point is at least as good on both axes and strictly better on one axis.
+- Keep Snyk Code SAST in shared-metric scatters (`score-vs-duration`, `recall-vs-precision`, `score-stability`) when it is part of the benchmark, but keep model-session-only metrics (`totalCostUsd`, `totalTokens`, context usage) model-only unless the chart explicitly explains command values as not applicable.
+
+Example Pareto-style aggregate data from a 10-fixture find-vulns run:
+
+| Config | Score | Duration | Cost | Recall | Precision | Score std dev |
+|---|---:|---:|---:|---:|---:|---:|
+| Snyk Code SAST | 1.000 | 14758.1 | N/A | 1.000 | 1.000 | 0.000 |
+| Claude Opus 4.6 Medium | 0.754 | 27324.2 | 0.0628 | 0.680 | 0.915 | 0.002 |
+| Claude Opus 4.6 High | 0.752 | 53827.1 | 0.1249 | 0.682 | 0.898 | 0.003 |
+| Claude Opus 4.7 Max | 0.688 | 37350.7 | 0.3559 | 0.714 | 0.696 | 0.022 |
+| Claude Sonnet 4.6 Medium | 0.674 | 59318.1 | 0.0860 | 0.809 | 0.626 | 0.009 |
+| Claude Sonnet 4.6 High | 0.649 | 94820.6 | 0.1322 | 0.813 | 0.586 | 0.035 |
+
+In this example, `score-vs-cost` should be model-only and highlights Claude Opus 4.6 Medium as the best quality/cost point. `score-vs-duration` should include Snyk Code SAST and shows it dominating the shared benchmark outcome. `recall-vs-precision` should include Snyk Code SAST and shows Opus 4.6 as more precision-oriented while Sonnet 4.6 is more recall-oriented. `score-stability` should include Snyk Code SAST and shows quality together with repeated-run variance.
+
 For custom chart renderers, compute the y-axis scale with label headroom, not just
 data coverage. Reserve about 10-15% space above the tallest visible value (including
 stacked totals) so value labels sit in white space above bars. Avoid clamping labels
@@ -304,6 +326,7 @@ Confirm the output files:
 - `article-visuals.md` includes one figure entry per manifest chart and uses the same placeholders.
 - Score and duration charts include standard-deviation values when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`.
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
+- Pareto-style scatter plots follow the Snyk inclusion rules: model-only for `score-vs-cost`, model plus command rows for `score-vs-duration`, `recall-vs-precision`, and `score-stability`.
 - Multi-task reports include task-level chart specs when `"task-aggregate"` rows cover at least two tasks.
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top.
 
@@ -457,11 +480,11 @@ When the user asks for comparisons, use these patterns:
 | Effort level comparison | `effort` + `score` (or `metrics.totalCostUsd`) | Bar chart or scatter |
 | Cost comparison | `totalCostUsd` on aggregate rows | Bar chart, with null command costs shown as N/A |
 | Token usage comparison | `totalTokens` on aggregate rows | Bar chart |
-| Cost vs quality tradeoff | `totalCostUsd` vs `score` | Scatter plot |
-| Speed vs quality tradeoff | `sessionDurationMs` vs `score` | Scatter plot |
+| Cost vs quality tradeoff | `totalCostUsd` vs `score`, model rows only | Pareto-style scatter plot |
+| Speed vs quality tradeoff | `sessionDurationMs` vs `score`, model and command rows | Pareto-style scatter plot |
 | Context vs quality tradeoff | `totalTokens` vs `score` for model configs | Scatter plot |
-| Detection quality tradeoff | `precision` vs `recall` for find-vulns rows | Scatter plot |
-| Quality vs stability | `scoreStdDev` vs `score` when repetitions > 1 | Scatter plot |
+| Detection quality tradeoff | `recall` vs `precision` for find-vulns rows, model and command rows | Pareto-style scatter plot |
+| Quality vs stability | `scoreStdDev` vs `score` when repetitions > 1, model and command rows | Pareto-style scatter plot |
 | Runtime stability across repetitions | `sessionDurationMs` + `sessionDurationStdDevMs` on aggregate rows | Bar chart with vertical error bars and `mean ± SD` labels |
 | Which fixtures are hard? | `taskId` x `runConfigName` from `"task-aggregate"` rows, colored by `score` | Heatmap |
 | Compare against a baseline | Matched `"task-aggregate"` rows, `comparison.score - baseline.score` | Diverging delta bars |
@@ -552,8 +575,9 @@ Actions:
 1. Read the latest JSONL file and select aggregate rows.
 2. Build chart specs for the standard headline and per-task bar charts.
 3. Add scatter chart specs for supported headline tradeoffs:
-   score vs cost, score vs duration, and recall vs precision when available.
-4. Verify the scatter specs and article placeholders appear only when there are at least two valid points.
+   score vs cost, score vs duration, recall vs precision, and score stability when available.
+4. Apply Pareto-style inclusion rules: keep Snyk Code SAST out of score vs cost, but include it in score vs duration, recall vs precision, and score stability when those shared metrics are present.
+5. Verify the scatter specs and article placeholders appear only when there are at least two valid points.
 
 Result: A report with the usual benchmark charts plus tradeoff scatter plots, and an article guide that tells the writer where each tradeoff visual belongs.
 
