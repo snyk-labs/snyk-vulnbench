@@ -176,6 +176,40 @@
       fill: var(--muted);
     }
 
+    .scatter-legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px 18px;
+      margin-top: 14px;
+      font-size: 0.76rem;
+      color: var(--muted);
+    }
+
+    .scatter-legend-item {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .scatter-legend-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .scatter-legend-label {
+      color: var(--text);
+      font-weight: 600;
+    }
+
     footer {
       margin-top: 32px;
       padding-top: 20px;
@@ -261,7 +295,9 @@
     function fmtMs(ms) {
       if (!isFiniteNumber(ms)) return "N/A";
       if (ms >= 1000) return (ms / 1000).toFixed(1) + " s";
-      return ms + " ms";
+      if (ms >= 100) return Math.round(ms) + " ms";
+      if (ms >= 10) return ms.toFixed(1) + " ms";
+      return ms.toFixed(2) + " ms";
     }
 
     function fmtMsWithStdDev(ms, stdDevMs, repetitions) {
@@ -292,6 +328,41 @@
       return [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => t * max);
     }
 
+    function wrapLabel(label, maxChars = 14, maxLines = 3) {
+      const words = String(label || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = "";
+      for (const word of words) {
+        const next = current ? current + " " + word : word;
+        if (next.length <= maxChars || !current) {
+          current = next;
+        } else {
+          lines.push(current);
+          current = word;
+        }
+        if (lines.length === maxLines - 1) break;
+      }
+      const usedWords = lines.join(" ").split(/\s+/).filter(Boolean).length + (current ? current.split(/\s+/).length : 0);
+      if (current) lines.push(current);
+      if (usedWords < words.length && lines.length > 0) {
+        const last = lines[lines.length - 1];
+        lines[lines.length - 1] = last.length > maxChars - 3 ? last.slice(0, maxChars - 3) + "..." : last + "...";
+      }
+      return lines.slice(0, maxLines);
+    }
+
+    function appendMultilineText(parent, attrs, lines, lineHeight = 14) {
+      const text = ns("text", attrs);
+      lines.forEach((line, index) => {
+        text.appendChild(ns("tspan", {
+          x: attrs.x,
+          dy: index === 0 ? 0 : lineHeight,
+        }, [line]));
+      });
+      parent.appendChild(text);
+      return text;
+    }
+
     function renderBarChart(container, options) {
       const {
         title,
@@ -306,18 +377,20 @@
         errorValues = [],
       } = options;
 
-      const W = 720;
-      const H = 260;
-      const margin = { top: 28, right: 24, bottom: 52, left: 64 };
+      const n = categories.length;
+      const labelLines = categories.map((label) => wrapLabel(label, 14, 3));
+      const maxLabelLines = Math.max(...labelLines.map((lines) => lines.length), 1);
+      const W = Math.max(760, 112 + n * 128);
+      const H = 286 + Math.max(0, maxLabelLines - 2) * 14;
+      const margin = { top: 48, right: 28, bottom: 42 + maxLabelLines * 14, left: 86 };
       const innerW = W - margin.left - margin.right;
       const innerH = H - margin.top - margin.bottom;
-      const n = categories.length;
-      const gap = innerW * 0.12 / Math.max(n - 1, 1);
+      const gap = innerW * 0.1 / Math.max(n - 1, 1);
       const barW = (innerW - gap * (n - 1)) / n;
 
       const svg = ns("svg", {
         viewBox: `0 0 ${W} ${H}`,
-        width: "100%",
+        width: W,
         height: H,
         role: "img",
         "aria-label": title,
@@ -335,7 +408,7 @@
             "text",
             {
               class: "tick-label",
-              x: -10,
+              x: -14,
               y: y + 4,
               "text-anchor": "end",
               "font-size": "11",
@@ -351,7 +424,7 @@
       const yLabel = ns("text", {
         class: "y-label",
         x: -innerH / 2,
-        y: -50,
+        y: -66,
         transform: "rotate(-90)",
         "text-anchor": "middle",
       }, [yAxisLabel]);
@@ -388,23 +461,17 @@
         const valText = ns("text", {
           class: "value-label",
           x: xMid,
-          y: Math.max(12, (err > 0 ? yUpper : y) - 8),
+          y: Math.max(14, (err > 0 ? yUpper : y) - 10),
           "text-anchor": "middle",
         }, [valueFormat(rawValue, i)]);
         gRoot.appendChild(valText);
 
-        const words = label.split(" ");
-        const lines = words.length > 4 ? [words.slice(0, 3).join(" "), words.slice(3).join(" ")] : [label];
-        lines.forEach((line, li) => {
-          gRoot.appendChild(
-            ns("text", {
-              class: "tick-label",
-              x: x + barW / 2,
-              y: innerH + 18 + li * 14,
-              "text-anchor": "middle",
-            }, [line])
-          );
-        });
+        appendMultilineText(gRoot, {
+          class: "tick-label",
+          x: x + barW / 2,
+          y: innerH + 18,
+          "text-anchor": "middle",
+        }, labelLines[i]);
       });
 
       container.innerHTML = "";
@@ -412,13 +479,15 @@
     }
 
     function renderGroupedRecallPrecision(container, categories, recall, precision, colorPairs) {
-      const W = 720;
-      const H = 280;
-      const margin = { top: 36, right: 24, bottom: 56, left: 64 };
+      const n = categories.length;
+      const labelLines = categories.map((label) => wrapLabel(label, 14, 3));
+      const maxLabelLines = Math.max(...labelLines.map((lines) => lines.length), 1);
+      const W = Math.max(760, 112 + n * 128);
+      const H = 306 + Math.max(0, maxLabelLines - 2) * 14;
+      const margin = { top: 52, right: 28, bottom: 42 + maxLabelLines * 14, left: 86 };
       const innerW = W - margin.left - margin.right;
       const innerH = H - margin.top - margin.bottom;
-      const yMax = 1;
-      const n = categories.length;
+      const yMax = 1.14;
       const groupW = innerW / n;
       const innerGap = groupW * 0.15;
       const pairW = groupW - innerGap;
@@ -456,7 +525,7 @@
 
       const svg = ns("svg", {
         viewBox: `0 0 ${W} ${H}`,
-        width: "100%",
+        width: W,
         height: H,
         role: "img",
         "aria-label": "Recall and precision by run",
@@ -467,14 +536,14 @@
 
       const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1];
       for (const t of yTicks) {
-        const y = innerH - t * innerH;
+        const y = innerH - (t / yMax) * innerH;
         gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
         gRoot.appendChild(
           ns(
             "text",
             {
               class: "tick-label",
-              x: -10,
+              x: -14,
               y: y + 4,
               "text-anchor": "end",
               "font-size": "11",
@@ -490,7 +559,7 @@
         ns("text", {
           class: "y-label",
           x: -innerH / 2,
-          y: -50,
+          y: -66,
           transform: "rotate(-90)",
           "text-anchor": "middle",
         }, ["RATE"])
@@ -505,7 +574,7 @@
         ];
         vals.forEach((item, j) => {
           const x = gx + j * (barW + 6);
-          const h = item.v * innerH;
+          const h = (item.v / yMax) * innerH;
           const y = innerH - h;
           gRoot.appendChild(
             ns("path", {
@@ -518,22 +587,19 @@
             ns("text", {
               class: "value-label",
               x: x + barW / 2,
-              y: y - 6,
+              y: Math.max(14, y - (j === 0 ? 10 : 24)),
               "text-anchor": "middle",
               "font-size": "11",
             }, [pct(item.v)])
           );
         });
 
-        const short = label.length > 22 ? label.slice(0, 20) + "…" : label;
-        gRoot.appendChild(
-          ns("text", {
-            class: "tick-label",
-            x: gx + pairW / 2,
-            y: innerH + 20,
-            "text-anchor": "middle",
-          }, [short])
-        );
+        appendMultilineText(gRoot, {
+          class: "tick-label",
+          x: gx + pairW / 2,
+          y: innerH + 20,
+          "text-anchor": "middle",
+        }, labelLines[i]);
       });
 
       container.innerHTML = "";
@@ -564,9 +630,9 @@
         yTicks,
       } = options;
 
-      const W = 720;
-      const H = 300;
-      const margin = { top: 32, right: 28, bottom: 64, left: 64 };
+      const W = 820;
+      const H = 320;
+      const margin = { top: 44, right: 36, bottom: 70, left: 86 };
       const innerW = W - margin.left - margin.right;
       const innerH = H - margin.top - margin.bottom;
       const xMin = xRange.min;
@@ -579,7 +645,7 @@
       const yScale = (value) => innerH - ((value - yMin) / (yMax - yMin)) * innerH;
       const svg = ns("svg", {
         viewBox: `0 0 ${W} ${H}`,
-        width: "100%",
+        width: W,
         height: H,
         role: "img",
         "aria-label": title,
@@ -596,26 +662,54 @@
       for (const t of yTicks) {
         const y = yScale(t);
         gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
-        gRoot.appendChild(ns("text", { class: "tick-label", x: -10, y: y + 4, "text-anchor": "end", "font-size": "11", fill: "#5c5c5c" }, [yFormat(t)]));
+        gRoot.appendChild(ns("text", { class: "tick-label", x: -14, y: y + 4, "text-anchor": "end", "font-size": "11", fill: "#5c5c5c" }, [yFormat(t)]));
       }
 
       gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: innerW, y1: innerH, y2: innerH }));
       gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: 0, y1: 0, y2: innerH }));
-      gRoot.appendChild(ns("text", { class: "y-label", x: -innerH / 2, y: -50, transform: "rotate(-90)", "text-anchor": "middle" }, [yAxisLabel]));
+      gRoot.appendChild(ns("text", { class: "y-label", x: -innerH / 2, y: -66, transform: "rotate(-90)", "text-anchor": "middle" }, [yAxisLabel]));
       gRoot.appendChild(ns("text", { class: "y-label", x: innerW / 2, y: innerH + 52, "text-anchor": "middle" }, [xAxisLabel]));
 
-      points.forEach((point) => {
+      points.forEach((point, index) => {
         const x = xScale(xValue(point));
         const y = yScale(yValue(point));
-        const anchor = x > innerW * 0.72 ? "end" : "start";
-        const labelX = anchor === "end" ? x - 12 : x + 12;
         gRoot.appendChild(ns("circle", { cx: x, cy: y, r: 7, fill: point.barMain }));
-        gRoot.appendChild(ns("text", { class: "value-label", x: labelX, y: y - 7, "text-anchor": anchor, "font-size": "11" }, [point.label]));
-        gRoot.appendChild(ns("text", { class: "tick-label", x: labelX, y: y + 10, "text-anchor": anchor, "font-size": "10", fill: "#5c5c5c" }, [`${xFormat(xValue(point))} / ${yFormat(yValue(point))}`]));
+        gRoot.appendChild(ns("text", {
+          x,
+          y: y + 4,
+          "text-anchor": "middle",
+          "font-size": "9",
+          "font-weight": "700",
+          fill: "#ffffff",
+        }, [String(index + 1)]));
       });
 
       container.innerHTML = "";
       container.appendChild(svg);
+
+      const legend = document.createElement("div");
+      legend.className = "scatter-legend";
+      points.forEach((point, index) => {
+        const item = document.createElement("div");
+        item.className = "scatter-legend-item";
+
+        const badge = document.createElement("span");
+        badge.className = "scatter-legend-index";
+        badge.style.background = point.barMain;
+        badge.textContent = String(index + 1);
+        item.appendChild(badge);
+
+        const text = document.createElement("span");
+        const label = document.createElement("span");
+        label.className = "scatter-legend-label";
+        label.textContent = point.label;
+        text.appendChild(label);
+        text.appendChild(document.createTextNode(`: ${xFormat(xValue(point))} / ${yFormat(yValue(point))}`));
+        item.appendChild(text);
+
+        legend.appendChild(item);
+      });
+      container.appendChild(legend);
     }
 
     function normalizeAggregateRows(rows) {
@@ -907,15 +1001,16 @@
     }
 
     function defaultYMax(unit, values, errors) {
-      if (unit === "percent") return 1;
       const adjustedValues = values.map((value, i) => {
         const safeValue = isFiniteNumber(value) ? value : 0;
         const safeError = isFiniteNumber(errors[i]) ? Math.max(0, errors[i]) : 0;
         return safeValue + safeError;
       });
-      if (unit === "milliseconds") return niceMax(adjustedValues, 5000);
-      if (unit === "tokens") return niceMax(adjustedValues, 25000);
-      if (unit === "usd") return Math.max(0.01, Math.ceil(Math.max(...adjustedValues, 0) * 100) / 100);
+      const maxAdjusted = Math.max(...adjustedValues, 0);
+      if (unit === "percent") return Math.max(1, Math.min(1.25, maxAdjusted * 1.16));
+      if (unit === "milliseconds") return niceMax(adjustedValues.map((value) => value * 1.16), 5000);
+      if (unit === "tokens") return niceMax(adjustedValues.map((value) => value * 1.16), 25000);
+      if (unit === "usd") return Math.max(0.01, Math.ceil(maxAdjusted * 1.16 * 100) / 100);
       return Math.max(1, Math.max(...adjustedValues, 0) * 1.15);
     }
 
@@ -989,7 +1084,7 @@
       if (points.length < 2) return;
       const xUnit = unitFor(spec, "x");
       const yUnit = unitFor(spec, "y");
-      const yRange = spec.yRange || (yUnit === "percent" ? { min: 0, max: 1 } : valueRange(points.map((point) => point.y)));
+      const yRange = spec.yRange || (yUnit === "percent" ? { min: 0, max: 1.08 } : valueRange(points.map((point) => point.y)));
       const wrap = makeChartSection(group, spec);
       renderScatterChart(wrap, {
         title: spec.title || spec.id,
