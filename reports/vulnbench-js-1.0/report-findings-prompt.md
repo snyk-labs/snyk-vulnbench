@@ -2,7 +2,7 @@ We are now going to author the final benchmarking article. See below sections fo
 
 ## Benchmark goal
 
-Snyk VulnBench is a benchmarking project that evaulates how well do coding agents and LLMs score in finding vulnerabilities in comparison to Snyk's Symbolic AI SAST engine.
+Snyk VulnBench is a benchmarking project that evaluates how well do coding agents and LLMs score in finding vulnerabilities in comparison to Snyk's Symbolic AI SAST engine.
 
 Snyk VulnBench JS 1.0 (`vulnbench-js-1.0`) focuses on JavaScript source code of small self-contained Express based Node.js applications.
 
@@ -12,7 +12,7 @@ Snyk VulnBench JS 1.0 (`vulnbench-js-1.0`) focuses on JavaScript source code of 
 
 - The benchmark is a set of 10 small JavaScript source code snippets based on Express 4 application framework.
 - The focus of the benchmark is to evaluate the ability of the models to find vulnerabilities in source code, focusing on SAST.
-- The various projects code that is being tested are source code snippets with Lines of Code (LOC) spanning between 20 to 300 lines of code. Some are backend Node.js only, and others includ a similarly small footprint client-side frontend.
+- The various projects code that is being tested are source code snippets with Lines of Code (LOC) spanning between 20 to 300 lines of code. Some are backend Node.js only, and others include a similarly small footprint client-side frontend.
 - The projects are located in the `fixtures/` directory.
 - The projects are named `js-project-<name>-find-vulns`.
 - The projects are written in JavaScript.
@@ -80,7 +80,7 @@ Even though I have provided for you talking points below, they shouldn't be used
 
 ### General proposal for talking points in the article
 
-- Non-deterministic aspect of LLMs and coding agents - the benchmark ran with 5 repetitions and we keep a log of standard deviation represented by error bars in the visual charts. This is helpful to make the point so that even if there was a run that the model scored 100%, there is potentially another run where it scored lower. If that is the case, then it makes a good argument that the non-deterministic aspect of LLMs (even with an advance harness as that of Claude Code) introduces unexepcted variance that may miss reporting on real vulnerabilities.
+- Non-deterministic aspect of LLMs and coding agents - the benchmark ran with 5 repetitions and we keep a log of standard deviation represented by error bars in the visual charts. This is helpful to make the point so that even if there was a run that the model scored 100%, there is potentially another run where it scored lower. If that is the case, then it makes a good argument that the non-deterministic aspect of LLMs (even with an advance harness as that of Claude Code) introduces unexpected variance that may miss reporting on real vulnerabilities.
 - Wall time execution - speed of execution. Does this slow down developers, agents and CIs? how does it compare against Snyk Code?
 - Token spend and cost - where-as average run cost in this benchmark may be low, how does this scale with real code-bases that are far greater than a single file of 50 LOC? how does it scale when analysis needs to be performed on every coding agent session, every commit, push and PR opened in the repository?
 
@@ -106,7 +106,7 @@ For one of the tasks, `js-project-copperline-find-vulns`, both Sonnet configs ha
 
 From this eval:
 
-- Claude Sonnet 4.6 High had an aggregate of 17 FPs total across 5 reps (mataining 0 FNs). Sampling from the repetaitions:
+- Claude Sonnet 4.6 High had an aggregate of 17 FPs total across 5 reps (maintaining 0 FNs). Sampling from the repetitions:
     - Rep 1: 4 FPs: missing auth/authz, information exposure from returned command output, weak package type/name validation, CSRF.
     - Rep 2: 2 FPs: information exposure, missing auth/authz.
     - Rep 3: 3 FPs: missing auth/authz, information exposure, CSRF.
@@ -330,5 +330,5 @@ app.get("/users", (req, res) => {
 
 Under the benchmark, this is counted as a false positive because Snyk Code SAST does not include SQL injection in the ground truth. That is likely because `dbQuery()` is a mock helper that logs and returns an empty array rather than calling a real SQL execution sink. This is a useful distinction to call out: the models inferred a plausible SQL injection from the string construction pattern, while Snyk appears to require a recognized executable sink before reporting it.
 
-The main insight from Tigerteam is that LLM-based review can be very good at spotting familiar, high-salience vulnerability shapes, especially direct XSS, path traversal, command injection, and hardcoded secrets. But even in a tiny file, the models under-reported framework configuration and resource-exhaustion findings that Snyk Code captured consistently and overreported non-existent security issues.
+The main insight from Tigerteam is that LLM-based review can be very good at spotting familiar, high-salience vulnerability shapes, especially direct XSS, path traversal, command injection, and hardcoded secrets. But even in a tiny file, the models under-reported framework configuration and resource-exhaustion findings that Snyk Code captured consistently and over-reported non-existent security issues.
 
