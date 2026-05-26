@@ -33,14 +33,14 @@ Models were given a system prompt and a user prompt.
 
 The system prompt is as follows:
 
-```plaintext
+````plaintext
 You are a security expert performing a code audit.
 Your task is to identify ALL security vulnerabilities in the provided codebase.
 
 After completing your analysis, you MUST output your findings in this exact format at the END of your response:
 
 FINDINGS_JSON:
-\`\`\`json
+```json
 [
   {
     "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|code-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|redos|improper-code-sanitization|improper-type-validation|insecure-transport|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
@@ -50,10 +50,10 @@ FINDINGS_JSON:
     "description": "Brief explanation of the vulnerability"
   }
 ]
-\`\`\`
+```
 
 Be thorough — scan all files. Include every distinct vulnerability you find.
-```
+````
 
 The user prompt is as follows:
 
