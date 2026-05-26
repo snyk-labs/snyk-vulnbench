@@ -28,6 +28,7 @@ Snyk VulnBench JS 1.0 (`vulnbench-js-1.0`) focuses on JavaScript source code of 
 - The benchmark included a straight-forward prompt guidance for the models (see later).
 - The benchmark evaluated said models within the Claude Code harness using the Claude Agent SDK.
 - The ground truth dataset for the findings in which the models were compared against is provided by Snyk Code detection results. As such, and in full transparency, we treat Snyk Code reported vulnerabilities as the actuals and the baseline for the scope of True Positive (TP) and True Negatives (TN). In this sense, this benchmark compares how well the models do in finding the same vulnerabilities that Snyk Code reports on.
+- The scorer takes a lenient approach to score true positive findings: it matches model responses solely based on the type of the vulnerability reported, and doesn't strict requiring matching for the same line number, file name, or severity.
 
 ### The benchmark prompt for models
 
