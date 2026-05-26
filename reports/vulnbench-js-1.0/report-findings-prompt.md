@@ -23,12 +23,14 @@ Snyk VulnBench JS 1.0 (`vulnbench-js-1.0`) focuses on JavaScript source code of 
 
 ### The benchmark methodology
 
-- The benchmark evaluated 5 different model configurations (model and reasoning): Claude Sonnet 4.6 Medium, Claude Sonnet 4.6 High, Claude Opus 4.6 Medium, Claude Opus 4.6 High and Claude Opus 4.7 Max.
-- The benchmark executed with 5 repetitions per each configuration of model+reasoning.
-- The benchmark included a straight-forward prompt guidance for the models (see later).
-- The benchmark evaluated said models within the Claude Code harness using the Claude Agent SDK.
-- The ground truth dataset for the findings in which the models were compared against is provided by Snyk Code detection results. As such, and in full transparency, we treat Snyk Code reported vulnerabilities as the actuals and the baseline for the scope of True Positive (TP) and True Negatives (TN). In this sense, this benchmark compares how well the models do in finding the same vulnerabilities that Snyk Code reports on.
-- The scorer takes a lenient approach to score true positive findings: it matches model responses solely based on the type of the vulnerability reported, and doesn't strict requiring matching for the same line number, file name, or severity.
+- The benchmark evaluated 10 JavaScript fixture projects containing 44 Snyk Code reference findings.
+- The benchmark evaluated 5 model configurations: Claude Sonnet 4.6 Medium, Claude Sonnet 4.6 High, Claude Opus 4.6 Medium, Claude Opus 4.6 High and Claude Opus 4.7 Max.
+- Each model configuration was run 5 times per task to account for run-to-run variability, for a total of 250 model runs: 10 tasks x 5 model configurations x 5 repetitions.
+- The full benchmark includes one additional Snyk Code SAST baseline configuration, also run 5 times per task, bringing the total benchmark execution to 300 runs: 10 tasks x 6 configurations x 5 repetitions.
+- The benchmark used straightforward vulnerability-finding prompt guidance for the models (see later), executed inside the Claude Code harness via the Claude Agent SDK.
+- The ground truth dataset is provided by Snyk Code detection results. As such, and in full transparency, we treat Snyk Code reported vulnerabilities as the benchmark reference set and measure how well models identify the same vulnerability classes.
+- The scorer takes a lenient approach to true-positive matching: it matches model responses solely based on the type of vulnerability reported, without requiring the same line number, file name, or severity.
+- Results are reported with precision, recall, and F1 score, then averaged across repeated runs. They should be interpreted as agreement with the Snyk Code reference set, not as a complete measure of all possible vulnerabilities in the projects.
 
 ### The benchmark prompt for models
 
