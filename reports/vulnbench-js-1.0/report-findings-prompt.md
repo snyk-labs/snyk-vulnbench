@@ -4,6 +4,8 @@ We are now going to author the final benchmarking article. See below sections fo
 
 Snyk VulnBench is a benchmarking project that evaulates how well do coding agents and LLMs score in finding vulnerabilities in comparison to Snyk's Symbolic AI SAST engine.
 
+Snyk VulnBench JS 1.0 (`vulnbench-js-1.0`) focuses on JavaScript source code of small self-contained Express based Node.js applications.
+
 ## Benchmark setup
 
 ### The benchmark setup
