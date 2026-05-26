@@ -2,14 +2,15 @@ We are now going to author the final benchmarking article. See below sections fo
 
 ## Benchmark goal
 
-
+Snyk VulnBench is a benchmarking project that evaulates how well do coding agents and LLMs score in finding vulnerabilities in comparison to Snyk's Symbolic AI SAST engine.
 
 ## Benchmark setup
 
-The benchmark setup:
+### The benchmark setup
+
 - The benchmark is a set of 10 small JavaScript source code snippets based on Express 4 application framework.
-- The focus of the benchmark was to evaluate the ability of the models to find vulnerabilities in the source code snippets.
-- The source code snippets Lines of Code (LOC) are between 20 to 300 lines of code.
+- The focus of the benchmark is to evaluate the ability of the models to find vulnerabilities in source code, focusing on SAST.
+- The various projects code that is being tested are source code snippets with Lines of Code (LOC) spanning between 20 to 300 lines of code. Some are backend Node.js only, and others includ a similarly small footprint client-side frontend.
 - The projects are located in the `fixtures/` directory.
 - The projects are named `js-project-<name>-find-vulns`.
 - The projects are written in JavaScript.
@@ -18,17 +19,49 @@ The benchmark setup:
 - There are no indications of the vulnerabilities in the source code snippets, not via comments, nor via code structure, nor via naming conventions.
 - Projects are mostly self-contained within a single `app.js` file and some projects have included static HTML files via Template Engines or plain HTML and JavaScript files, mostly contained in an `index.html` and a `app.js` file.
 
-## Guidelines
+### The benchmark methodology
 
-Guidance:
-- The benchmark evaluated Sonnet 4.6, Opus 4.6, and Opus 4.7. Sonnet 4.6 and Opus 4.6 included runs with both `medium` and `high` effort levels. Opus 4.7 included runs with the `max` effort level.
+- The benchmark evaluated 5 different model configurations (model and reasoning): Claude Sonnet 4.6 Medium, Claude Sonnet 4.6 High, Claude Opus 4.6 Medium, Claude Opus 4.6 High and Claude Opus 4.7 Max.
 - The benchmark executed with 5 repetitions per each configuration of model+reasoning.
-- The benchmark included a straight-forward prompt guidance for the models (I will provide it in the references below)
+- The benchmark included a straight-forward prompt guidance for the models (see later).
 - The benchmark evaluated said models within the Claude Code harness using the Claude Agent SDK.
 - The ground truth dataset for the findings in which the models were compared against is provided by Snyk Code detection results. As such, and in full transparency, we treat Snyk Code reported vulnerabilities as the actuals and the baseline for the scope of True Positive (TP) and True Negatives (TN). In this sense, this benchmark compares how well the models do in finding the same vulnerabilities that Snyk Code reports on.
-- Even though I have provided for you talking points below, they shouldn't be use verbatim nor turn into an opinion article but rather help you with overall direction and interpretation of the data.
 
-## Context
+### The benchmark prompt for models
+
+Models were given a system prompt and a user prompt.
+
+The system prompt is as follows:
+
+```plaintext
+You are a security expert performing a code audit.
+Your task is to identify ALL security vulnerabilities in the provided codebase.
+
+After completing your analysis, you MUST output your findings in this exact format at the END of your response:
+
+FINDINGS_JSON:
+\`\`\`json
+[
+  {
+    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|code-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|redos|improper-code-sanitization|improper-type-validation|insecure-transport|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
+    "file": "filename.ext",
+    "line": <line number or null>,
+    "severity": "critical|high|medium|low",
+    "description": "Brief explanation of the vulnerability"
+  }
+]
+\`\`\`
+
+Be thorough — scan all files. Include every distinct vulnerability you find.
+```
+
+The user prompt is as follows:
+
+```plaintext
+Audit all files in this directory for security vulnerabilities. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.
+```
+
+## Benchmark results context and resources
 
 Benchmark resources and context to pull the data from for the article write-up:
 - The full benchmarking results file is in JSONL format in the `reports/vulnbench-js-1.0/` directory. This is the structured JSON data, in this directory:
@@ -36,9 +69,12 @@ Benchmark resources and context to pull the data from for the article write-up:
   - Find the `article-visuals.md` file.
   - Find the `chart-manifest.json` file.
   - The static HTML report is in the `reports/vulnbench-js-1.0/index.html` file. This is the visual representation of the data, so that I can later use it to embed and integrate visuals into the written article.
-  - 
 
 ## Talking points 
+
+You will find below general proposal for talking points as we well as sub-sections on specific call-outs and insights I have myself gathered and curated from the benchmark results.
+
+Even though I have provided for you talking points below, they shouldn't be used verbatim nor turn into an opinion article but rather help you with overall direction and interpretation of the data.
 
 ### General proposal for talking points in the article
 
@@ -56,7 +92,7 @@ Note: double check all of my claims here that they are supported in the dataset!
 - For headline scores: Claude Opus 4.6 medium considerably scores better in precision (low noise, low positive rate) at 91.5% compared to Opus 4.7 Max at only 69.6%
 - For headline scores: Opus 4.6 medium demonstrates the best value in terms of scores vs cost, followed by Opus 4.6 high
 - For headline scores: for speed of execution, Snyk Code scans the fasted at less than 15 seconds on average runs. the next closest agentic LLM-based scan is almost two times slower at 27.3 seconds
-- For headline scores: for score stability which demonstrates consistent results and deterministic behavior, Snyk Code which is based on SymbolicAI engine delivers 100% consistent results. 
+- For headline scores: for score stability which demonstrates consistent results and deterministic behavior, Snyk Code which is based on Symbolic AI engine delivers 100% consistent results. 
 
 ### Specific insights from task evals and the tested code
 
