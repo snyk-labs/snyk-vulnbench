@@ -114,7 +114,7 @@ From this eval:
 
 For example, the missing auth/authz issue was reported for the following endpoint missing authentication or authorization checks:
 
-```js
+```20:37:fixtures/js-project-copperline/project/app.js
 app.post("/plugins/install", (req, res) => {
   const packageName = req.body.package || "@warehouse/scanner-bridge";
   const command = `npm install ${packageName} --prefix ${pluginRoot}`;
@@ -143,7 +143,7 @@ The main insight here is that both configs consistently found all ground-truth i
 
 For the task `js-project-copperline-find-vulns`, the API endpoint had drawn extra noise from Claude Sonnet 4.6: one of the repetitions from the model execution reported a command injection in two different parts of the code in `app.js`: first on app.js:17 for the `cp.spawn()` and secondly on app.js:22 for the `npm install` definition of the `command` variable:
 
-```js
+```16:22:fixtures/js-project-copperline/project/app.js
 function runInstaller(command, options) {
   return cp.spawn(shell(), ["-c", command], options);
 }
@@ -161,7 +161,7 @@ When analyzing the task `js-project-goldleaf-find-vulns`, we found that Opus 4.7
 
 The code snippet for this small JavaScript application shows a clear security bad practice with the invocation of `eval()` that is sourced from user input. However, this isn't the only security bad practice in this code snippet, albeit concise as it is. In app.js:10 of the full `app.js` source code there's a call to `JSON.stringify()` that is used in aim to serialize and sanitize the data to a string-like type. While it may be relatively benign in backend Node.js code, this exact same pattern for client-side code running in the browser will result in a Cross-site Scripting vulnerability.
 
-```js
+```8:21:fixtures/js-project-goldleaf/project/app.js
 function buildPreview(key) {
   const obj = {};
   const assignment = `obj[${JSON.stringify(key)}]=42`;
@@ -188,7 +188,7 @@ Compared with other configs on this task, Claude Opus 4.7 Max is also not especi
 
 The task `js-project-ironclad-find-vulns` while being a short snippet of code, just 30 lines of code in `app.js` introduced a different pattern from some other tasks: it requires another source file and the vulnerability is a cross-file source-to-sink SQL injection vulnerability depicted in the following `userMode.js` source code:
 
-```js
+```1:3:fixtures/js-project-ironclad/project/userMode.js
 function fetchUserById(knex, userProvidedValue) {
   return knex.raw(`SELECT * FROM users WHERE id = ${userProvidedValue}`);
 }
@@ -198,7 +198,7 @@ Claude Opus 4.6 High and Claude Opus 4.6 Medium both scored 100% across all 5 re
 
 But there is an important nuance: this is a perfect benchmark score, not necessarily a perfect semantic/line-level match. The ground truth information exposure is in the Express framework disclosure via missing `app.disable("x-powered-by")`. The scorer currently matches find-vulns by vulnerability type, so Opus 4.6’s information-exposure report was credited against the X-Powered-By ground truth even though the model usually reported `err.message` disclosure at app.js:25
 
-```js
+```24:26:fixtures/js-project-ironclad/project/app.js
     .catch((err) => {
       res.status(500).json({ error: err.message });
     });
@@ -286,7 +286,7 @@ The `js-project-tigerteam-find-vulns` task is a compact Express application at o
 
 Across all model runs, the models consistently found the hardcoded database password, the reflected XSS in `/greet`, the path traversal in `/file`, and the command injection in `/ping`. Those four findings appeared as true positives in all 25 model repetitions (5 different models x 5 repetitions). The code paths are straightforward source-to-sink examples:
 
-```js
+```29:49:fixtures/js-project-tigerteam/project/app.js
 app.get("/greet", (req, res) => {
   const name = req.query.name;
   res.send(`<html><body><h1>Hello, ${name}!</h1></body></html>`);
@@ -314,7 +314,7 @@ The gap was in the less "exploit-shaped" findings. The `X-Powered-By` informatio
 
 There is also an important scoring nuance. Every model configuration repeatedly reported SQL injection in the `/users` endpoint:
 
-```js
+```17:27:fixtures/js-project-tigerteam/project/app.js
 function dbQuery(sql) {
   console.log("Query:", sql);
   return [];
