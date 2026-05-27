@@ -85,6 +85,14 @@ markdown blockquote depending on the target publishing platform:
 standard deviation across repeated runs.*
 ```
 
+If a markdown table follows the visual, separate the two with one short bridge
+sentence so readers do not confuse the figure caption with the table. Keep it
+plain:
+
+```markdown
+The table below provides exact values for the preceding chart.
+```
+
 Do not invent placeholder IDs. If a needed visual is missing, write the section
 with a table and tell the user which chart-generator visual would help.
 

@@ -21,6 +21,10 @@ Models for tone:
 
 The mechanism belongs in Benchmark Design or the Appendix, not at the top of Results.
 
+For benchmark articles, the opening should usually start with the measured outcome:
+what was evaluated, the reference point, the top score, and the most important
+delta. Avoid fluffy setup paragraphs before the numbers.
+
 **Cite numbers inline.**
 - Good: "Opus scored 89% (F1); Sonnet scored 72%."
 - Bad: "Opus performed better than Sonnet."
@@ -50,6 +54,20 @@ Once per report (usually in Benchmark Design), walk through one concrete scoring
 - The strongest reports describe what *didn't* work — misfires, surprising weaknesses, judge disagreements. Readers trust a report more when it admits what it got wrong.
 - A report where every finding is positive reads as a pitch deck, regardless of the actual numbers.
 
+When explaining model limitations, connect the limitation to a concrete code pattern
+and a measured outcome. A strong pattern is: "models flagged code that looked like a
+vulnerability, while the reference tool required a recognized executable sink." This
+is sharper than saying "the model hallucinated" and helps readers understand why the
+systems disagree.
+
+**Stay neutral when the benchmark compares approaches.**
+- Good: "The goal is not to prove that one technique replaces another. It is to measure how agentic review performs as a vulnerability-finding system against this reference set."
+- Bad: "This benchmark proves scanners are better than models."
+
+When a baseline defines the reference set, say so plainly. A 100% score means the
+baseline reproduced that reference set in the benchmark; it is not a universal
+claim that no other vulnerabilities exist.
+
 ## Language to avoid
 
 - Superlatives without numbers: "revolutionary", "groundbreaking", "state-of-the-art" (unless followed immediately by a comparison), "unmatched", "best-in-class".
@@ -64,6 +82,8 @@ Once per report (usually in Benchmark Design), walk through one concrete scoring
 - Plain contrast: "Opus won on JS fixtures; Sonnet won on Python." Short sentences land harder than long comparative clauses.
 - Numbers that do work: "9× more false positives" beats "significantly more false positives".
 - Named observations: instead of "interestingly", use the observation as the sentence ("Two configs produced identical scores by different paths — Opus read every file once, Sonnet re-read the main module four times.").
+- Practical tradeoff claims: "Cost did not predict quality: Opus used 2.3× more tokens and scored lower." These are especially useful when newer, slower, or more expensive configs underperform cheaper ones.
+- Mechanistic distinctions: "LLMs can be sensitive to code that looks like a vulnerability; SAST engines are usually built around executable flows and recognized sinks."
 
 ## Sentence rhythm
 

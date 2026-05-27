@@ -41,12 +41,14 @@ Appendix (methodology detail, full data, reproduction instructions)
 
 **Summary (target: 80–150 words)**
 - State what was benchmarked, against what, and the headline finding in 3–5 bullets or a short paragraph.
+- For public benchmark articles, prefer a concise 1–2 paragraph opening before any section heading when it reads better than bullets. It should lead with exact scores, deltas, variance, speed, or cost tradeoffs.
 - No methodology detail here. No charts. No hedging past what the data warrants — but also no oversell.
 - The reader who only reads this should leave with an accurate, not flattering, picture.
 
 **Introduction (target: 150–300 words)**
 - Establish the gap this benchmark fills. Why do existing benchmarks not answer the question?
 - State the core question in plain English ("How much does adding an MCP security tool improve vulnerability-finding quality?").
+- When comparing tools, models, or analysis techniques, use neutral positioning. Good framing: "The goal is not to prove that one technique replaces another; it is to measure what happens when X is evaluated as Y against Z reference set."
 - Close with a one-sentence preview of what the results show, pointing to the Results section.
 
 **Benchmark Design (target: 300–600 words, plus optional methodology diagrams)**
@@ -54,12 +56,15 @@ Appendix (methodology detail, full data, reproduction instructions)
 - Include the benchmark pipeline diagram only if one exists in the source guide and helps explain the setup. Do not create benchmark result charts in this section.
 - Describe fixtures in concrete terms ("a 200-line Express app with 5 intentionally planted vulnerabilities"). Abstract descriptions ("vulnerable code samples") fail to convey the realism or difficulty.
 - Describe scoring with a worked example where it helps ("An agent that reports 4 of 5 real vulns and zero false positives scores F1 = 0.89").
+- State what defines the reference set, how many runs were executed, how repetitions are averaged, and whether matching is strict or lenient. This is where reader trust is earned.
 
 **Results (target: 400–600 words, table-first with optional generated visuals)**
 - Lead with the leaderboard — a markdown table with task × config × headline metric(s).
 - If `article-visuals.md` is available, follow with 1–3 visual placeholders that each answer a distinct question. See `visualizations.md` for how to place generated visuals.
 - Keep prose between tables and visuals to one paragraph describing what the reader should notice.
 - Do not restate every number from the table in prose.
+- If the reference-set provider is also a baseline row, explicitly explain what its 100% score means. Example: "Tool X is the reference baseline in this setup, so 100% means it reproduced the Tool X reference set across repeated runs."
+- Include at least one practical tradeoff callout when the data supports it: best model vs baseline gap, recall vs precision, score stability, speed, or cost-quality inversion. Prefer exact ratios ("5.7x estimated cost for lower F1") over vague claims ("more expensive").
 
 **Qualitative Analysis (target: 600–1,500 words — the longest section)**
 - 2–4 sub-sections, each with a one-sentence thesis as its heading. Examples:
@@ -68,6 +73,7 @@ Appendix (methodology detail, full data, reproduction instructions)
   - "Most failures cluster in a single vulnerability class"
   - "The judge-LLM disagrees with ground truth in predictable ways"
 - Each sub-section: thesis in the heading → 1–2 paragraphs of explanation → a supporting number, table row, or generated visual placeholder → implication for the reader.
+- When model reports diverge from a SAST or rule-based reference set, look for the reason. A useful pattern is "vulnerability-shaped code vs executable sink": models may flag code that resembles a vulnerability, while SAST engines often require a recognized source-to-sink flow or executable sink before reporting it.
 - This is where the writeup earns its keep. Without qualitative analysis, the report is just a leaderboard.
 
 **Limitations (target: 150–300 words)**

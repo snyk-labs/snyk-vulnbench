@@ -69,12 +69,16 @@ Done when: you have a section-by-section outline with a one-line intent per sect
 ### Step 4: Write the report
 
 1. Read `references/voice-and-style.md` before drafting the first sentence.
-2. Start with the Summary and the Introduction. These set the frame and are hardest to change once the body is written.
-3. Draft each section at the outline's intent — no more. A short section that lands beats a long one that meanders.
-4. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images.
-5. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
-6. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
-7. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
+2. Start with a concise outcome-forward opening: usually 1–2 short paragraphs that state the benchmark, reference point, top scores, and most important tradeoff. Lead with exact numbers, not setup prose.
+3. Follow the opening with a "why this exists" section when the report compares techniques or tools. Keep the framing neutral: the goal is to measure what happens under the benchmark, not to prove that one approach replaces another.
+4. Draft Benchmark Design as the trust-building section: name the reference set, task count, repetitions, scoring rule, harness, and any generous or limiting assumptions in plain language.
+5. Draft each section at the outline's intent — no more. A short section that lands beats a long one that meanders.
+6. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images. When a table follows a visual placeholder, add a short bridge sentence such as "The table below provides exact values for the preceding chart."
+7. In Results, explicitly explain reference-baseline scores. If a tool defines the reference set and scores 100%, say that this means it reproduced its own reference set across repeated runs, not that it proves all possible vulnerabilities were found.
+8. Look for cost-quality and speed-quality inversions. If a newer, slower, or more expensive config scores lower than a cheaper one, call that out with exact ratios and scores rather than implying cost predicts quality.
+9. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
+10. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
+11. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
 
 Done when: every planned section is drafted, tables and visual placeholders are placed intentionally, and the report reads as one voice rather than a patchwork.
 
