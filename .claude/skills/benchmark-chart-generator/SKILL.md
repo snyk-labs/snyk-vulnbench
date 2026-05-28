@@ -293,7 +293,9 @@ Use these charts when the JSONL contains repeated model runs with `details.trueP
 and `details.falsePositives`. They are especially important for security benchmark
 writeups because they make non-determinism visible by model config. Aggregate-only
 repeatability charts are allowed as supporting visuals, but the lead repeatability
-chart should name model configurations.
+section should usually open with `score-variance-by-config` because it provides the
+headline repeatability frame across Snyk Code and every model config. Follow it with
+model-callout finding-signature charts that explain where the variance comes from.
 
 Definitions:
 - **Unmatched finding signature**: group by `runConfigName`, then by
@@ -309,11 +311,27 @@ Definitions:
 
 Generate these bar charts when the denominators are non-zero:
 
+0. `unmatched-finding-repeatability`
+   - Metric: `false-positive-repetition-frequency`.
+   - Scope: `raw-run-derived`.
+   - Aggregate across all model configs by grouping unmatched findings with
+     `taskId + runConfigId + vulnerability type + basename(file) + line`.
+   - X/categories: `"1 of 5"`, `"2 of 5"`, ... through the observed repetition count.
+   - Value per category: `count(unique unmatched signatures seen in N repetitions) / total unique unmatched signatures`.
+   - Include `count`, `total`, and `totalUniqueFindings` in `dataSummary` so the
+     article can include the exact frequency table.
+   - Caption: "Distribution of unique unmatched model findings by how often the same
+     finding signature appeared across five repetitions of the same task and model
+     config. Signature = task + config + vulnerability type + file + line."
+   - Use: closing or summary visual for the repeatability section. It lands the
+     operational takeaway after model-by-model charts: how often extra reports recur
+     at all across repeated scans.
+
 1. `one-run-unmatched-by-model`
    - Metric: `one-run-unmatched-finding-share`.
    - Value per model: `count(signatures seen in exactly 1 repetition) / total unique unmatched signatures`.
    - Caption: "Share of each model configuration's unique unmatched finding signatures that appeared in only one of five repeated runs."
-   - Use: lead visual for LLM non-determinism.
+   - Use: model-callout visual for LLM non-determinism.
 
 2. `stable-unmatched-by-model`
    - Metric: `all-run-unmatched-finding-share`.
@@ -330,7 +348,23 @@ Generate these bar charts when the denominators are non-zero:
    - Source: `config-aggregate` rows.
    - Include command and model rows. Snyk Code SAST often has zero score standard
      deviation, which is meaningful as deterministic reference reproduction.
-   - Use: connect finding-level instability to benchmark-level variance.
+   - Caption: "Headline F1 standard deviation across repeated runs. Lower values
+     indicate more repeatable benchmark outcomes under the same prompt and code."
+   - Talking points should call out the highest-variance model config and the
+     deterministic reference row when present, e.g. "Claude Sonnet 4.6 High had the
+     largest headline F1 standard deviation at 3.5 percentage points" and "Snyk Code
+     SAST had 0.0 percentage-point score standard deviation against the reference set."
+   - Use: opening visual for repeatability/variance sections, then connect
+     finding-level instability to benchmark-level variance.
+
+Optional aggregate recurrence charts:
+- `matched-finding-repeatability`: same structure as `unmatched-finding-repeatability`,
+  but group `details.truePositives` by `taskId + runConfigId + reference finding id`.
+  Use directly after the unmatched aggregate chart when you want to show that
+  reference-matched findings were more stable than extra reports.
+- `non-sql-unmatched-repeatability`: same structure as `unmatched-finding-repeatability`,
+  excluding `sql-injection` unmatched reports. Use when stable SQL-shaped exceptions
+  would otherwise mask broader instability in unmatched model reports.
 
 For these charts, include `count` and `total` on each row in `dataSummary.rows` so the
 article can write exact statements such as "37 of 60 unique unmatched findings
@@ -493,7 +527,7 @@ Confirm the output files:
 - Score and duration charts include standard-deviation values when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`.
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
 - Pareto-style scatter plots follow the Snyk inclusion rules: model-only for `score-vs-cost`, model plus command rows for `score-vs-duration`, `recall-vs-precision`, and `score-stability`.
-- When repeated `find-vulns` raw rows exist, the model-callout package includes `one-run-unmatched-by-model`, `stable-unmatched-by-model`, `stable-matched-by-model`, and `score-variance-by-config` unless the source fields are missing.
+- When repeated `find-vulns` raw rows exist, the repeatability package includes `score-variance-by-config`, `unmatched-finding-repeatability`, `one-run-unmatched-by-model`, `stable-unmatched-by-model`, and `stable-matched-by-model` unless the source fields are missing. Include `matched-finding-repeatability` when the article needs an aggregate matched-vs-unmatched contrast.
 - When `details.byType` and false-positive details exist, the complementarity package includes `reference-coverage-by-type-and-config` and `extra-reports-by-type-and-model`. The reference-coverage heatmap includes Snyk Code SAST when it defines the reference set; the extra-reports heatmap is model-only.
 - Heatmap specs have `dataSummary.columns`, `dataSummary.rows`, and a renderer in `index.html`; the HTML must not fall back to the "Custom chart type" note for `chartType: "heatmap"`.
 - Multi-task reports include task-level chart specs when `"task-aggregate"` rows cover at least two tasks.
@@ -765,10 +799,11 @@ Actions:
 1. Read the JSONL and select aggregate rows for the standard score, duration, cost, token, recall/precision, and tradeoff charts.
 2. Also read raw `"run"` rows because repeated `find-vulns` results need finding-level repeatability charts.
 3. Build the model-callout repeatability charts:
+   - `score-variance-by-config`
+   - `unmatched-finding-repeatability`
    - `one-run-unmatched-by-model`
    - `stable-unmatched-by-model`
    - `stable-matched-by-model`
-   - `score-variance-by-config`
 4. Build complementarity visuals:
    - `reference-coverage-by-type-and-config`
    - `extra-reports-by-type-and-model`
