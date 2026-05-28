@@ -35,13 +35,19 @@ Snyk Code defines the reference set for this benchmark. That means its 100% scor
 
 The scorer is intentionally lenient: a model finding is credited if it reports the same vulnerability type as a reference finding. It does not need to match the same file, line, severity, or source-to-sink path. F1 is useful as an agreement metric, but it is not the main story.
 
-## Result 1: Extra Model Findings Were Not Repeatable
+## Result 1: Repeatability Varied By Configuration
+
+At the configuration level, repeatability shows up as score variance. Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points across repeated runs. Snyk Code SAST had 0.0 percentage-point score standard deviation against its reference set.
+
+<!-- VISUAL: score-variance-by-config -->
+
+*Figure 1: Headline F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.*
 
 Across all model configurations, 80 of 161 unique unmatched finding signatures appeared in only one of five repeated runs. That aggregate is the headline, but the more useful view is model-by-model.
 
 <!-- VISUAL: one-run-unmatched-by-model -->
 
-*Figure 1: Share of each model configuration's unique unmatched finding signatures that appeared in only one of five repeated runs. Signature = task + vulnerability type + file + line, grouped by model config.*
+*Figure 2: Share of each model configuration's unique unmatched finding signatures that appeared in only one of five repeated runs. Signature = task + vulnerability type + file + line, grouped by model config.*
 
 The table below provides exact values for the preceding chart, plus the two stability counters that matter most.
 
@@ -61,17 +67,33 @@ The chart below highlights how most non-Opus-4.6 configs struggled with stabilit
 
 <!-- VISUAL: stable-unmatched-by-model -->
 
-*Figure 2: Share of unique unmatched finding signatures that appeared in all five repeated runs for each model configuration.*
+*Figure 3: Share of unique unmatched finding signatures that appeared in all five repeated runs for each model configuration.*
 
 The matched side tells a different story. When a model found a Snyk Code reference finding, it usually found it repeatedly. Claude Opus 4.6 Medium matched 25 unique reference findings and repeated all 25 across five runs. Claude Opus 4.6 High repeated 25 of 26. Even the noisier Sonnet configurations repeated 29 of 36 reference-matched findings.
 
 <!-- VISUAL: stable-matched-by-model -->
 
-*Figure 3: Share of unique Snyk Code reference findings matched in all five repeated runs for each model configuration.*
+*Figure 4: Share of unique Snyk Code reference findings matched in all five repeated runs for each model configuration.*
 
 This is the main repeatability finding: model agreement with known reference issues was much more stable than the surrounding set of extra reports. In a real developer workflow, those extra reports still matter. They are the findings that create new triage work and change from run to run.
 
-At the aggregate level, that same instability shows up as score variance. Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points across repeated runs. Snyk Code SAST had 0.0 percentage-point score standard deviation against its reference set.
+The aggregate distribution shows the operational shape of that problem.
+
+<!-- VISUAL: unmatched-finding-repeatability -->
+
+*Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
+
+The table shows how often model findings matched reference (Snyk) findings across repeated runs. The large "5 of 5 runs" percentage (84.8%) means when a model spotted a known vulnerability, it almost always did so reliably every time. The small single-digit percentages (e.g., 1/5, 2/5 runs) show that inconsistent, flaky detection of reference issues was rare (<6%). So: model-reported "real" vulns are usually reliable, while the noisy, inconsistent findings are mostly in extra (non-reference) reports. The impact: LLMS consistently catch true positives but are less repeatable in their "extra" findings.
+
+| Repetition frequency | Unique unmatched findings | Share |
+|---|---:|---:|
+| 1 of 5 runs | 80 | 49.7% |
+| 2 of 5 runs | 24 | 14.9% |
+| 3 of 5 runs | 23 | 14.3% |
+| 4 of 5 runs | 12 | 7.5% |
+| 5 of 5 runs | 22 | 13.7% |
+
+Nearly half of unique unmatched model findings appeared in only one of five identical repetitions. That is a practical reliability problem: a developer could get a materially different review queue depending on which run happened to execute.
 
 ## Result 2: The Tools Failed Differently
 
@@ -81,7 +103,7 @@ The clearest way to see this is by vulnerability class. The heatmap below shows 
 
 <!-- VISUAL: reference-coverage-by-type-and-config -->
 
-*Figure 4: Mean recall against the Snyk Code reference set by vulnerability type and configuration. Snyk Code is shown as deterministic reference reproduction; model rows show where agentic review agrees or falls short by class.*
+*Figure 6: Mean recall against the Snyk Code reference set by vulnerability type and configuration. Snyk Code is shown as deterministic reference reproduction; model rows show where agentic review agrees or falls short by class.*
 
 The model configurations were strongest on familiar, high-signal exploit shapes: command injection, code injection, hardcoded credentials, SQL injection, SSRF, open redirect, prototype pollution, and ReDoS were often found cleanly. They were weaker on resource-limit findings, improper sanitization, type validation, insecure transport, framework information exposure, and repeated path traversal flows.
 
@@ -139,7 +161,7 @@ That finding was counted as unmatched because it was not in the Snyk Code refere
 
 <!-- VISUAL: extra-reports-by-type-and-model -->
 
-*Figure 5: Average unmatched reports per model run by vulnerability type and model configuration. These include model false positives, adjacent review comments, and likely product-gap candidates outside the Snyk Code reference set.*
+*Figure 7: Average unmatched reports per model run by vulnerability type and model configuration. These include model false positives, adjacent review comments, and likely product-gap candidates outside the Snyk Code reference set.*
 
 This second heatmap shows the other side of complementarity: extra model reports are not one homogeneous category. Some are likely false positives, like the non-executable SQL-shaped mock helper in `js-project-tigerteam`. Some are adjacent security review comments that are out of scope for the reference set. Some, like the SQL injection report in `js-project-nightowl`, are likely valid findings that should feed back into Snyk Code coverage.
 
@@ -147,7 +169,7 @@ The complementarity also runs in the other direction. `js-project-nightowl` is t
 
 <!-- VISUAL: larger-fixture-score-by-config -->
 
-*Figure 6: Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.*
+*Figure 8: Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.*
 
 The missed pattern spanned repeated attachment flows:
 
@@ -173,7 +195,7 @@ Claude Opus 4.7 Max was the most expensive model configuration in this run, but 
 
 <!-- VISUAL: score-vs-cost-model-callouts -->
 
-*Figure 7: Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.*
+*Figure 9: Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.*
 
 The absolute dollar amounts are small because the fixtures are small. The scaling question is not. Real security checks run during coding-agent sessions, commits, pull requests, and CI jobs across repositories that are orders of magnitude larger than these snippets. More expensive inference is not automatically better security coverage.
 
