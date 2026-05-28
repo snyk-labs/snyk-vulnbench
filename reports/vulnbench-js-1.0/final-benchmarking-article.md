@@ -192,7 +192,7 @@ F1 is still useful, as long as it is described precisely: it measures agreement 
 
 This table should not be read as "Snyk proved Snyk is 100% accurate." It should be read as: Snyk Code produced a deterministic reference set; models partially agreed with it; and the differences reveal repeatability, cost, and coverage tradeoffs worth measuring.
 
-## Limitations
+## Takeaways and Next Steps
 
 The reference set comes from Snyk Code. That is transparent and reproducible, but circular if treated as a universal truth set. This report avoids that claim. The benchmark measures model agreement with Snyk Code findings and uses divergences to study repeatability and complementarity.
 
@@ -202,7 +202,7 @@ The fixtures are small JavaScript and Express applications. They are useful for 
 
 The recurrence analysis uses normalized finding signatures. For the model-by-model unmatched charts, the signature is task + vulnerability type + file + line, grouped separately for each model configuration. Different normalization choices change the exact percentages, which is why the signature is part of the chart handoff and reproducibility notes.
 
-## What Comes Next
+### What Comes Next
 
 The next Snyk VulnBench release should move beyond small self-contained snippets. We plan to add more full-fledged application structures, LLM-sourced vulnerabilities, business-logic and BOLA classes, and an independent ground truth source such as BaxBench-style reference data.
 
