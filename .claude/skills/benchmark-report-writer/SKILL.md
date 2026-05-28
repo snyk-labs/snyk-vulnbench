@@ -96,7 +96,7 @@ Done when: you have a section-by-section outline with a one-line intent per sect
 2. Start with a concise outcome-forward opening: usually 1–3 short paragraphs that state the benchmark and the most important measured behavior. For repeated LLM security benchmarks, strongly prefer a repeatability-first opening such as: "Can you trust an LLM to find the same bugs twice? We ran N scans to find out."
 3. Follow the opening with a "why this exists" section when the report compares techniques or tools. Keep the framing neutral: the goal is to measure what happens under the benchmark, not to prove that one approach replaces another.
 4. Draft Benchmark Design as the trust-building section: name the reference set, task count, repetitions, scoring rule, harness, and any generous or limiting assumptions in plain language.
-5. Draft the repeatability section with model names visible in the prose and visuals. When available, open with `score-variance-by-config` to show the headline variance across Snyk Code and model configs, then use `one-run-unmatched-by-model`, `stable-unmatched-by-model`, and `stable-matched-by-model` to explain where the variance comes from. Explain that unmatched report instability is not the same as true-positive instability.
+5. Draft the repeatability section with model names visible in the prose and visuals. When available, open with `score-stability-labeled-scatter` to show score and variance together with Snyk Code's zero-variance reference point highlighted; otherwise use `score-variance-by-config`. Then use `one-run-unmatched-by-model`, `stable-unmatched-by-model`, and `stable-matched-by-model` to explain where the variance comes from. Explain that unmatched report instability is not the same as true-positive instability.
 6. Draft complementarity as a positive, practical finding: models find familiar high-signal exploit shapes; SAST provides deterministic and systematic data-flow coverage; neither replaces the other. Use `reference-coverage-by-type-and-config`, `extra-reports-by-type-and-model`, and a hardest/notable fixture chart when available.
 7. Draft each section at the outline's intent — no more. A short section that lands beats a long one that meanders.
 8. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images. When a table follows a visual placeholder, add a short bridge sentence such as "The table below provides exact values for the preceding chart."
@@ -220,7 +220,7 @@ Actions:
    - `stable-unmatched-by-model`
    - `stable-matched-by-model`
    - `score-variance-by-config`
-3. Use `score-variance-by-config` as the opening repeatability visual when available.
+3. Use `score-stability-labeled-scatter` as the opening repeatability visual when available; otherwise use `score-variance-by-config`.
 4. Follow it with a model-callout chart such as `one-run-unmatched-by-model` so readers can see which model configs produced the variance.
 5. Verify every model named in the prose appears on at least one repeatability chart.
 

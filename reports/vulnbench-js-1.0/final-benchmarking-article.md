@@ -37,13 +37,15 @@ The scorer is intentionally lenient: a model finding is credited if it reports t
 
 ## Result 1: Repeatability Varied By Configuration
 
-At the configuration level, repeatability shows up as score variance. Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points across repeated runs. Snyk Code SAST had 0.0 percentage-point score standard deviation against its reference set.
+At the configuration level, repeatability shows up as the relationship between score and variance. The stronger outcome is toward the upper-left: high agreement with the reference set and low repeated-run variance. Snyk Code SAST sits at that corner with 100.0% F1 and 0.0 percentage-point standard deviation because it reproduced its reference set deterministically. The Claude model configurations spread downward and to the right, with Claude Sonnet 4.6 High showing the largest headline variance at 3.5 percentage points.
 
-<!-- VISUAL: score-variance-by-config -->
+<!-- VISUAL: score-stability-labeled-scatter -->
 
-*Figure 1: Headline F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.*
+*Figure 1: F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.*
 
-Across all model configurations, 80 of 161 unique unmatched finding signatures appeared in only one of five repeated runs. That aggregate is the headline, but the more useful view is model-by-model.
+The scatter makes two things visible at once. First, Snyk Code's role in this benchmark is deterministic reference reproduction, not probabilistic review. Second, the model configs do not line up by cost or recency: Claude Opus 4.6 Medium and High sit close together with low variance and the strongest model F1, while Claude Opus 4.7 Max and Claude Sonnet 4.6 High are farther right, meaning their repeated runs moved more.
+
+Across all model configurations, 80 of 161 unique unmatched finding signatures appeared in only one of five repeated runs. That aggregate explains part of the variance story, but the more useful view is model-by-model.
 
 <!-- VISUAL: one-run-unmatched-by-model -->
 

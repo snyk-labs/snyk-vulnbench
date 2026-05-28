@@ -64,7 +64,22 @@ Talking points:
 - Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points.
 - Snyk Code SAST had 0.0 percentage-point score standard deviation against the Snyk Code reference set.
 
-### FIG-5: Score vs estimated model-session cost
+### FIG-5: F1 score vs variance by configuration
+Placeholder: `<!-- VISUAL: score-stability-labeled-scatter -->`
+
+Use: Use as an experimental repeatability visual when Snyk Code's zero-variance reference point should be visually prominent.
+
+Caption: F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.
+
+Source: `index.html#chart-score-stability-labeled-scatter`
+Data: `config-aggregate`, metric `score-vs-scoreStdDev`.
+
+Talking points:
+- Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.
+- Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point F1 standard deviation across repeated runs.
+- The stronger model tradeoff is toward the upper-left: high agreement with lower run-to-run variance.
+
+### FIG-6: Score vs estimated model-session cost
 Placeholder: `<!-- VISUAL: score-vs-cost-repeatability-story -->`
 
 Use: Use in the cost-quality section to show that Opus 4.7 Max cost more and scored lower than Opus 4.6 Medium.
@@ -78,7 +93,7 @@ Talking points:
 - Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% F1.
 - Claude Opus 4.6 Medium was the strongest model cost/quality point in this run.
 
-### FIG-6: SQL-shaped reports outside the reference set
+### FIG-7: SQL-shaped reports outside the reference set
 Placeholder: `<!-- VISUAL: sql-shaped-complementarity -->`
 
 Use: Use in the complementarity section to show why unmatched model reports are not all equivalent.
@@ -92,7 +107,7 @@ Talking points:
 - Models reported SQL injection in 25 of 25 Tigerteam model runs, but the helper never executes SQL.
 - Models reported SQL injection in 25 of 25 Nightowl model runs; that finding is likely valid and should be investigated as a Snyk Code product gap.
 
-### FIG-7: Nightowl missed-reference pattern
+### FIG-8: Nightowl missed-reference pattern
 Placeholder: `<!-- VISUAL: nightowl-recall-cliff -->`
 
 Use: Use to support the claim that models often identify one representative pattern but fail to enumerate repeated vulnerable sinks in larger app-like fixtures.

@@ -654,6 +654,118 @@
     ]
   },
   {
+    "id": "score-stability-labeled-scatter",
+    "title": "F1 score vs variance by configuration",
+    "chartType": "labeled-scatter",
+    "scope": "config-aggregate",
+    "metric": "score-vs-scoreStdDev",
+    "xAxisLabel": "F1 STANDARD DEVIATION",
+    "yAxisLabel": "F1 SCORE",
+    "xUnit": "percent",
+    "yUnit": "percent",
+    "xRange": {
+      "min": -0.001,
+      "max": 0.04
+    },
+    "yRange": {
+      "min": 0.58,
+      "max": 1.04
+    },
+    "xTicks": [
+      0,
+      0.01,
+      0.02,
+      0.03,
+      0.04
+    ],
+    "yTicks": [
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1
+    ],
+    "section": {
+      "id": "repeatability",
+      "title": "Repeatability",
+      "subtitle": "Raw model findings across five identical repetitions",
+      "kind": "headline"
+    },
+    "placeholder": "<!-- VISUAL: score-stability-labeled-scatter -->",
+    "htmlAnchor": "index.html#chart-score-stability-labeled-scatter",
+    "caption": "F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.",
+    "recommendedUse": "Use as an experimental repeatability visual when Snyk Code's zero-variance reference point should be visually prominent.",
+    "dataSummary": {
+      "points": [
+        {
+          "label": "Snyk Code SAST",
+          "shortLabel": "Snyk Code SAST",
+          "runConfigType": "command",
+          "x": 0,
+          "y": 1,
+          "labelDx": 12,
+          "labelDy": -14,
+          "labelAnchor": "start"
+        },
+        {
+          "label": "Claude Opus 4.6 Medium",
+          "shortLabel": "Opus 4.6 Medium",
+          "runConfigType": "model",
+          "x": 0.0024674185437360318,
+          "y": 0.7537982017982017,
+          "labelDx": 12,
+          "labelDy": -18,
+          "labelAnchor": "start"
+        },
+        {
+          "label": "Claude Opus 4.6 High",
+          "shortLabel": "Opus 4.6 High",
+          "runConfigType": "model",
+          "x": 0.0028950633451438217,
+          "y": 0.7523507864684335,
+          "labelDx": 12,
+          "labelDy": 12,
+          "labelAnchor": "start"
+        },
+        {
+          "label": "Claude Sonnet 4.6 Medium",
+          "shortLabel": "Sonnet 4.6 Medium",
+          "runConfigType": "model",
+          "x": 0.009170103518359875,
+          "y": 0.6741726708074535,
+          "labelDx": 12,
+          "labelDy": 0,
+          "labelAnchor": "start"
+        },
+        {
+          "label": "Claude Opus 4.7 Max",
+          "shortLabel": "Opus 4.7 Max",
+          "runConfigType": "model",
+          "x": 0.022273540769297218,
+          "y": 0.6876156355721573,
+          "labelDx": 12,
+          "labelDy": -12,
+          "labelAnchor": "start"
+        },
+        {
+          "label": "Claude Sonnet 4.6 High",
+          "shortLabel": "Sonnet 4.6 High",
+          "runConfigType": "model",
+          "x": 0.03471337765983303,
+          "y": 0.6488264834580625,
+          "labelDx": -12,
+          "labelDy": -12,
+          "labelAnchor": "end"
+        }
+      ]
+    },
+    "talkingPoints": [
+      "Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.",
+      "Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point F1 standard deviation across repeated runs.",
+      "The stronger model tradeoff is toward the upper-left: high agreement with lower run-to-run variance."
+    ]
+  },
+  {
     "id": "score-vs-cost-repeatability-story",
     "title": "Score vs estimated model-session cost",
     "chartType": "scatter",
@@ -1751,6 +1863,89 @@
       });
     }
 
+    function renderSpecLabeledScatter(group, spec) {
+      const points = specPoints(spec).map((point) => ({
+        ...point,
+        barMain: colorForRunConfigType(point.runConfigType || point.configType || point.role),
+      }));
+      if (points.length < 2) return;
+
+      const xUnit = unitFor(spec, "x");
+      const yUnit = unitFor(spec, "y");
+      const xRange = spec.xRange || valueRange(points.map((point) => point.x));
+      const yRange = spec.yRange || (yUnit === "percent" ? { min: 0, max: 1.08 } : valueRange(points.map((point) => point.y)));
+      const xTicks = spec.xTicks || [0, 0.01, 0.02, 0.03, 0.04];
+      const yTicks = spec.yTicks || defaultTicks(yUnit, yRange.max);
+      const wrap = makeChartSection(group, spec);
+
+      const W = 860;
+      const H = 360;
+      const margin = { top: 42, right: 42, bottom: 70, left: 86 };
+      const innerW = W - margin.left - margin.right;
+      const innerH = H - margin.top - margin.bottom;
+      const xScale = (value) => ((value - xRange.min) / (xRange.max - xRange.min)) * innerW;
+      const yScale = (value) => innerH - ((value - yRange.min) / (yRange.max - yRange.min)) * innerH;
+      const svg = ns("svg", {
+        viewBox: `0 0 ${W} ${H}`,
+        width: W,
+        height: H,
+        role: "img",
+        "aria-label": spec.title || spec.id,
+      });
+      const gRoot = ns("g", { transform: `translate(${margin.left},${margin.top})` });
+      svg.appendChild(gRoot);
+
+      for (const t of xTicks) {
+        const x = xScale(t);
+        gRoot.appendChild(ns("line", { class: "grid", x1: x, x2: x, y1: 0, y2: innerH }));
+        gRoot.appendChild(ns("text", { class: "tick-label", x, y: innerH + 22, "text-anchor": "middle", "font-size": "11", fill: "#5c5c5c" }, [formatSpecAxis(xUnit, t)]));
+      }
+
+      for (const t of yTicks) {
+        const y = yScale(t);
+        gRoot.appendChild(ns("line", { class: "grid", x1: 0, x2: innerW, y1: y, y2: y }));
+        gRoot.appendChild(ns("text", { class: "tick-label", x: -14, y: y + 4, "text-anchor": "end", "font-size": "11", fill: "#5c5c5c" }, [formatSpecAxis(yUnit, t)]));
+      }
+
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: innerW, y1: innerH, y2: innerH }));
+      gRoot.appendChild(ns("line", { class: "axis-x", x1: 0, x2: 0, y1: 0, y2: innerH }));
+      gRoot.appendChild(ns("text", { class: "y-label", x: -innerH / 2, y: -66, transform: "rotate(-90)", "text-anchor": "middle" }, [spec.yAxisLabel || "Y"]));
+      gRoot.appendChild(ns("text", { class: "y-label", x: innerW / 2, y: innerH + 52, "text-anchor": "middle" }, [spec.xAxisLabel || "X"]));
+
+      points.forEach((point) => {
+        const x = xScale(point.x);
+        const y = yScale(point.y);
+        const isCommand = (point.runConfigType || point.configType || point.role) === "command";
+        const r = isCommand ? 10 : 7;
+        gRoot.appendChild(ns("circle", {
+          cx: x,
+          cy: y,
+          r,
+          fill: point.barMain,
+          stroke: isCommand ? "#5f237f" : "#111111",
+          "stroke-width": isCommand ? 2 : 1,
+        }));
+        gRoot.appendChild(ns("text", {
+          x: x + (point.labelDx ?? 10),
+          y: y + (point.labelDy ?? -10),
+          "text-anchor": point.labelAnchor || "start",
+          "font-size": isCommand ? "12" : "11",
+          "font-weight": isCommand ? "800" : "700",
+          fill: isCommand ? COLORS.snyk : "#111111",
+        }, [point.shortLabel || point.label]));
+        gRoot.appendChild(ns("text", {
+          x: x + (point.labelDx ?? 10),
+          y: y + (point.labelDy ?? -10) + 14,
+          "text-anchor": point.labelAnchor || "start",
+          "font-size": "10",
+          fill: "#5c5c5c",
+        }, [`${formatSpecAxis(yUnit, point.y)} / ${formatSpecAxis(xUnit, point.x)} sd`]));
+      });
+
+      wrap.innerHTML = "";
+      wrap.appendChild(svg);
+    }
+
     function renderSpecChart(group, spec) {
       if (spec.chartType === "bar") {
         renderSpecBar(group, spec);
@@ -1758,6 +1953,8 @@
         renderSpecGroupedBar(group, spec);
       } else if (spec.chartType === "scatter") {
         renderSpecScatter(group, spec);
+      } else if (spec.chartType === "labeled-scatter") {
+        renderSpecLabeledScatter(group, spec);
       } else {
         const wrap = makeChartSection(group, spec);
         const note = document.createElement("p");

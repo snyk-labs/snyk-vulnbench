@@ -291,11 +291,12 @@ Mapping rules:
 
 Use these charts when the JSONL contains repeated model runs with `details.truePositives`
 and `details.falsePositives`. They are especially important for security benchmark
-writeups because they make non-determinism visible by model config. Aggregate-only
-repeatability charts are allowed as supporting visuals, but the lead repeatability
-section should usually open with `score-variance-by-config` because it provides the
-headline repeatability frame across Snyk Code and every model config. Follow it with
-model-callout finding-signature charts that explain where the variance comes from.
+writeups because they make non-determinism visible by model config. For article-focused
+repeatability sections, prefer opening with `score-stability-labeled-scatter` because
+it shows both score and variance while making the purple Snyk zero-variance reference
+point visually obvious. Use `score-variance-by-config` as the simpler bar-chart
+fallback or supporting visual. Follow the headline variance visual with model-callout
+finding-signature charts that explain where the variance comes from.
 
 Definitions:
 - **Unmatched finding signature**: group by `runConfigName`, then by
@@ -356,6 +357,53 @@ Generate these bar charts when the denominators are non-zero:
      SAST had 0.0 percentage-point score standard deviation against the reference set."
    - Use: opening visual for repeatability/variance sections, then connect
      finding-level instability to benchmark-level variance.
+
+5. `score-stability-labeled-scatter`
+   - Metric: `score-vs-scoreStdDev`.
+   - Source: `config-aggregate` rows.
+   - Chart type: `labeled-scatter` or another renderer that places config names
+     directly on the plot.
+   - X axis: `scoreStdDev` as F1 standard deviation, formatted as percent.
+   - Y axis: `score`, formatted as percent.
+   - Include command and model rows. Highlight Snyk Code SAST with the command/Snyk
+     purple color at `x = 0` so deterministic reference reproduction is obvious.
+   - Data points must use:
+     - `x = scoreStdDev`
+     - `y = score`
+     - `label = runConfigName`
+     - `shortLabel` when the full config name is too long for an inline label
+     - `runConfigType` so command rows render in Snyk purple and model rows render
+       in neutral gray
+   - Set an explicit `xRange` and `yRange` with breathing room for labels. For the
+     JS 1.0-style scale, a useful default is `xRange: { min: -0.001, max: 0.04 }`
+     and `yRange: { min: 0.58, max: 1.04 }`, then adjust to the data. The slight
+     negative x-min gives the zero-variance Snyk point room away from the y-axis.
+   - Provide `xTicks` and `yTicks` explicitly when possible so the visual reads as
+     a variance/score map, not a generic scatter. Example x ticks for percentage
+     standard deviation: `[0, 0.01, 0.02, 0.03, 0.04]`.
+   - Add optional per-point label offsets (`labelDx`, `labelDy`, `labelAnchor`) in
+     `dataSummary.points` to avoid overlapping labels. Put Snyk Code's label near
+     the purple point and keep it visually prominent.
+   - Sort or position labels for readability rather than preserving source order.
+     The reader should immediately see the upper-left ideal, the Snyk zero-variance
+     reference point, and the higher-variance model configurations to the right.
+   - Caption: "F1 score plotted against headline F1 standard deviation. Better points
+     move toward the top-left: higher score with lower repeated-run variance. Snyk
+     Code SAST is highlighted in purple at zero variance."
+   - Recommended talking points:
+     - "Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it
+       reproduces the reference set deterministically."
+     - "The strongest model tradeoff is toward the upper-left: high agreement with
+       lower run-to-run variance."
+     - "The highest-variance model appears farthest right; name it with its exact
+       score standard deviation."
+   - Use: experimental or article-focused alternative to the variance bar chart when
+     the article needs Snyk Code's zero-variance point to be visually prominent.
+   - Renderer requirement: if the default template does not support `labeled-scatter`,
+     add a renderer that draws point labels (`shortLabel` or `label`) directly near
+     each point, not only in a legend. The renderer should draw command points larger
+     or with a stronger stroke than model points so the purple Snyk point is clearly
+     visible even at zero variance.
 
 Optional aggregate recurrence charts:
 - `matched-finding-repeatability`: same structure as `unmatched-finding-repeatability`,
@@ -527,9 +575,10 @@ Confirm the output files:
 - Score and duration charts include standard-deviation values when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`.
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
 - Pareto-style scatter plots follow the Snyk inclusion rules: model-only for `score-vs-cost`, model plus command rows for `score-vs-duration`, `recall-vs-precision`, and `score-stability`.
-- When repeated `find-vulns` raw rows exist, the repeatability package includes `score-variance-by-config`, `unmatched-finding-repeatability`, `one-run-unmatched-by-model`, `stable-unmatched-by-model`, and `stable-matched-by-model` unless the source fields are missing. Include `matched-finding-repeatability` when the article needs an aggregate matched-vs-unmatched contrast.
+- When repeated `find-vulns` raw rows exist, the repeatability package includes `score-variance-by-config`, `unmatched-finding-repeatability`, `one-run-unmatched-by-model`, `stable-unmatched-by-model`, and `stable-matched-by-model` unless the source fields are missing. Include `score-stability-labeled-scatter` when the article needs a more prominent Snyk Code zero-variance visual, and include `matched-finding-repeatability` when the article needs an aggregate matched-vs-unmatched contrast.
 - When `details.byType` and false-positive details exist, the complementarity package includes `reference-coverage-by-type-and-config` and `extra-reports-by-type-and-model`. The reference-coverage heatmap includes Snyk Code SAST when it defines the reference set; the extra-reports heatmap is model-only.
 - Heatmap specs have `dataSummary.columns`, `dataSummary.rows`, and a renderer in `index.html`; the HTML must not fall back to the "Custom chart type" note for `chartType: "heatmap"`.
+- Labeled scatter specs such as `score-stability-labeled-scatter` have `dataSummary.points`, direct point labels in the rendered chart, and a renderer in `index.html`; the HTML must not fall back to the "Custom chart type" note for `chartType: "labeled-scatter"`.
 - Multi-task reports include task-level chart specs when `"task-aggregate"` rows cover at least two tasks.
 - Standard per-task charts may use fixture names/IDs for lookup. Headline-like, article-focused, and model-behavior charts use public-friendly generic fixture labels unless the user explicitly asks for internal fixture names.
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top.
@@ -799,6 +848,7 @@ Actions:
 1. Read the JSONL and select aggregate rows for the standard score, duration, cost, token, recall/precision, and tradeoff charts.
 2. Also read raw `"run"` rows because repeated `find-vulns` results need finding-level repeatability charts.
 3. Build the model-callout repeatability charts:
+   - `score-stability-labeled-scatter`
    - `score-variance-by-config`
    - `unmatched-finding-repeatability`
    - `one-run-unmatched-by-model`

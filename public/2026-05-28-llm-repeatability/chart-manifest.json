@@ -276,6 +276,46 @@
       ]
     },
     {
+      "id": "score-stability-labeled-scatter",
+      "title": "F1 score vs variance by configuration",
+      "chartType": "labeled-scatter",
+      "scope": "config-aggregate",
+      "metric": "score-vs-scoreStdDev",
+      "xAxisLabel": "F1 STANDARD DEVIATION",
+      "yAxisLabel": "F1 SCORE",
+      "xUnit": "percent",
+      "yUnit": "percent",
+      "xRange": { "min": -0.001, "max": 0.04 },
+      "yRange": { "min": 0.58, "max": 1.04 },
+      "xTicks": [0, 0.01, 0.02, 0.03, 0.04],
+      "yTicks": [0.6, 0.7, 0.8, 0.9, 1],
+      "section": {
+        "id": "repeatability",
+        "title": "Repeatability",
+        "subtitle": "Raw model findings across five identical repetitions",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: score-stability-labeled-scatter -->",
+      "htmlAnchor": "index.html#chart-score-stability-labeled-scatter",
+      "caption": "F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.",
+      "recommendedUse": "Use as an experimental repeatability visual when Snyk Code's zero-variance reference point should be visually prominent.",
+      "dataSummary": {
+        "points": [
+          { "label": "Snyk Code SAST", "shortLabel": "Snyk Code SAST", "runConfigType": "command", "x": 0, "y": 1, "labelDx": 12, "labelDy": -14, "labelAnchor": "start" },
+          { "label": "Claude Opus 4.6 Medium", "shortLabel": "Opus 4.6 Medium", "runConfigType": "model", "x": 0.0024674185437360318, "y": 0.7537982017982017, "labelDx": 12, "labelDy": -18, "labelAnchor": "start" },
+          { "label": "Claude Opus 4.6 High", "shortLabel": "Opus 4.6 High", "runConfigType": "model", "x": 0.0028950633451438217, "y": 0.7523507864684335, "labelDx": 12, "labelDy": 12, "labelAnchor": "start" },
+          { "label": "Claude Sonnet 4.6 Medium", "shortLabel": "Sonnet 4.6 Medium", "runConfigType": "model", "x": 0.009170103518359875, "y": 0.6741726708074535, "labelDx": 12, "labelDy": 0, "labelAnchor": "start" },
+          { "label": "Claude Opus 4.7 Max", "shortLabel": "Opus 4.7 Max", "runConfigType": "model", "x": 0.022273540769297218, "y": 0.6876156355721573, "labelDx": 12, "labelDy": -12, "labelAnchor": "start" },
+          { "label": "Claude Sonnet 4.6 High", "shortLabel": "Sonnet 4.6 High", "runConfigType": "model", "x": 0.03471337765983303, "y": 0.6488264834580625, "labelDx": -12, "labelDy": -12, "labelAnchor": "end" }
+        ]
+      },
+      "talkingPoints": [
+        "Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.",
+        "Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point F1 standard deviation across repeated runs.",
+        "The stronger model tradeoff is toward the upper-left: high agreement with lower run-to-run variance."
+      ]
+    },
+    {
       "id": "score-vs-cost-repeatability-story",
       "title": "Score vs estimated model-session cost",
       "chartType": "scatter",
