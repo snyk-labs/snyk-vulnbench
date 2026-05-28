@@ -1,0 +1,3803 @@
+{
+  "schemaVersion": 1,
+  "reportTitle": "Benchmark Results",
+  "reportSubtitle": "Multi-task comparison: js-project-copperline-find-vulns, js-project-goldleaf-find-vulns, js-project-ironclad-find-vulns, js-project-nightowl-find-vulns, js-project-purplehaze-find-vulns, js-project-riverbend-find-vulns, js-project-shadowfox-find-vulns, js-project-silvergate-find-vulns, js-project-skylark-find-vulns, js-project-tigerteam-find-vulns",
+  "generatedAt": "2026-05-25T09:12:47.212Z",
+  "sourceFiles": [
+    "results/benchmark-2026-05-20T23-06-29-348Z.jsonl"
+  ],
+  "htmlReport": "index.html",
+  "charts": [
+    {
+      "id": "headline-score",
+      "title": "Headline score",
+      "chartType": "bar",
+      "scope": "config-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-score -->",
+      "htmlAnchor": "index.html#chart-headline-score",
+      "caption": "Macro-averaged benchmark score across all fixtures. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use in the main Results section when introducing the overall benchmark comparison.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.7523507864684335,
+            "repetitions": 5,
+            "stdDev": 0.0028950633451438217
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.7537982017982017,
+            "repetitions": 5,
+            "stdDev": 0.0024674185437360318
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.6876156355721573,
+            "repetitions": 5,
+            "stdDev": 0.022273540769297218
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.6488264834580625,
+            "repetitions": 5,
+            "stdDev": 0.03471337765983303
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.6741726708074535,
+            "repetitions": 5,
+            "stdDev": 0.009170103518359875
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "headline-duration",
+      "title": "Headline session duration",
+      "chartType": "bar",
+      "scope": "config-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-duration -->",
+      "htmlAnchor": "index.html#chart-headline-duration",
+      "caption": "Macro-averaged wall-clock session duration across benchmark fixtures. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing benchmark speed and operational latency.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 14758.100000000002,
+            "repetitions": 5,
+            "stdDev": 2758.3562605290863
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 53827.08,
+            "repetitions": 5,
+            "stdDev": 3035.6715512387036
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 27324.159999999996,
+            "repetitions": 5,
+            "stdDev": 753.3649202079949
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 37350.719999999994,
+            "repetitions": 5,
+            "stdDev": 2321.4753632119373
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 94820.59999999999,
+            "repetitions": 5,
+            "stdDev": 12273.105654030685
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 59318.09999999999,
+            "repetitions": 5,
+            "stdDev": 5135.255597825682
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "headline-total-tokens",
+      "title": "Headline total tokens",
+      "chartType": "bar",
+      "scope": "config-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-total-tokens -->",
+      "htmlAnchor": "index.html#chart-headline-total-tokens",
+      "caption": "Macro-averaged total tokens per config. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing model context usage and inference footprint.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 66929.37999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 51573.72,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 95968.95999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 74240.1,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 56991.96,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower token usage generally means lower inference load for model runs."
+      ]
+    },
+    {
+      "id": "headline-cost",
+      "title": "Headline estimated cost",
+      "chartType": "bar",
+      "scope": "config-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-cost -->",
+      "htmlAnchor": "index.html#chart-headline-cost",
+      "caption": "Macro-averaged estimated session cost in USD. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when comparing model-session costs.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.12494352,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.06276034999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.35590119000000003,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.13221054699999996,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.08598008799999998,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Command runs are not model sessions, so their USD cost is shown as N/A."
+      ]
+    },
+    {
+      "id": "headline-recall-precision",
+      "title": "Headline recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "config-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-recall-precision -->",
+      "htmlAnchor": "index.html#chart-headline-recall-precision",
+      "caption": "Macro-averaged recall and precision for find-vulns tasks.",
+      "recommendedUse": "Use when explaining detection behavior: coverage of known vulnerabilities versus false-positive control.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.6822294372294373,
+            "precision": 0.8979999999999999
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.6804112554112554,
+            "precision": 0.9146666666666666
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.7138311688311687,
+            "precision": 0.6956277056277057
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.8125974025974025,
+            "precision": 0.5857619047619047
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.8089177489177489,
+            "precision": 0.626021978021978
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "headline-score-vs-cost",
+      "title": "Score vs estimated cost",
+      "chartType": "scatter",
+      "scope": "config-aggregate",
+      "metric": "score-vs-cost",
+      "unit": "number",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-score-vs-cost -->",
+      "htmlAnchor": "index.html#chart-headline-score-vs-cost",
+      "caption": "Model-only cost/quality tradeoff. Better points move toward the top-left: higher score at lower estimated session cost.",
+      "recommendedUse": "Use as a Pareto-style tradeoff visual for model configs only.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "x": 0.12494352,
+            "y": 0.7523507864684335
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.06276034999999999,
+            "y": 0.7537982017982017
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "x": 0.35590119000000003,
+            "y": 0.6876156355721573
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "x": 0.13221054699999996,
+            "y": 0.6488264834580625
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.08598008799999998,
+            "y": 0.6741726708074535
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Snyk Code SAST is excluded because command rows do not have comparable model-session cost.",
+        "Claude Opus 4.6 Medium is the apparent dominant point in this tradeoff view."
+      ],
+      "xAxisLabel": "COST",
+      "yAxisLabel": "SCORE",
+      "xUnit": "usd",
+      "yUnit": "percent"
+    },
+    {
+      "id": "headline-score-vs-duration",
+      "title": "Score vs session duration",
+      "chartType": "scatter",
+      "scope": "config-aggregate",
+      "metric": "score-vs-duration",
+      "unit": "number",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-score-vs-duration -->",
+      "htmlAnchor": "index.html#chart-headline-score-vs-duration",
+      "caption": "Speed/quality tradeoff across model and command configs. Better points move toward the top-left: higher score in less wall-clock time.",
+      "recommendedUse": "Use when comparing benchmark quality against elapsed runtime.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "x": 14758.100000000002,
+            "y": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "x": 53827.08,
+            "y": 0.7523507864684335
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "x": 27324.159999999996,
+            "y": 0.7537982017982017
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "x": 37350.719999999994,
+            "y": 0.6876156355721573
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "x": 94820.59999999999,
+            "y": 0.6488264834580625
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "x": 59318.09999999999,
+            "y": 0.6741726708074535
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Snyk Code SAST is the apparent dominant point in this tradeoff view."
+      ],
+      "xAxisLabel": "DURATION",
+      "yAxisLabel": "SCORE",
+      "xUnit": "milliseconds",
+      "yUnit": "percent"
+    },
+    {
+      "id": "headline-recall-vs-precision",
+      "title": "Recall vs precision",
+      "chartType": "scatter",
+      "scope": "config-aggregate",
+      "metric": "recall-vs-precision",
+      "unit": "number",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-recall-vs-precision -->",
+      "htmlAnchor": "index.html#chart-headline-recall-vs-precision",
+      "caption": "Detection tradeoff for find-vulns tasks. Better points move toward the top-right: more known vulnerabilities found with fewer false positives.",
+      "recommendedUse": "Use when explaining whether configs are recall-oriented or precision-oriented.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "x": 1,
+            "y": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "x": 0.6822294372294373,
+            "y": 0.8979999999999999
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.6804112554112554,
+            "y": 0.9146666666666666
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "x": 0.7138311688311687,
+            "y": 0.6956277056277057
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "x": 0.8125974025974025,
+            "y": 0.5857619047619047
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.8089177489177489,
+            "y": 0.626021978021978
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Snyk Code SAST is the apparent dominant point in this tradeoff view."
+      ],
+      "xAxisLabel": "RECALL",
+      "yAxisLabel": "PRECISION",
+      "xUnit": "percent",
+      "yUnit": "percent"
+    },
+    {
+      "id": "headline-score-stability",
+      "title": "Score stability",
+      "chartType": "scatter",
+      "scope": "config-aggregate",
+      "metric": "score-stability",
+      "unit": "number",
+      "section": {
+        "id": "headline",
+        "title": "Headline comparison",
+        "subtitle": "Macro-average across 10 fixtures",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: headline-score-stability -->",
+      "htmlAnchor": "index.html#chart-headline-score-stability",
+      "caption": "Quality and repeated-run stability. Better points move toward the top-left: higher score with lower score standard deviation.",
+      "recommendedUse": "Use when discussing repeatability across benchmark repetitions.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "x": 0,
+            "y": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "x": 0.0028950633451438217,
+            "y": 0.7523507864684335
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.0024674185437360318,
+            "y": 0.7537982017982017
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "x": 0.022273540769297218,
+            "y": 0.6876156355721573
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "x": 0.03471337765983303,
+            "y": 0.6488264834580625
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.009170103518359875,
+            "y": 0.6741726708074535
+          }
+        ]
+      },
+      "talkingPoints": [
+        "A zero standard deviation for command-based SAST is meaningful for deterministic repeated runs.",
+        "Snyk Code SAST is the apparent dominant point in this tradeoff view."
+      ],
+      "xAxisLabel": "SCORE SD",
+      "yAxisLabel": "SCORE",
+      "xUnit": "percent",
+      "yUnit": "percent"
+    },
+    {
+      "id": "js-project-copperline-score",
+      "title": "JS Snippet (Plugin Installer): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-copperline-find-vulns",
+        "title": "JS Snippet (Plugin Installer): Find Vulnerabilities",
+        "subtitle": "js-project-copperline-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-copperline-score -->",
+      "htmlAnchor": "index.html#chart-js-project-copperline-score",
+      "caption": "Mean benchmark score for JS Snippet (Plugin Installer): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-copperline-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.45999999999999996,
+            "repetitions": 5,
+            "stdDev": 0.0547722557505166
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.5,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.4688888888888888,
+            "repetitions": 5,
+            "stdDev": 0.1262957532300695
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.6670695970695971,
+            "repetitions": 5,
+            "stdDev": 0.14978888209892435
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.7295238095238095,
+            "repetitions": 5,
+            "stdDev": 0.11963663807575012
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-copperline-duration",
+      "title": "JS Snippet (Plugin Installer): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-copperline-find-vulns",
+        "title": "JS Snippet (Plugin Installer): Find Vulnerabilities",
+        "subtitle": "js-project-copperline-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-copperline-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-copperline-duration",
+      "caption": "Mean wall-clock session duration for JS Snippet (Plugin Installer): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-copperline-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 12406.2,
+            "repetitions": 5,
+            "stdDev": 3204.0407612887825
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 31806,
+            "repetitions": 5,
+            "stdDev": 2965.26718863579
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 17509,
+            "repetitions": 5,
+            "stdDev": 611.176733850365
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 26269.2,
+            "repetitions": 5,
+            "stdDev": 6538.156674476377
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 62360.6,
+            "repetitions": 5,
+            "stdDev": 26221.988278923473
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 42939.2,
+            "repetitions": 5,
+            "stdDev": 4803.7614116440045
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-copperline-total-tokens",
+      "title": "JS Snippet (Plugin Installer): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-copperline-find-vulns",
+        "title": "JS Snippet (Plugin Installer): Find Vulnerabilities",
+        "subtitle": "js-project-copperline-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-copperline-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-copperline-total-tokens",
+      "caption": "Mean total tokens for JS Snippet (Plugin Installer): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-copperline-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 44432.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 41266,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 85404.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 59835.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 40984,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-copperline-cost",
+      "title": "JS Snippet (Plugin Installer): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-copperline-find-vulns",
+        "title": "JS Snippet (Plugin Installer): Find Vulnerabilities",
+        "subtitle": "js-project-copperline-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-copperline-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-copperline-cost",
+      "caption": "Mean estimated session cost in USD for JS Snippet (Plugin Installer): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-copperline-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.0623075,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0477811,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.28766879999999995,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.08204037,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.06237602,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-copperline-recall-precision",
+      "title": "JS Snippet (Plugin Installer): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-copperline-find-vulns",
+        "title": "JS Snippet (Plugin Installer): Find Vulnerabilities",
+        "subtitle": "js-project-copperline-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-copperline-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-copperline-recall-precision",
+      "caption": "Mean recall and precision for JS Snippet (Plugin Installer): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-copperline-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.3333333333333333,
+            "precision": 0.8
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.3333333333333333,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.4666666666666666,
+            "precision": 0.5666666666666667
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.5157142857142857
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.5857142857142857
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-goldleaf-score",
+      "title": "JS Snippet (Report Preview): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-goldleaf-find-vulns",
+        "title": "JS Snippet (Report Preview): Find Vulnerabilities",
+        "subtitle": "js-project-goldleaf-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-goldleaf-score -->",
+      "htmlAnchor": "index.html#chart-js-project-goldleaf-score",
+      "caption": "Mean benchmark score for JS Snippet (Report Preview): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-goldleaf-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.6666666666666666,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.6666666666666666,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.5066666666666666,
+            "repetitions": 5,
+            "stdDev": 0.14605934866804426
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.39428571428571424,
+            "repetitions": 5,
+            "stdDev": 0.15930688876271556
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.330952380952381,
+            "repetitions": 5,
+            "stdDev": 0.09903159210993057
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-goldleaf-duration",
+      "title": "JS Snippet (Report Preview): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-goldleaf-find-vulns",
+        "title": "JS Snippet (Report Preview): Find Vulnerabilities",
+        "subtitle": "js-project-goldleaf-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-goldleaf-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-goldleaf-duration",
+      "caption": "Mean wall-clock session duration for JS Snippet (Report Preview): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-goldleaf-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 10858.4,
+            "repetitions": 5,
+            "stdDev": 1812.9301696425043
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 123046,
+            "repetitions": 5,
+            "stdDev": 30434.38628426734
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 26258.8,
+            "repetitions": 5,
+            "stdDev": 3145.35017128459
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 43341.8,
+            "repetitions": 5,
+            "stdDev": 5944.2820592566095
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 165321.4,
+            "repetitions": 5,
+            "stdDev": 33902.96924754527
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 85484.4,
+            "repetitions": 5,
+            "stdDev": 21836.984883449455
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-goldleaf-total-tokens",
+      "title": "JS Snippet (Report Preview): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-goldleaf-find-vulns",
+        "title": "JS Snippet (Report Preview): Find Vulnerabilities",
+        "subtitle": "js-project-goldleaf-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-goldleaf-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-goldleaf-total-tokens",
+      "caption": "Mean total tokens for JS Snippet (Report Preview): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-goldleaf-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 61091.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 41324.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 80647,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 76913.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 56886.4,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-goldleaf-cost",
+      "title": "JS Snippet (Report Preview): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-goldleaf-find-vulns",
+        "title": "JS Snippet (Report Preview): Find Vulnerabilities",
+        "subtitle": "js-project-goldleaf-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-goldleaf-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-goldleaf-cost",
+      "caption": "Mean estimated session cost in USD for JS Snippet (Report Preview): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-goldleaf-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.20126665,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0441276,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.32484749999999996,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.19085059,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.10255824999999999,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-goldleaf-recall-precision",
+      "title": "JS Snippet (Report Preview): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-goldleaf-find-vulns",
+        "title": "JS Snippet (Report Preview): Find Vulnerabilities",
+        "subtitle": "js-project-goldleaf-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-goldleaf-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-goldleaf-recall-precision",
+      "caption": "Mean recall and precision for JS Snippet (Report Preview): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-goldleaf-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.5,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.5,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.5,
+            "precision": 0.6
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.6,
+            "precision": 0.29666666666666663
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.5,
+            "precision": 0.2633333333333333
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-ironclad-score",
+      "title": "JS App (Knex/Postgres 3): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-ironclad-find-vulns",
+        "title": "JS App (Knex/Postgres 3): Find Vulnerabilities",
+        "subtitle": "js-project-ironclad-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-ironclad-score -->",
+      "htmlAnchor": "index.html#chart-js-project-ironclad-score",
+      "caption": "Mean benchmark score for JS App (Knex/Postgres 3): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-ironclad-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.8528571428571429,
+            "repetitions": 5,
+            "stdDev": 0.09362321358749114
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.7976190476190476,
+            "repetitions": 5,
+            "stdDev": 0.08666797487238713
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.9047619047619048,
+            "repetitions": 5,
+            "stdDev": 0.14677176197545183
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-ironclad-duration",
+      "title": "JS App (Knex/Postgres 3): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-ironclad-find-vulns",
+        "title": "JS App (Knex/Postgres 3): Find Vulnerabilities",
+        "subtitle": "js-project-ironclad-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-ironclad-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-ironclad-duration",
+      "caption": "Mean wall-clock session duration for JS App (Knex/Postgres 3): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-ironclad-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 14919.8,
+            "repetitions": 5,
+            "stdDev": 9610.178520714378
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 34464.8,
+            "repetitions": 5,
+            "stdDev": 1765.84319802184
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 26229,
+            "repetitions": 5,
+            "stdDev": 4714.936425870448
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 25555.6,
+            "repetitions": 5,
+            "stdDev": 3317.4838808952786
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 47295,
+            "repetitions": 5,
+            "stdDev": 5929.220817274391
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 38647.6,
+            "repetitions": 5,
+            "stdDev": 9070.4427841203
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-ironclad-total-tokens",
+      "title": "JS App (Knex/Postgres 3): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-ironclad-find-vulns",
+        "title": "JS App (Knex/Postgres 3): Find Vulnerabilities",
+        "subtitle": "js-project-ironclad-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-ironclad-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-ironclad-total-tokens",
+      "caption": "Mean total tokens for JS App (Knex/Postgres 3): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-ironclad-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 53489.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 52213.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 83181.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 61618.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 44941.4,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-ironclad-cost",
+      "title": "JS App (Knex/Postgres 3): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-ironclad-find-vulns",
+        "title": "JS App (Knex/Postgres 3): Find Vulnerabilities",
+        "subtitle": "js-project-ironclad-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-ironclad-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-ironclad-cost",
+      "caption": "Mean estimated session cost in USD for JS App (Knex/Postgres 3): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-ironclad-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.07569805,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.05450724999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.24849435,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.06282675,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.04982358,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-ironclad-recall-precision",
+      "title": "JS App (Knex/Postgres 3): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-ironclad-find-vulns",
+        "title": "JS App (Knex/Postgres 3): Find Vulnerabilities",
+        "subtitle": "js-project-ironclad-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-ironclad-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-ironclad-recall-precision",
+      "caption": "Mean recall and precision for JS App (Knex/Postgres 3): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-ironclad-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.9333333333333332,
+            "precision": 0.82
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.67
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.85
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-nightowl-score",
+      "title": "JS Todo App (SQLite 4): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-nightowl-find-vulns",
+        "title": "JS Todo App (SQLite 4): Find Vulnerabilities",
+        "subtitle": "js-project-nightowl-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-nightowl-score -->",
+      "htmlAnchor": "index.html#chart-js-project-nightowl-score",
+      "caption": "Mean benchmark score for JS Todo App (SQLite 4): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-nightowl-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.4,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.38545454545454544,
+            "repetitions": 5,
+            "stdDev": 0.019917183909278775
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.3065079365079365,
+            "repetitions": 5,
+            "stdDev": 0.07853614728156195
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.2942657342657342,
+            "repetitions": 5,
+            "stdDev": 0.04265466765276136
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.33904761904761904,
+            "repetitions": 5,
+            "stdDev": 0.08209280738860933
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-nightowl-duration",
+      "title": "JS Todo App (SQLite 4): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-nightowl-find-vulns",
+        "title": "JS Todo App (SQLite 4): Find Vulnerabilities",
+        "subtitle": "js-project-nightowl-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-nightowl-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-nightowl-duration",
+      "caption": "Mean wall-clock session duration for JS Todo App (SQLite 4): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-nightowl-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 14569.2,
+            "repetitions": 5,
+            "stdDev": 4330.545369811983
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 72734.4,
+            "repetitions": 5,
+            "stdDev": 11991.31841375251
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 32466,
+            "repetitions": 5,
+            "stdDev": 989.8926709497348
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 62034.2,
+            "repetitions": 5,
+            "stdDev": 8485.879989724106
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 146828.6,
+            "repetitions": 5,
+            "stdDev": 48441.69560203276
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 75337.4,
+            "repetitions": 5,
+            "stdDev": 10468.581460732872
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-nightowl-total-tokens",
+      "title": "JS Todo App (SQLite 4): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-nightowl-find-vulns",
+        "title": "JS Todo App (SQLite 4): Find Vulnerabilities",
+        "subtitle": "js-project-nightowl-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-nightowl-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-nightowl-total-tokens",
+      "caption": "Mean total tokens for JS Todo App (SQLite 4): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-nightowl-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 118891.4,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 77422.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 150744.8,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 120793.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 88261.6,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-nightowl-cost",
+      "title": "JS Todo App (SQLite 4): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-nightowl-find-vulns",
+        "title": "JS Todo App (SQLite 4): Find Vulnerabilities",
+        "subtitle": "js-project-nightowl-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-nightowl-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-nightowl-cost",
+      "caption": "Mean estimated session cost in USD for JS Todo App (SQLite 4): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-nightowl-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.23883314999999997,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0964772,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.6660503999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.24272473,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.13626122999999998,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-nightowl-recall-precision",
+      "title": "JS Todo App (SQLite 4): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-nightowl-find-vulns",
+        "title": "JS Todo App (SQLite 4): Find Vulnerabilities",
+        "subtitle": "js-project-nightowl-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-nightowl-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-nightowl-recall-precision",
+      "caption": "Mean recall and precision for JS Todo App (SQLite 4): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-nightowl-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.2857142857142857,
+            "precision": 0.6666666666666666
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.2857142857142857,
+            "precision": 0.5999999999999999
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.34285714285714286,
+            "precision": 0.28145743145743146
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.2857142857142857,
+            "precision": 0.31666666666666665
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.34285714285714286,
+            "precision": 0.33571428571428574
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-purplehaze-score",
+      "title": "JS Todo App (SQLite 5): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-purplehaze-find-vulns",
+        "title": "JS Todo App (SQLite 5): Find Vulnerabilities",
+        "subtitle": "js-project-purplehaze-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-purplehaze-score -->",
+      "htmlAnchor": "index.html#chart-js-project-purplehaze-score",
+      "caption": "Mean benchmark score for JS Todo App (SQLite 5): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-purplehaze-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.5243137254901962,
+            "repetitions": 5,
+            "stdDev": 0.03853826670685816
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.5133333333333334,
+            "repetitions": 5,
+            "stdDev": 0.018257418583505474
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.7641294936947111,
+            "repetitions": 5,
+            "stdDev": 0.0644158441051645
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.691093117408907,
+            "repetitions": 5,
+            "stdDev": 0.06896627744159121
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.6936314699792961,
+            "repetitions": 5,
+            "stdDev": 0.09689889745585084
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-purplehaze-duration",
+      "title": "JS Todo App (SQLite 5): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-purplehaze-find-vulns",
+        "title": "JS Todo App (SQLite 5): Find Vulnerabilities",
+        "subtitle": "js-project-purplehaze-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-purplehaze-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-purplehaze-duration",
+      "caption": "Mean wall-clock session duration for JS Todo App (SQLite 5): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-purplehaze-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 13712,
+            "repetitions": 5,
+            "stdDev": 5506.103749476575
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 102118.8,
+            "repetitions": 5,
+            "stdDev": 9631.714655241818
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 49745.4,
+            "repetitions": 5,
+            "stdDev": 7422.845599903045
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 76464.4,
+            "repetitions": 5,
+            "stdDev": 9068.409248594817
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 207922.8,
+            "repetitions": 5,
+            "stdDev": 38458.793288401546
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 149816.6,
+            "repetitions": 5,
+            "stdDev": 28609.62684657037
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-purplehaze-total-tokens",
+      "title": "JS Todo App (SQLite 5): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-purplehaze-find-vulns",
+        "title": "JS Todo App (SQLite 5): Find Vulnerabilities",
+        "subtitle": "js-project-purplehaze-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-purplehaze-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-purplehaze-total-tokens",
+      "caption": "Mean total tokens for JS Todo App (SQLite 5): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-purplehaze-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 134109.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 64436.8,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 183588,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 112003.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 115114.2,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-purplehaze-cost",
+      "title": "JS Todo App (SQLite 5): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-purplehaze-find-vulns",
+        "title": "JS Todo App (SQLite 5): Find Vulnerabilities",
+        "subtitle": "js-project-purplehaze-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-purplehaze-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-purplehaze-cost",
+      "caption": "Mean estimated session cost in USD for JS Todo App (SQLite 5): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-purplehaze-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.30795005,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.1361562,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.78140565,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.29743083,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.23645153,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-purplehaze-recall-precision",
+      "title": "JS Todo App (SQLite 5): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-purplehaze-find-vulns",
+        "title": "JS Todo App (SQLite 5): Find Vulnerabilities",
+        "subtitle": "js-project-purplehaze-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-purplehaze-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-purplehaze-recall-precision",
+      "caption": "Mean recall and precision for JS Todo App (SQLite 5): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-purplehaze-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.38181818181818183,
+            "precision": 0.8466666666666667
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.36363636363636365,
+            "precision": 0.8800000000000001
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.7454545454545455,
+            "precision": 0.7876767676767676
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.6545454545454545,
+            "precision": 0.7533333333333333
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.7272727272727273,
+            "precision": 0.6673626373626373
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-riverbend-score",
+      "title": "JS Snippet (Import Profile): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-riverbend-find-vulns",
+        "title": "JS Snippet (Import Profile): Find Vulnerabilities",
+        "subtitle": "js-project-riverbend-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-riverbend-score -->",
+      "htmlAnchor": "index.html#chart-js-project-riverbend-score",
+      "caption": "Mean benchmark score for JS Snippet (Import Profile): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-riverbend-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.8666666666666666,
+            "repetitions": 5,
+            "stdDev": 0.18257418583505539
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.38999999999999996,
+            "repetitions": 5,
+            "stdDev": 0.0894427190999916
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.39333333333333337,
+            "repetitions": 5,
+            "stdDev": 0.0683130051063973
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-riverbend-duration",
+      "title": "JS Snippet (Import Profile): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-riverbend-find-vulns",
+        "title": "JS Snippet (Import Profile): Find Vulnerabilities",
+        "subtitle": "js-project-riverbend-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-riverbend-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-riverbend-duration",
+      "caption": "Mean wall-clock session duration for JS Snippet (Import Profile): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-riverbend-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 26113.4,
+            "repetitions": 5,
+            "stdDev": 20389.500663331608
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 37061.4,
+            "repetitions": 5,
+            "stdDev": 1069.608479771921
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 21962.8,
+            "repetitions": 5,
+            "stdDev": 924.9547015935428
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 28835.4,
+            "repetitions": 5,
+            "stdDev": 3578.6462244821014
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 81866.6,
+            "repetitions": 5,
+            "stdDev": 17384.87977525298
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 41169.4,
+            "repetitions": 5,
+            "stdDev": 7776.343118715891
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-riverbend-total-tokens",
+      "title": "JS Snippet (Import Profile): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-riverbend-find-vulns",
+        "title": "JS Snippet (Import Profile): Find Vulnerabilities",
+        "subtitle": "js-project-riverbend-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-riverbend-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-riverbend-total-tokens",
+      "caption": "Mean total tokens for JS Snippet (Import Profile): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-riverbend-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 50705,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 41214.8,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 79299.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 66077.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 44524,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-riverbend-cost",
+      "title": "JS Snippet (Import Profile): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-riverbend-find-vulns",
+        "title": "JS Snippet (Import Profile): Find Vulnerabilities",
+        "subtitle": "js-project-riverbend-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-riverbend-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-riverbend-cost",
+      "caption": "Mean estimated session cost in USD for JS Snippet (Import Profile): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-riverbend-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.0705999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.041769999999999995,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.24430230000000003,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.10130787,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.04947714,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-riverbend-recall-precision",
+      "title": "JS Snippet (Import Profile): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-riverbend-find-vulns",
+        "title": "JS Snippet (Import Profile): Find Vulnerabilities",
+        "subtitle": "js-project-riverbend-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-riverbend-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-riverbend-recall-precision",
+      "caption": "Mean recall and precision for JS Snippet (Import Profile): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-riverbend-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.8
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.24523809523809526
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.24666666666666667
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-shadowfox-score",
+      "title": "JS App (Knex/Postgres 2): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-shadowfox-find-vulns",
+        "title": "JS App (Knex/Postgres 2): Find Vulnerabilities",
+        "subtitle": "js-project-shadowfox-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-shadowfox-score -->",
+      "htmlAnchor": "index.html#chart-js-project-shadowfox-score",
+      "caption": "Mean benchmark score for JS App (Knex/Postgres 2): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-shadowfox-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.8261904761904761,
+            "repetitions": 5,
+            "stdDev": 0.12587561797986957
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.8928571428571429,
+            "repetitions": 5,
+            "stdDev": 0.10714285714285719
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-shadowfox-duration",
+      "title": "JS App (Knex/Postgres 2): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-shadowfox-find-vulns",
+        "title": "JS App (Knex/Postgres 2): Find Vulnerabilities",
+        "subtitle": "js-project-shadowfox-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-shadowfox-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-shadowfox-duration",
+      "caption": "Mean wall-clock session duration for JS App (Knex/Postgres 2): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-shadowfox-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 10904.6,
+            "repetitions": 5,
+            "stdDev": 268.3361697572655
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 30168.2,
+            "repetitions": 5,
+            "stdDev": 1892.2211023027937
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 23024.6,
+            "repetitions": 5,
+            "stdDev": 2496.059855051557
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 23481,
+            "repetitions": 5,
+            "stdDev": 2516.4491848634657
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 57415,
+            "repetitions": 5,
+            "stdDev": 28661.505168082153
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 38718.2,
+            "repetitions": 5,
+            "stdDev": 13749.005662228816
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-shadowfox-total-tokens",
+      "title": "JS App (Knex/Postgres 2): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-shadowfox-find-vulns",
+        "title": "JS App (Knex/Postgres 2): Find Vulnerabilities",
+        "subtitle": "js-project-shadowfox-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-shadowfox-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-shadowfox-total-tokens",
+      "caption": "Mean total tokens for JS App (Knex/Postgres 2): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-shadowfox-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 52684,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 51544,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 76223.4,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 71383.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 52727.6,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-shadowfox-cost",
+      "title": "JS App (Knex/Postgres 2): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-shadowfox-find-vulns",
+        "title": "JS App (Knex/Postgres 2): Find Vulnerabilities",
+        "subtitle": "js-project-shadowfox-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-shadowfox-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-shadowfox-cost",
+      "caption": "Mean estimated session cost in USD for JS App (Knex/Postgres 2): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-shadowfox-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.06621269999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.04721175,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.22242915000000002,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.11584166999999998,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0686988,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-shadowfox-recall-precision",
+      "title": "JS App (Knex/Postgres 2): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-shadowfox-find-vulns",
+        "title": "JS App (Knex/Postgres 2): Find Vulnerabilities",
+        "subtitle": "js-project-shadowfox-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-shadowfox-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-shadowfox-recall-precision",
+      "caption": "Mean recall and precision for JS App (Knex/Postgres 2): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-shadowfox-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.72
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.82
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-silvergate-score",
+      "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-silvergate-find-vulns",
+        "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+        "subtitle": "js-project-silvergate-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-silvergate-score -->",
+      "htmlAnchor": "index.html#chart-js-project-silvergate-score",
+      "caption": "Mean benchmark score for JS Snippet (Redirect Handoff): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-silvergate-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.8571428571428571,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.8571428571428571,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.75,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.8425396825396826,
+            "repetitions": 5,
+            "stdDev": 0.12236849626767013
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.9428571428571428,
+            "repetitions": 5,
+            "stdDev": 0.07824607964359519
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-silvergate-duration",
+      "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-silvergate-find-vulns",
+        "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+        "subtitle": "js-project-silvergate-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-silvergate-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-silvergate-duration",
+      "caption": "Mean wall-clock session duration for JS Snippet (Redirect Handoff): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-silvergate-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 11899.8,
+            "repetitions": 5,
+            "stdDev": 3030.9397387609015
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 33903.6,
+            "repetitions": 5,
+            "stdDev": 1977.2450025224493
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 24686.8,
+            "repetitions": 5,
+            "stdDev": 1679.3018489836782
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 26038.4,
+            "repetitions": 5,
+            "stdDev": 2920.0436298110344
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 52957.6,
+            "repetitions": 5,
+            "stdDev": 13565.796744017654
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 39399.8,
+            "repetitions": 5,
+            "stdDev": 7233.165019547114
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-silvergate-total-tokens",
+      "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-silvergate-find-vulns",
+        "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+        "subtitle": "js-project-silvergate-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-silvergate-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-silvergate-total-tokens",
+      "caption": "Mean total tokens for JS Snippet (Redirect Handoff): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-silvergate-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 53035.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 41561.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 70881.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 56198.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 34455.2,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-silvergate-cost",
+      "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-silvergate-find-vulns",
+        "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+        "subtitle": "js-project-silvergate-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-silvergate-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-silvergate-cost",
+      "caption": "Mean estimated session cost in USD for JS Snippet (Redirect Handoff): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-silvergate-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.0734823,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.049429999999999995,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.23624415,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.06679653,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.04815783,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-silvergate-recall-precision",
+      "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-silvergate-find-vulns",
+        "title": "JS Snippet (Redirect Handoff): Find Vulnerabilities",
+        "subtitle": "js-project-silvergate-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-silvergate-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-silvergate-recall-precision",
+      "caption": "Mean recall and precision for JS Snippet (Redirect Handoff): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-silvergate-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.75,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.75,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.75,
+            "precision": 0.75
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.9,
+            "precision": 0.8133333333333332
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.9,
+            "precision": 1
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-skylark-score",
+      "title": "JS Snippet (Shelf Validator): Find Vulnerabilities score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-skylark-find-vulns",
+        "title": "JS Snippet (Shelf Validator): Find Vulnerabilities",
+        "subtitle": "js-project-skylark-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-skylark-score -->",
+      "htmlAnchor": "index.html#chart-js-project-skylark-score",
+      "caption": "Mean benchmark score for JS Snippet (Shelf Validator): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-skylark-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.7238095238095237,
+            "repetitions": 5,
+            "stdDev": 0.12777531299998796
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.8857142857142858,
+            "repetitions": 5,
+            "stdDev": 0.06388765649999402
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.8099999999999999,
+            "repetitions": 5,
+            "stdDev": 0.10839741694339404
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-skylark-duration",
+      "title": "JS Snippet (Shelf Validator): Find Vulnerabilities session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-skylark-find-vulns",
+        "title": "JS Snippet (Shelf Validator): Find Vulnerabilities",
+        "subtitle": "js-project-skylark-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-skylark-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-skylark-duration",
+      "caption": "Mean wall-clock session duration for JS Snippet (Shelf Validator): Find Vulnerabilities. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-skylark-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 19728.4,
+            "repetitions": 5,
+            "stdDev": 16229.64233432148
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 38100.8,
+            "repetitions": 5,
+            "stdDev": 3330.3434057165937
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 28589.8,
+            "repetitions": 5,
+            "stdDev": 4130.742390902633
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 36131.6,
+            "repetitions": 5,
+            "stdDev": 5431.338352560996
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 73473.6,
+            "repetitions": 5,
+            "stdDev": 12533.49992220848
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 46073.2,
+            "repetitions": 5,
+            "stdDev": 2572.8253341414375
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-skylark-total-tokens",
+      "title": "JS Snippet (Shelf Validator): Find Vulnerabilities total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-skylark-find-vulns",
+        "title": "JS Snippet (Shelf Validator): Find Vulnerabilities",
+        "subtitle": "js-project-skylark-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-skylark-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-skylark-total-tokens",
+      "caption": "Mean total tokens for JS Snippet (Shelf Validator): Find Vulnerabilities. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-skylark-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 56569.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 53388.4,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 87622.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 60812.8,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 43989.6,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-skylark-cost",
+      "title": "JS Snippet (Shelf Validator): Find Vulnerabilities estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-skylark-find-vulns",
+        "title": "JS Snippet (Shelf Validator): Find Vulnerabilities",
+        "subtitle": "js-project-skylark-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-skylark-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-skylark-cost",
+      "caption": "Mean estimated session cost in USD for JS Snippet (Shelf Validator): Find Vulnerabilities. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-skylark-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.08526415000000001,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0595753,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.32595540000000006,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.09176675,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.059187679999999986,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-skylark-recall-precision",
+      "title": "JS Snippet (Shelf Validator): Find Vulnerabilities recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-skylark-find-vulns",
+        "title": "JS Snippet (Shelf Validator): Find Vulnerabilities",
+        "subtitle": "js-project-skylark-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-skylark-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-skylark-recall-precision",
+      "caption": "Mean recall and precision for JS Snippet (Shelf Validator): Find Vulnerabilities.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-skylark-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.7999999999999999,
+            "precision": 0.6666666666666666
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 1,
+            "precision": 0.8
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.9333333333333333,
+            "precision": 0.76
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    },
+    {
+      "id": "js-project-tigerteam-score",
+      "title": "JS App: Find Vulnerabilities 1 score",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "score",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-tigerteam-find-vulns",
+        "title": "JS App: Find Vulnerabilities 1",
+        "subtitle": "js-project-tigerteam-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-tigerteam-score -->",
+      "htmlAnchor": "index.html#chart-js-project-tigerteam-score",
+      "caption": "Mean benchmark score for JS App: Find Vulnerabilities 1. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture performance for js-project-tigerteam-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 1,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.6153846153846153,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.6153846153846153,
+            "repetitions": 5,
+            "stdDev": 0
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.6366300366300366,
+            "repetitions": 5,
+            "stdDev": 0.054969469545213416
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.6994871794871795,
+            "repetitions": 5,
+            "stdDev": 0.09411339279552379
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.7047619047619047,
+            "repetitions": 5,
+            "stdDev": 0.02129588549999802
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Higher values are better.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-tigerteam-duration",
+      "title": "JS App: Find Vulnerabilities 1 session duration",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "sessionDurationMs",
+      "unit": "milliseconds",
+      "section": {
+        "id": "task-js-project-tigerteam-find-vulns",
+        "title": "JS App: Find Vulnerabilities 1",
+        "subtitle": "js-project-tigerteam-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-tigerteam-duration -->",
+      "htmlAnchor": "index.html#chart-js-project-tigerteam-duration",
+      "caption": "Mean wall-clock session duration for JS App: Find Vulnerabilities 1. Error bars show standard deviation across repeated runs.",
+      "recommendedUse": "Use when discussing per-fixture runtime for js-project-tigerteam-find-vulns.",
+      "dataSummary": {
+        "unit": "milliseconds",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 12469.2,
+            "repetitions": 5,
+            "stdDev": 3048.827758335981
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 34866.8,
+            "repetitions": 5,
+            "stdDev": 5752.905587613966
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 22769.4,
+            "repetitions": 5,
+            "stdDev": 3470.3621280782786
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 25355.6,
+            "repetitions": 5,
+            "stdDev": 4110.66932506131
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 52764.8,
+            "repetitions": 5,
+            "stdDev": 10021.169178294516
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 35595.2,
+            "repetitions": 5,
+            "stdDev": 2225.622766777874
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Lower duration is better for throughput.",
+        "Repeated runs are summarized as mean plus standard deviation."
+      ]
+    },
+    {
+      "id": "js-project-tigerteam-total-tokens",
+      "title": "JS App: Find Vulnerabilities 1 total tokens",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalTokens",
+      "unit": "tokens",
+      "section": {
+        "id": "task-js-project-tigerteam-find-vulns",
+        "title": "JS App: Find Vulnerabilities 1",
+        "subtitle": "js-project-tigerteam-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-tigerteam-total-tokens -->",
+      "htmlAnchor": "index.html#chart-js-project-tigerteam-total-tokens",
+      "caption": "Mean total tokens for JS App: Find Vulnerabilities 1. Command-based SAST rows use zero-token accounting.",
+      "recommendedUse": "Use when discussing per-fixture context usage for js-project-tigerteam-find-vulns.",
+      "dataSummary": {
+        "unit": "tokens",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 44285.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 51365.6,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 62096.8,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 56764.2,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 48035.6,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-tigerteam-cost",
+      "title": "JS App: Find Vulnerabilities 1 estimated cost",
+      "chartType": "bar",
+      "scope": "task-aggregate",
+      "metric": "totalCostUsd",
+      "unit": "usd",
+      "section": {
+        "id": "task-js-project-tigerteam-find-vulns",
+        "title": "JS App: Find Vulnerabilities 1",
+        "subtitle": "js-project-tigerteam-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-tigerteam-cost -->",
+      "htmlAnchor": "index.html#chart-js-project-tigerteam-cost",
+      "caption": "Mean estimated session cost in USD for JS App: Find Vulnerabilities 1. Command-based SAST rows report cost as not applicable.",
+      "recommendedUse": "Use when discussing per-fixture model-session cost for js-project-tigerteam-find-vulns.",
+      "dataSummary": {
+        "unit": "usd",
+        "rows": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": null,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.06782075000000001,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0505671,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.2216142,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.07051937999999999,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.04680882,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": []
+    },
+    {
+      "id": "js-project-tigerteam-recall-precision",
+      "title": "JS App: Find Vulnerabilities 1 recall and precision",
+      "chartType": "grouped-bar",
+      "scope": "task-aggregate",
+      "metric": "recall-precision",
+      "unit": "percent",
+      "section": {
+        "id": "task-js-project-tigerteam-find-vulns",
+        "title": "JS App: Find Vulnerabilities 1",
+        "subtitle": "js-project-tigerteam-find-vulns",
+        "kind": "task"
+      },
+      "placeholder": "<!-- VISUAL: js-project-tigerteam-recall-precision -->",
+      "htmlAnchor": "index.html#chart-js-project-tigerteam-recall-precision",
+      "caption": "Mean recall and precision for JS App: Find Vulnerabilities 1.",
+      "recommendedUse": "Use when discussing detection behavior for js-project-tigerteam-find-vulns.",
+      "dataSummary": {
+        "unit": "percent",
+        "groups": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "recall": 1,
+            "precision": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.5714285714285714,
+            "precision": 0.6666666666666666
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.5714285714285714,
+            "precision": 0.6666666666666666
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "recall": 0.6,
+            "precision": 0.6838095238095238
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "recall": 0.6857142857142856,
+            "precision": 0.7266666666666666
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "recall": 0.6857142857142857,
+            "precision": 0.7314285714285715
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Recall measures known vulnerabilities found; precision measures how many reported findings matched ground truth.",
+        "Higher recall and higher precision are both better."
+      ]
+    }
+  ]
+}
