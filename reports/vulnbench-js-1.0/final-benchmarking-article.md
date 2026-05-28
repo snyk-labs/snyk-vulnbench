@@ -1,4 +1,4 @@
-# Can You Trust an LLM to Find the Same Bugs Twice?
+# Snyk VulnBench JS 1.0: Can LLMs Find the Same Bugs Twice?
 
 We ran 300 vulnerability-finding scans to measure how repeatable agentic LLM security review is on the same code, prompt, and harness. The headline result is not that one scanner "wins" a self-referential leaderboard. It is that LLM security findings are unevenly repeatable: reference-matched findings were stable, but extra model reports varied heavily from run to run.
 
@@ -6,7 +6,7 @@ In plain terms: when Claude reported bugs outside the Snyk Code reference list, 
 
 The benchmark also shows complementarity. Models consistently found familiar, high-signal exploit shapes, and in one case surfaced a likely Snyk Code product gap. Snyk Code SAST was deterministic and better at systematically enumerating repeated data-flow sinks. Neither result supports replacing one technique with the other. The data supports combining them.
 
-## Why Repeatability Matters
+## Why LLM Security Review Needs Repeatability
 
 Coding agents are now part of the development loop. They write code, modify pull requests, explain changes, and increasingly perform security review before a human reads the diff. That makes reliability a product question: if the same agent sees the same vulnerable code twice, does it report the same security issues twice?
 
@@ -14,7 +14,7 @@ Traditional SAST tools are built to be deterministic. If the code and rules are 
 
 Snyk VulnBench JS 1.0 was designed to quantify that behavior. The benchmark uses small JavaScript and Express applications so every run is inspectable. The point is not to simulate an entire monorepo. The point is to make model behavior measurable under repeated, controlled conditions.
 
-## Benchmark Design
+## Benchmark Design: 300 Repeated Security Runs
 
 The benchmark contains 10 JavaScript fixture projects with 44 Snyk Code reference findings. Each fixture is a small Express-based application, ranging from compact single-file snippets to a larger todo app with server routes, database state, uploads, and frontend JavaScript.
 
@@ -35,7 +35,7 @@ Snyk Code defines the reference set for this benchmark. That means its 100% scor
 
 The scorer is intentionally lenient: a model finding is credited if it reports the same vulnerability type as a reference finding. It does not need to match the same file, line, severity, or source-to-sink path. F1 is useful as an agreement metric, but it is not the main story.
 
-## Result 1: Repeatability Varied By Configuration
+## Result 1: LLM Repeatability Varied by Model Configuration
 
 At the configuration level, repeatability shows up as the relationship between score and variance. The stronger outcome is toward the upper-left: high agreement with the reference set and low repeated-run variance. Snyk Code SAST sits at that corner with 100.0% F1 and 0.0 percentage-point standard deviation because it reproduced its reference set deterministically. The Claude model configurations spread downward and to the right, with Claude Sonnet 4.6 High showing the largest headline variance at 3.5 percentage points.
 
@@ -85,7 +85,7 @@ The aggregate distribution shows the operational shape of that problem.
 
 *Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
 
-The table shows how often model findings matched reference (Snyk) findings across repeated runs. The large "5 of 5 runs" percentage (84.8%) means when a model spotted a known vulnerability, it almost always did so reliably every time. The small single-digit percentages (e.g., 1/5, 2/5 runs) show that inconsistent, flaky detection of reference issues was rare (<6%). So: model-reported "real" vulns are usually reliable, while the noisy, inconsistent findings are mostly in extra (non-reference) reports. The impact: LLMS consistently catch true positives but are less repeatable in their "extra" findings.
+The table shows how often model findings matched reference (Snyk) findings across repeated runs. The large "5 of 5 runs" percentage (84.8%) means when a model spotted a known vulnerability, it almost always did so reliably every time. The small single-digit percentages (e.g., 1/5, 2/5 runs) show that inconsistent, flaky detection of reference issues was rare (<6%). So: model-reported "real" vulns are usually reliable, while the noisy, inconsistent findings are mostly in extra (non-reference) reports. The impact: LLMs consistently catch true positives but are less repeatable in their "extra" findings.
 
 | Repetition frequency | Unique unmatched findings | Share |
 |---|---:|---:|
@@ -97,7 +97,7 @@ The table shows how often model findings matched reference (Snyk) findings acros
 
 Nearly half of unique unmatched model findings appeared in only one of five identical repetitions. That is a practical reliability problem: a developer could get a materially different review queue depending on which run happened to execute.
 
-## Result 2: The Tools Failed Differently
+## Result 2: LLM Agents and SAST Found Different Security Gaps
 
 The most useful interpretation is not "LLM versus SAST." It is "LLM plus SAST catches different failure modes."
 
@@ -191,7 +191,7 @@ if (req.file) {
 
 The model found some representative issues, then failed to enumerate repeated vulnerable sinks. That is exactly where deterministic data-flow analysis is valuable. SAST coverage and model review are not duplicates of each other; they are different instruments with different blind spots.
 
-## Result 3: Cost Did Not Predict Quality
+## Result 3: More Expensive LLM Runs Did Not Mean Better Coverage
 
 Claude Opus 4.7 Max was the most expensive model configuration in this run, but not the best performing one. It averaged 95,969 tokens and $0.3559 per model session. Claude Opus 4.6 Medium averaged 51,574 tokens and $0.0628 per model session. Opus 4.7 Max therefore cost 5.67x more and used 1.86x more tokens, while scoring lower: 68.8% F1 versus 75.4% for Opus 4.6 Medium.
 
@@ -201,7 +201,7 @@ Claude Opus 4.7 Max was the most expensive model configuration in this run, but 
 
 The absolute dollar amounts are small because the fixtures are small. The scaling question is not. Real security checks run during coding-agent sessions, commits, pull requests, and CI jobs across repositories that are orders of magnitude larger than these snippets. More expensive inference is not automatically better security coverage.
 
-## Agreement Scores, For Context
+## Agreement Scores Against the Snyk Code Reference Set
 
 F1 is still useful, as long as it is described precisely: it measures agreement with the Snyk Code reference set. On that metric, Snyk Code SAST reproduced its reference set with 100.0% F1 and 0.0 percentage-point score standard deviation. The best model configuration was Claude Opus 4.6 Medium at 75.4% F1, 68.0% recall, and 91.5% precision.
 
@@ -216,7 +216,7 @@ F1 is still useful, as long as it is described precisely: it measures agreement 
 
 This table should not be read as "Snyk proved Snyk is 100% accurate." It should be read as: Snyk Code produced a deterministic reference set; models partially agreed with it; and the differences reveal repeatability, cost, and coverage tradeoffs worth measuring.
 
-## Takeaways and Next Steps
+## What This Benchmark Means for LLM Security Review
 
 The reference set comes from Snyk Code. That is transparent and reproducible, but circular if treated as a universal truth set. This report avoids that claim. The benchmark measures model agreement with Snyk Code findings and uses divergences to study repeatability and complementarity.
 
@@ -226,7 +226,7 @@ The fixtures are small JavaScript and Express applications. They are useful for 
 
 The recurrence analysis uses normalized finding signatures. For the model-by-model unmatched charts, the signature is task + vulnerability type + file + line, grouped separately for each model configuration. Different normalization choices change the exact percentages, which is why the signature is part of the chart handoff and reproducibility notes.
 
-### What Comes Next
+### Next: Broader Fixtures and Combined LLM+SAST Workflows
 
 The next Snyk VulnBench release should move beyond small self-contained snippets. We plan to add more full-fledged application structures, LLM-sourced vulnerabilities, business-logic and BOLA classes, and an independent ground truth source such as BaxBench-style reference data.
 
