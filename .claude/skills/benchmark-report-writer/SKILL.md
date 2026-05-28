@@ -16,6 +16,12 @@ Produce a publishable markdown benchmark report from eval results and, when avai
 
 The goal is a report that a reader can skim in two minutes or read thoroughly in twenty, and that stands up to scrutiny because every claim is traceable to the data.
 
+For security benchmarks where the tool under discussion also defines the reference
+set, do not lead with "Tool X scored 100%." That framing looks like grading your own
+homework. Lead with the most novel, externally useful finding the data supports:
+repeatability across identical runs, complementarity between model review and SAST,
+or a cost-quality inversion. Treat reference-set F1 as context, not the headline.
+
 ## Inputs
 
 - **Required**: one or more result files (JSONL with one record per run, JSON, or CSV) with per-run scores and metrics.
@@ -51,34 +57,47 @@ Done when: you have a results source, a methodology source (guide or user-provid
 
 1. Load the results programmatically. Prefer `jq` on JSONL or a small script over eyeballing the file — you need exact numbers, and exact numbers are the whole point.
 2. Compute at minimum, for each task × config cell: the score, total tokens (summing all token fields), wall time, and turn count. Identify the best score per task, the most efficient config (best score-per-token), and any outliers.
-3. Scan for patterns that could become qualitative observations: does quality correlate with cost, or diverge from it? Do different configs fail on the same tasks? Does one tool dominate the tool-use breakdown? Is the score spread wide or tight? Each pattern is a candidate section in the Qualitative Analysis.
-4. If `article-visuals.md` exists, summarize the available visual placeholders and captions in the scratchpad. Map each visual to the section where it best supports the narrative.
-5. Write every headline number into a scratchpad (inline in your response is fine). Every number that ends up in the report must be traceable to this scratchpad — never let a number appear in the draft without a source.
+3. If raw repeated `"run"` rows exist for `find-vulns`, compute repeatability metrics before deciding the story:
+   - For unmatched model reports, group `details.falsePositives` by model config, task, vulnerability type, basename(file), and line. Count how many distinct repetitions each signature appeared in.
+   - For reference-matched reports, group `details.truePositives` by model config, task, and reference finding id. Count how many distinct repetitions each signature appeared in.
+   - For each model config, record the share of unmatched signatures that appeared in exactly one run, the share that appeared in all runs, and the share of reference-matched signatures that appeared in all runs.
+   - Record headline `scoreStdDev` by config so finding-level instability can be tied back to benchmark-level variance.
+4. Scan for complementarity patterns, not just leaderboard rank:
+   - Which vulnerability types are models strongest on? Look for high-signal exploit shapes such as command injection, code injection, XSS, SQL injection with real sinks, hardcoded credentials, SSRF, open redirects, prototype pollution, and ReDoS.
+   - Which vulnerability types does SAST cover more systematically? Look for repeated data-flow sinks, resource-limit findings, framework information exposure, improper sanitization/type validation, insecure transport, and path traversal enumeration.
+   - Which model "false positives" are likely real product gaps or useful adjacent review comments? Do not flatten all unmatched reports into hallucinations.
+5. Scan for cost-quality and speed-quality inversions: does a newer, slower, or more expensive config score lower or produce less stable findings than a cheaper one? Compute exact ratios.
+6. If `article-visuals.md` exists, summarize the available visual placeholders and captions in the scratchpad. Prefer visuals that call out model configurations by name. If the visual handoff only has aggregate charts and the story depends on model behavior, run or request `benchmark-chart-generator` with model-callout repeatability/complementarity charts.
+7. Write every headline number into a scratchpad (inline in your response is fine). Every number that ends up in the report must be traceable to this scratchpad — never let a number appear in the draft without a source.
 
-Done when: you have a structured summary of findings with exact numbers, optional visual placeholders, and 2–4 candidate themes for qualitative analysis.
+Done when: you have a structured summary of findings with exact numbers, optional visual placeholders, and 2–4 candidate themes for qualitative analysis. For repeated security runs, at least consider these three themes before settling on the outline: non-determinism quantified, model/SAST complementarity, and cost not predicting quality.
 
 ### Step 3: Draft the outline
 
 1. Read `references/report-structure.md` for the template and variant guidance.
 2. Map findings onto sections. Drop any section that would be padding for the data at hand — a three-config run doesn't need a dedicated "Methodology Comparison" section, for example.
-3. Decide which generated visuals, if any, belong in each section using `references/visualizations.md` and the available `article-visuals.md` entries. If no visual catalog is available, outline table-led results and note whether running `benchmark-chart-generator` would help.
-4. Write a one-line intent per section (what the reader should take away). If you can't state an intent, the section shouldn't exist.
+3. If a tool defines the reference set and therefore scores 100% against it, do not make the leaderboard the first Results section. Put it later as "Agreement Scores" or "Reference-Set Context." Lead with repeatability, complementarity, or another externally useful finding.
+4. Decide which generated visuals, if any, belong in each section using `references/visualizations.md` and the available `article-visuals.md` entries. If no visual catalog is available, outline table-led results and note whether running `benchmark-chart-generator` would help.
+5. Prefer model-callout visuals over aggregate-only visuals when the story is about model behavior. A chart that says "49.7% of unmatched findings appeared once" is useful; a chart that shows that split by Claude Opus/Sonnet config is publishable.
+6. Write a one-line intent per section (what the reader should take away). If you can't state an intent, the section shouldn't exist.
 
 Done when: you have a section-by-section outline with a one-line intent per section, table plan, and optional visual placeholder plan.
 
 ### Step 4: Write the report
 
 1. Read `references/voice-and-style.md` before drafting the first sentence.
-2. Start with a concise outcome-forward opening: usually 1–2 short paragraphs that state the benchmark, reference point, top scores, and most important tradeoff. Lead with exact numbers, not setup prose.
+2. Start with a concise outcome-forward opening: usually 1–3 short paragraphs that state the benchmark and the most important measured behavior. For repeated LLM security benchmarks, strongly prefer a repeatability-first opening such as: "Can you trust an LLM to find the same bugs twice? We ran N scans to find out."
 3. Follow the opening with a "why this exists" section when the report compares techniques or tools. Keep the framing neutral: the goal is to measure what happens under the benchmark, not to prove that one approach replaces another.
 4. Draft Benchmark Design as the trust-building section: name the reference set, task count, repetitions, scoring rule, harness, and any generous or limiting assumptions in plain language.
-5. Draft each section at the outline's intent — no more. A short section that lands beats a long one that meanders.
-6. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images. When a table follows a visual placeholder, add a short bridge sentence such as "The table below provides exact values for the preceding chart."
-7. In Results, explicitly explain reference-baseline scores. If a tool defines the reference set and scores 100%, say that this means it reproduced its own reference set across repeated runs, not that it proves all possible vulnerabilities were found.
-8. Look for cost-quality and speed-quality inversions. If a newer, slower, or more expensive config scores lower than a cheaper one, call that out with exact ratios and scores rather than implying cost predicts quality.
-9. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
-10. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
-11. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
+5. Draft the repeatability section with model names visible in the prose and visuals. Use `one-run-unmatched-by-model`, `stable-unmatched-by-model`, `stable-matched-by-model`, and `score-variance-by-config` when available. Explain that unmatched report instability is not the same as true-positive instability.
+6. Draft complementarity as a positive, practical finding: models find familiar high-signal exploit shapes; SAST provides deterministic and systematic data-flow coverage; neither replaces the other. Use `reference-coverage-by-type-and-config`, `extra-reports-by-type-and-model`, and a hardest/notable fixture chart when available.
+7. Draft each section at the outline's intent — no more. A short section that lands beats a long one that meanders.
+8. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images. When a table follows a visual placeholder, add a short bridge sentence such as "The table below provides exact values for the preceding chart."
+9. In Results, explicitly explain reference-baseline scores. If a tool defines the reference set and scores 100%, say that this means it reproduced its own reference set across repeated runs, not that it proves all possible vulnerabilities were found.
+10. Look for cost-quality and speed-quality inversions. If a newer, slower, or more expensive config scores lower than a cheaper one, call that out with exact ratios and scores rather than implying cost predicts quality.
+11. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
+12. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
+13. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
 
 Done when: every planned section is drafted, tables and visual placeholders are placed intentionally, and the report reads as one voice rather than a patchwork.
 
@@ -161,6 +180,40 @@ Actions:
 
 Result: A report draft with stable visual placeholders that the user can replace with images or embeds during editorial review.
 
+---
+
+User says: "Write the final article for this repeated LLM security benchmark"
+
+Actions:
+1. Load the JSONL and compute standard config/task aggregates, but do not assume the leaderboard is the story.
+2. Check whether one evaluated tool defines the reference set. If yes, frame that tool's 100% score as deterministic reference reproduction, not universal accuracy.
+3. Use raw repeated run rows to quantify non-determinism:
+   - one-run-only unmatched findings by model
+   - stable unmatched findings by model
+   - stable reference-matched findings by model
+   - headline score variance by config
+4. Use vulnerability-type coverage and extra-report charts to write a complementarity section: models find high-signal exploit shapes, SAST covers systematic data-flow classes, and unmatched model reports can include false positives, useful adjacent comments, and product-gap candidates.
+5. Move F1 leaderboard content into a later "Agreement Scores" or "Reference-Set Context" section.
+6. Write limitations that explicitly name the circularity risk and the scorer's lenient matching.
+
+Result: A repeatability-first article that is defensible to external reviewers because it does not claim that a Snyk-defined reference set proves Snyk is universally accurate.
+
+---
+
+User says: "The chart handoff only has aggregate score charts, but the article is about LLM non-determinism"
+
+Actions:
+1. Explain that aggregate charts support the claim but do not make the model behavior visually obvious.
+2. Run or request `benchmark-chart-generator` for model-callout repeatability charts:
+   - `one-run-unmatched-by-model`
+   - `stable-unmatched-by-model`
+   - `stable-matched-by-model`
+   - `score-variance-by-config`
+3. Use the aggregate number in prose and the model-callout chart as the lead visual.
+4. Verify every model named in the prose appears on the chart.
+
+Result: The report leads with a chart that visibly says "Claude Opus/Sonnet behaved differently," not only an abstract aggregate distribution.
+
 ## Troubleshooting
 
 Error: "I don't have enough context to write the Benchmark Design section."
@@ -172,6 +225,24 @@ Solution: Ask the user for the five-sentence version (what's measured, how it's 
 Error: "The Summary's headline claim isn't supported by the Results."
 Cause: The Summary was drafted from vibes rather than from the Step 2 scratchpad.
 Solution: Rewrite the Summary using only claims that trace to the scratchpad. If no headline claim is strong enough, say so plainly ("No single config dominated across all tasks") rather than over-selling.
+
+---
+
+Error: "The article sounds like Snyk graded its own homework."
+Cause: The report leads with Snyk Code scoring 100% when Snyk Code also defines the reference set.
+Solution: Reframe the 100% score as deterministic reference reproduction and move the leaderboard to a context section. Lead with externally useful findings such as repeated-run non-determinism, model/SAST complementarity, or a cost-quality inversion.
+
+---
+
+Error: "The chart is accurate but readers cannot tell which model it is about."
+Cause: The report uses aggregate-only visuals for a model-behavior story.
+Solution: Prefer model-callout visuals from `benchmark-chart-generator`: `one-run-unmatched-by-model`, `stable-unmatched-by-model`, `stable-matched-by-model`, vulnerability-type heatmaps by config, and model-only score-vs-cost. Keep aggregate figures in prose or secondary charts.
+
+---
+
+Error: "All unmatched model findings are described as hallucinations."
+Cause: The report treats reference-set disagreement as complete ground truth.
+Solution: Split unmatched reports into likely false positives, adjacent review comments, and likely product-gap candidates when the examples support it. Use careful wording such as "outside the reference set" or "unmatched" unless the evidence clearly shows a hallucination.
 
 ---
 

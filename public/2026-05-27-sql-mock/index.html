@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tigerteam Non-Executable SQL Pattern Analysis</title>
+  <style>
+    :root {
+      --snyk-purple: #9043c6;
+      --bg: #ffffff;
+      --text: #111111;
+      --muted: #5c5c5c;
+      --grid: #e8e8e8;
+      --axis: #000000;
+      --surface: #fafafa;
+      --surface-strong: #f4eef9;
+      --model: #4a4a4a;
+      --model-soft: #a0a0a0;
+      --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 48px 32px 64px;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    header { margin-bottom: 36px; }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .report-toc {
+      margin-top: 28px;
+      padding: 18px;
+      border: 1px solid var(--grid);
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(144, 67, 198, 0.08), rgba(0, 188, 255, 0.06)),
+        var(--surface);
+    }
+
+    .toc-heading {
+      margin: 0 0 12px;
+      color: var(--snyk-purple);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .toc-link,
+    .rail-link {
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .toc-link {
+      display: inline-block;
+      padding: 9px 11px;
+      border: 1px solid rgba(144, 67, 198, 0.16);
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 0.84rem;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+
+    .section-rail {
+      position: fixed;
+      top: 108px;
+      left: max(20px, calc((100vw - 1380px) / 2 + 20px));
+      z-index: 10;
+      width: 220px;
+      max-height: calc(100vh - 136px);
+      overflow: auto;
+      padding: 14px;
+      border: 1px solid var(--grid);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 18px 50px rgba(17, 17, 17, 0.08);
+    }
+
+    .rail-title {
+      margin-bottom: 10px;
+      color: var(--snyk-purple);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .rail-link {
+      display: block;
+      padding: 8px 10px 8px 12px;
+      border-left: 3px solid var(--snyk-purple);
+      border-radius: 0 8px 8px 0;
+      background: var(--surface-strong);
+      color: var(--snyk-purple);
+      font-size: 0.78rem;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .headline-group {
+      position: relative;
+      margin-bottom: 84px;
+      padding-bottom: 44px;
+      border-bottom: 2px solid var(--axis);
+      scroll-margin-top: 32px;
+    }
+
+    .task-title {
+      padding: 14px 18px 14px 22px;
+      border-left: 5px solid var(--snyk-purple);
+      border-radius: 12px;
+      background:
+        linear-gradient(90deg, rgba(144, 67, 198, 0.14), rgba(0, 188, 255, 0.07)),
+        #ffffff;
+      color: var(--snyk-purple);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin: 0 0 10px;
+    }
+
+    .task-subtitle {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .chart-section {
+      margin-top: 36px;
+      break-inside: avoid;
+    }
+
+    .chart-section h3 {
+      margin: 0 0 4px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .chart-desc {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .chart-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .grid {
+      stroke: var(--grid);
+      stroke-width: 1;
+    }
+
+    .axis {
+      stroke: var(--axis);
+      stroke-width: 2;
+    }
+
+    .tick-label {
+      fill: var(--muted);
+      font-size: 11px;
+    }
+
+    .axis-label {
+      fill: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    .point-label,
+    .value-label {
+      fill: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .sub-label {
+      fill: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .line-model {
+      fill: none;
+      stroke: var(--model);
+      stroke-width: 2;
+      opacity: 0.68;
+    }
+
+    .line-snyk {
+      fill: none;
+      stroke: var(--snyk-purple);
+      stroke-width: 3;
+    }
+
+    .caption {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 1300px) {
+      .section-rail { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="section-rail" id="section-rail" aria-label="Section navigation">
+    <div class="rail-title">Sections</div>
+    <a class="rail-link active" href="#sql-pattern">SQL pattern analysis</a>
+  </nav>
+
+  <div class="page">
+    <header>
+      <h1>Tigerteam non-executable SQL pattern analysis</h1>
+      <p class="subtitle">Custom failure-mode charts for `js-project-tigerteam-find-vulns`.</p>
+
+      <nav class="report-toc" id="report-toc" aria-label="Report sections">
+        <div class="toc-heading">Sections</div>
+        <a class="toc-link" href="#sql-pattern">SQL pattern analysis</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="headline-group sectionAnchor" id="sql-pattern">
+        <h2 class="task-title">SQL-shaped non-sink detection</h2>
+        <p class="task-subtitle">
+          The `/users` route constructs a SQL-looking string but only passes it to a mock helper that logs and returns an empty array. There is no executable SQL sink.
+        </p>
+
+        <section class="chart-section" id="chart-tigerteam-fp-profile">
+          <h3>False-positive profile</h3>
+          <p class="chart-desc">Average false positives per run on Tigerteam, split between the non-executable SQL pattern and all other false positives. Better points move toward the bottom-left.</p>
+          <div class="chart-wrap">
+            <svg viewBox="0 0 888 430" width="888" height="430" role="img" aria-labelledby="profile-title profile-desc">
+              <title id="profile-title">Tigerteam false-positive profile</title>
+              <desc id="profile-desc">Scatter plot comparing non-executable SQL-pattern false positives per run with all other false positives per run.</desc>
+              <g transform="translate(86,42)">
+                <line class="grid" x1="0" x2="764" y1="306" y2="306" />
+                <line class="grid" x1="0" x2="764" y1="255" y2="255" />
+                <line class="grid" x1="0" x2="764" y1="204" y2="204" />
+                <line class="grid" x1="0" x2="764" y1="153" y2="153" />
+                <line class="grid" x1="0" x2="764" y1="102" y2="102" />
+                <line class="grid" x1="0" x2="764" y1="51" y2="51" />
+
+                <line class="grid" x1="0" x2="0" y1="51" y2="306" />
+                <line class="grid" x1="127.3" x2="127.3" y1="51" y2="306" />
+                <line class="grid" x1="254.7" x2="254.7" y1="51" y2="306" />
+                <line class="grid" x1="382" x2="382" y1="51" y2="306" />
+                <line class="grid" x1="509.3" x2="509.3" y1="51" y2="306" />
+                <line class="grid" x1="636.7" x2="636.7" y1="51" y2="306" />
+
+                <line class="axis" x1="0" x2="764" y1="306" y2="306" />
+                <line class="axis" x1="0" x2="0" y1="0" y2="306" />
+
+                <text class="tick-label" x="0" y="330" text-anchor="middle">0.0</text>
+                <text class="tick-label" x="127.3" y="330" text-anchor="middle">0.2</text>
+                <text class="tick-label" x="254.7" y="330" text-anchor="middle">0.4</text>
+                <text class="tick-label" x="382" y="330" text-anchor="middle">0.6</text>
+                <text class="tick-label" x="509.3" y="330" text-anchor="middle">0.8</text>
+                <text class="tick-label" x="636.7" y="330" text-anchor="middle">1.0</text>
+
+                <text class="tick-label" x="-14" y="310" text-anchor="end">0.0</text>
+                <text class="tick-label" x="-14" y="259" text-anchor="end">0.2</text>
+                <text class="tick-label" x="-14" y="208" text-anchor="end">0.4</text>
+                <text class="tick-label" x="-14" y="157" text-anchor="end">0.6</text>
+                <text class="tick-label" x="-14" y="106" text-anchor="end">0.8</text>
+                <text class="tick-label" x="-14" y="55" text-anchor="end">1.0</text>
+
+                <text class="axis-label" x="382" y="370" text-anchor="middle">NON-EXECUTABLE SQL PATTERN FP/RUN</text>
+                <text class="axis-label" x="-153" y="-66" transform="rotate(-90)" text-anchor="middle">OTHER FALSE POSITIVES PER RUN</text>
+
+                <circle cx="0" cy="306" r="8" fill="var(--snyk-purple)" />
+                <text class="point-label" x="28" y="284">Snyk Code SAST</text>
+                <text class="sub-label" x="28" y="302">0 SQL-pattern FP, 0 other FP/run</text>
+
+                <circle cx="636.7" cy="51" r="11" fill="var(--model)" />
+                <text class="point-label" x="414" y="35">Opus configs (n=3)</text>
+                <text class="sub-label" x="414" y="53">1.0 SQL-pattern FP + 1.0 other FP/run</text>
+
+                <circle cx="636.7" cy="102" r="10" fill="var(--model-soft)" />
+                <text class="point-label" x="414" y="117">Sonnet configs (n=2)</text>
+                <text class="sub-label" x="414" y="135">1.0 SQL-pattern FP + 0.8 other FP/run</text>
+              </g>
+            </svg>
+          </div>
+          <p class="caption">Every model configuration produced one false positive on the non-executable SQL pattern per Tigerteam run. Snyk Code SAST produced zero SQL-pattern and zero other false positives.</p>
+        </section>
+
+        <section class="chart-section" id="chart-tigerteam-precision-slope">
+          <h3>Precision ablation</h3>
+          <p class="chart-desc">Observed precision versus counterfactual precision after removing only the non-executable SQL-pattern false positive. Higher is better.</p>
+          <div class="chart-wrap">
+            <svg viewBox="0 0 888 430" width="888" height="430" role="img" aria-labelledby="slope-title slope-desc">
+              <title id="slope-title">Tigerteam precision ablation</title>
+              <desc id="slope-desc">Slope chart showing observed precision and precision without non-executable SQL-pattern false positives.</desc>
+              <g transform="translate(120,42)">
+                <line class="grid" x1="0" x2="700" y1="306" y2="306" />
+                <line class="grid" x1="0" x2="700" y1="244.8" y2="244.8" />
+                <line class="grid" x1="0" x2="700" y1="183.6" y2="183.6" />
+                <line class="grid" x1="0" x2="700" y1="122.4" y2="122.4" />
+                <line class="grid" x1="0" x2="700" y1="61.2" y2="61.2" />
+                <line class="grid" x1="0" x2="700" y1="0" y2="0" />
+
+                <line class="grid" x1="155" x2="155" y1="0" y2="306" />
+                <line class="grid" x1="545" x2="545" y1="0" y2="306" />
+
+                <text class="tick-label" x="-14" y="310" text-anchor="end">0%</text>
+                <text class="tick-label" x="-14" y="248.8" text-anchor="end">20%</text>
+                <text class="tick-label" x="-14" y="187.6" text-anchor="end">40%</text>
+                <text class="tick-label" x="-14" y="126.4" text-anchor="end">60%</text>
+                <text class="tick-label" x="-14" y="65.2" text-anchor="end">80%</text>
+                <text class="tick-label" x="-14" y="4" text-anchor="end">100%</text>
+                <text class="axis-label" x="-153" y="-66" transform="rotate(-90)" text-anchor="middle">PRECISION</text>
+                <text class="axis-label" x="155" y="342" text-anchor="middle">OBSERVED</text>
+                <text class="axis-label" x="545" y="342" text-anchor="middle">WITHOUT SQL PATTERN FP</text>
+
+                <path class="line-snyk" d="M155 0 L545 0" />
+                <circle cx="155" cy="0" r="6" fill="var(--snyk-purple)" />
+                <circle cx="545" cy="0" r="6" fill="var(--snyk-purple)" />
+                <text class="point-label" x="558" y="4">Snyk Code SAST 100.0%</text>
+
+                <path class="line-model" d="M155 102 L545 61.2" />
+                <circle cx="155" cy="102" r="5" fill="var(--model)" />
+                <circle cx="545" cy="61.2" r="5" fill="var(--model)" />
+                <text class="sub-label" x="558" y="65">Opus 4.6 High 66.7 → 80.0%</text>
+
+                <path class="line-model" d="M155 102 L545 61.2" />
+                <circle cx="155" cy="102" r="5" fill="var(--model)" />
+                <circle cx="545" cy="61.2" r="5" fill="var(--model)" />
+                <text class="sub-label" x="558" y="81">Opus 4.6 Medium 66.7 → 80.0%</text>
+
+                <path class="line-model" d="M155 96.7 L545 58.8" />
+                <circle cx="155" cy="96.7" r="5" fill="var(--model)" />
+                <circle cx="545" cy="58.8" r="5" fill="var(--model)" />
+                <text class="sub-label" x="558" y="97">Opus 4.7 Max 68.4 → 80.8%</text>
+
+                <path class="line-model" d="M155 83.5 L545 43.8" />
+                <circle cx="155" cy="83.5" r="5" fill="var(--model)" />
+                <circle cx="545" cy="43.8" r="5" fill="var(--model)" />
+                <text class="sub-label" x="558" y="113">Sonnet 4.6 High 72.7 → 85.7%</text>
+
+                <path class="line-model" d="M155 82.3 L545 43.8" />
+                <circle cx="155" cy="82.3" r="5" fill="var(--model)" />
+                <circle cx="545" cy="43.8" r="5" fill="var(--model)" />
+                <text class="sub-label" x="558" y="129">Sonnet 4.6 Medium 73.1 → 85.7%</text>
+              </g>
+            </svg>
+          </div>
+          <p class="caption">Removing only the non-executable SQL-pattern false positive raises aggregate model precision on Tigerteam from 69.4% to 82.6%, without changing recall.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const CHART_SPECS = [
+      {
+        id: "tigerteam-fp-profile",
+        title: "False-positive profile",
+        chartType: "scatter",
+        scope: "run",
+        metric: "sql-pattern-fp-vs-other-fp",
+        xAxisLabel: "NON-EXECUTABLE SQL PATTERN FP/RUN",
+        yAxisLabel: "OTHER FALSE POSITIVES PER RUN",
+        xUnit: "number",
+        yUnit: "number",
+        section: { id: "sql-pattern", title: "SQL-shaped non-sink detection", subtitle: "Raw repetition-level false-positive behavior for js-project-tigerteam-find-vulns.", kind: "custom" },
+        placeholder: "<!-- VISUAL: tigerteam-fp-profile -->",
+        htmlAnchor: "index.html#chart-tigerteam-fp-profile",
+        caption: "False-positive profile on Tigerteam. Every model configuration produced one false positive on the non-executable SQL pattern per run; Snyk Code SAST produced zero false positives.",
+        recommendedUse: "Use when comparing non-executable SQL-pattern false positives against other false-positive noise.",
+        dataSummary: {
+          points: [
+            { label: "Snyk Code SAST", runConfigType: "command", x: 0, y: 0, configsRepresented: 1 },
+            { label: "Opus configs", runConfigType: "model", x: 1, y: 1, configsRepresented: 3 },
+            { label: "Sonnet configs", runConfigType: "model", x: 1, y: 0.8, configsRepresented: 2 }
+          ]
+        },
+        talkingPoints: [
+          "This directly compares non-executable SQL-pattern false positives against all other false positives.",
+          "Every model configuration produced one SQL-pattern false positive per run.",
+          "Snyk Code SAST is at the origin: zero SQL-pattern false positives and zero other false positives."
+        ]
+      },
+      {
+        id: "tigerteam-precision-slope",
+        title: "Precision ablation",
+        chartType: "slope",
+        scope: "run",
+        metric: "precision-without-sql-pattern-fp",
+        unit: "percent",
+        section: { id: "sql-pattern", title: "SQL-shaped non-sink detection", subtitle: "Raw repetition-level false-positive behavior for js-project-tigerteam-find-vulns.", kind: "custom" },
+        placeholder: "<!-- VISUAL: tigerteam-precision-slope -->",
+        htmlAnchor: "index.html#chart-tigerteam-precision-slope",
+        caption: "Observed precision compared with counterfactual precision after removing only the non-executable SQL-pattern false positive.",
+        recommendedUse: "Use when quantifying the precision cost of the SQL-shaped non-sink pattern.",
+        dataSummary: {
+          series: [
+            { label: "Snyk Code SAST", runConfigType: "command", observed: 1, withoutSqlPatternFp: 1 },
+            { label: "Claude Opus 4.6 High", runConfigType: "model", observed: 0.667, withoutSqlPatternFp: 0.8 },
+            { label: "Claude Opus 4.6 Medium", runConfigType: "model", observed: 0.667, withoutSqlPatternFp: 0.8 },
+            { label: "Claude Opus 4.7 Max", runConfigType: "model", observed: 0.684, withoutSqlPatternFp: 0.808 },
+            { label: "Claude Sonnet 4.6 High", runConfigType: "model", observed: 0.727, withoutSqlPatternFp: 0.857 },
+            { label: "Claude Sonnet 4.6 Medium", runConfigType: "model", observed: 0.731, withoutSqlPatternFp: 0.857 }
+          ],
+          aggregate: {
+            observedModelPrecision: 0.694,
+            modelPrecisionWithoutSqlPatternFp: 0.826,
+            recallChange: 0
+          }
+        },
+        talkingPoints: [
+          "Removing only the SQL-pattern false positive raises aggregate model precision from 69.4% to 82.6%.",
+          "The counterfactual does not change recall; it isolates the precision cost of this false-positive pattern."
+        ]
+      }
+    ];
+
+    function setupSectionSpy() {
+      return true;
+    }
+
+    setupSectionSpy();
+  </script>
+</body>
+</html>

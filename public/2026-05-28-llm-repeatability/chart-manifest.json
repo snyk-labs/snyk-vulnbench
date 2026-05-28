@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "reportTitle": "LLM Security Review Repeatability",
+  "reportSubtitle": "Derived from Snyk VulnBench JS 1.0 raw runs",
+  "generatedAt": "2026-05-28T07:04:27.965Z",
+  "sourceFiles": [
+    "reports/vulnbench-js-1.0/benchmark-2026-05-20T23-06-29-348Z.jsonl"
+  ],
+  "htmlReport": "index.html",
+  "derivationNotes": {
+    "findingSignature": "taskId + runConfigId + vulnerability type + basename(file) + line",
+    "truePositiveSignature": "taskId + runConfigId + Snyk Code reference finding id",
+    "modelRuns": 250,
+    "totalRuns": 300
+  },
+  "charts": [
+    {
+      "id": "unmatched-finding-repeatability",
+      "title": "Unmatched model finding repeatability",
+      "chartType": "bar",
+      "scope": "raw-run-derived",
+      "metric": "false-positive-repetition-frequency",
+      "unit": "percent",
+      "yAxisLabel": "SHARE OF UNIQUE UNMATCHED FINDINGS",
+      "yMax": 0.62,
+      "section": {
+        "id": "repeatability",
+        "title": "Repeatability",
+        "subtitle": "Raw model findings across five identical repetitions",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: unmatched-finding-repeatability -->",
+      "htmlAnchor": "index.html#chart-unmatched-finding-repeatability",
+      "caption": "Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.",
+      "recommendedUse": "Use as the lead visual for the non-determinism story.",
+      "dataSummary": {
+        "unit": "percent",
+        "totalUniqueFindings": 161,
+        "rows": [
+          {
+            "label": "1 of 5",
+            "runConfigType": "model",
+            "value": 0.4968944099378882,
+            "count": 80,
+            "total": 161
+          },
+          {
+            "label": "2 of 5",
+            "runConfigType": "model",
+            "value": 0.14906832298136646,
+            "count": 24,
+            "total": 161
+          },
+          {
+            "label": "3 of 5",
+            "runConfigType": "model",
+            "value": 0.14285714285714285,
+            "count": 23,
+            "total": 161
+          },
+          {
+            "label": "4 of 5",
+            "runConfigType": "model",
+            "value": 0.07453416149068323,
+            "count": 12,
+            "total": 161
+          },
+          {
+            "label": "5 of 5",
+            "runConfigType": "model",
+            "value": 0.13664596273291926,
+            "count": 22,
+            "total": 161
+          }
+        ]
+      },
+      "talkingPoints": [
+        "80 of 161 unique unmatched findings (49.7%) appeared in only one of five runs.",
+        "22 of 161 unique unmatched findings (13.7%) appeared in all five runs.",
+        "This isolates extra model reports rather than Snyk Code reference-matched true positives."
+      ]
+    },
+    {
+      "id": "matched-finding-repeatability",
+      "title": "Reference-matched model finding repeatability",
+      "chartType": "bar",
+      "scope": "raw-run-derived",
+      "metric": "true-positive-repetition-frequency",
+      "unit": "percent",
+      "yAxisLabel": "SHARE OF UNIQUE MATCHED FINDINGS",
+      "yMax": 1,
+      "section": {
+        "id": "repeatability",
+        "title": "Repeatability",
+        "subtitle": "Raw model findings across five identical repetitions",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: matched-finding-repeatability -->",
+      "htmlAnchor": "index.html#chart-matched-finding-repeatability",
+      "caption": "Distribution of reference-matched model findings by how often the same Snyk Code reference finding was matched across five repetitions of the same task and model config.",
+      "recommendedUse": "Use directly after unmatched finding repeatability to show that true positives were much more stable than extra reports.",
+      "dataSummary": {
+        "unit": "percent",
+        "totalUniqueFindings": 158,
+        "rows": [
+          {
+            "label": "1 of 5",
+            "runConfigType": "model",
+            "value": 0.056962025316455694,
+            "count": 9,
+            "total": 158
+          },
+          {
+            "label": "2 of 5",
+            "runConfigType": "model",
+            "value": 0.05063291139240506,
+            "count": 8,
+            "total": 158
+          },
+          {
+            "label": "3 of 5",
+            "runConfigType": "model",
+            "value": 0.0189873417721519,
+            "count": 3,
+            "total": 158
+          },
+          {
+            "label": "4 of 5",
+            "runConfigType": "model",
+            "value": 0.02531645569620253,
+            "count": 4,
+            "total": 158
+          },
+          {
+            "label": "5 of 5",
+            "runConfigType": "model",
+            "value": 0.8481012658227848,
+            "count": 134,
+            "total": 158
+          }
+        ]
+      },
+      "talkingPoints": [
+        "134 of 158 unique reference-matched findings (84.8%) appeared in all five runs.",
+        "The instability is concentrated in extra model reports, not in every model finding equally."
+      ]
+    },
+    {
+      "id": "non-sql-unmatched-repeatability",
+      "title": "Non-SQL unmatched finding repeatability",
+      "chartType": "bar",
+      "scope": "raw-run-derived",
+      "metric": "non-sql-false-positive-repetition-frequency",
+      "unit": "percent",
+      "yAxisLabel": "SHARE OF UNIQUE NON-SQL UNMATCHED FINDINGS",
+      "yMax": 0.62,
+      "section": {
+        "id": "repeatability",
+        "title": "Repeatability",
+        "subtitle": "Raw model findings across five identical repetitions",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: non-sql-unmatched-repeatability -->",
+      "htmlAnchor": "index.html#chart-non-sql-unmatched-repeatability",
+      "caption": "Distribution of unmatched model findings after excluding SQL injection reports, which include one deliberate decoy and one likely Snyk Code product-gap case.",
+      "recommendedUse": "Use when discussing how a few stable SQL-shaped exceptions otherwise mask the instability of extra model reports.",
+      "dataSummary": {
+        "unit": "percent",
+        "totalUniqueFindings": 149,
+        "rows": [
+          {
+            "label": "1 of 5",
+            "runConfigType": "model",
+            "value": 0.5302013422818792,
+            "count": 79,
+            "total": 149
+          },
+          {
+            "label": "2 of 5",
+            "runConfigType": "model",
+            "value": 0.15436241610738255,
+            "count": 23,
+            "total": 149
+          },
+          {
+            "label": "3 of 5",
+            "runConfigType": "model",
+            "value": 0.15436241610738255,
+            "count": 23,
+            "total": 149
+          },
+          {
+            "label": "4 of 5",
+            "runConfigType": "model",
+            "value": 0.08053691275167785,
+            "count": 12,
+            "total": 149
+          },
+          {
+            "label": "5 of 5",
+            "runConfigType": "model",
+            "value": 0.08053691275167785,
+            "count": 12,
+            "total": 149
+          }
+        ]
+      },
+      "talkingPoints": [
+        "79 of 149 non-SQL unmatched findings (53.0%) appeared in only one of five runs.",
+        "12 of 149 non-SQL unmatched findings (8.1%) appeared in all five runs."
+      ]
+    },
+    {
+      "id": "score-variance-by-config",
+      "title": "Headline score variance by configuration",
+      "chartType": "bar",
+      "scope": "config-aggregate",
+      "metric": "scoreStdDev",
+      "unit": "percent",
+      "yAxisLabel": "F1 STANDARD DEVIATION",
+      "yMax": 0.045,
+      "section": {
+        "id": "repeatability",
+        "title": "Repeatability",
+        "subtitle": "Raw model findings across five identical repetitions",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: score-variance-by-config -->",
+      "htmlAnchor": "index.html#chart-score-variance-by-config",
+      "caption": "Headline F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.",
+      "recommendedUse": "Use alongside the recurrence charts to connect finding-level instability to benchmark-level score variance.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "value": 0.03471337765983303,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "value": 0.022273540769297218,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.009170103518359875,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "value": 0.0028950633451438217,
+            "repetitions": 5
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "value": 0.0024674185437360318,
+            "repetitions": 5
+          },
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "value": 0,
+            "repetitions": 5
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points.",
+        "Snyk Code SAST had 0.0 percentage-point score standard deviation against the Snyk Code reference set."
+      ]
+    },
+    {
+      "id": "score-vs-cost-repeatability-story",
+      "title": "Score vs estimated model-session cost",
+      "chartType": "scatter",
+      "scope": "config-aggregate",
+      "metric": "score-vs-cost",
+      "xAxisLabel": "ESTIMATED SESSION COST",
+      "yAxisLabel": "F1 SCORE",
+      "xUnit": "usd",
+      "yUnit": "percent",
+      "section": {
+        "id": "cost-quality",
+        "title": "Cost And Quality",
+        "subtitle": "More expensive model sessions did not produce better security results",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: score-vs-cost-repeatability-story -->",
+      "htmlAnchor": "index.html#chart-score-vs-cost-repeatability-story",
+      "caption": "Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.",
+      "recommendedUse": "Use in the cost-quality section to show that Opus 4.7 Max cost more and scored lower than Opus 4.6 Medium.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "x": 0.12494352,
+            "y": 0.7523507864684335
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "x": 0.13221054699999996,
+            "y": 0.6488264834580625
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.06276034999999999,
+            "y": 0.7537982017982017
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "x": 0.08598008799999998,
+            "y": 0.6741726708074535
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "x": 0.35590119000000003,
+            "y": 0.6876156355721573
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% F1.",
+        "Claude Opus 4.6 Medium was the strongest model cost/quality point in this run."
+      ]
+    },
+    {
+      "id": "sql-shaped-complementarity",
+      "title": "SQL-shaped reports outside the reference set",
+      "chartType": "bar",
+      "scope": "raw-run-derived",
+      "metric": "model-sql-extra-run-count",
+      "unit": "number",
+      "yAxisLabel": "MODEL RUNS WITH SQL REPORT",
+      "yMax": 30,
+      "section": {
+        "id": "complementarity",
+        "title": "Complementarity",
+        "subtitle": "Model review and SAST failed differently",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: sql-shaped-complementarity -->",
+      "htmlAnchor": "index.html#chart-sql-shaped-complementarity",
+      "caption": "Model runs that reported SQL injection outside the Snyk Code reference set. Tigerteam is a deliberate non-executable SQL decoy; Nightowl is a likely Snyk Code product-gap case.",
+      "recommendedUse": "Use in the complementarity section to show why unmatched model reports are not all equivalent.",
+      "dataSummary": {
+        "unit": "number",
+        "rows": [
+          {
+            "label": "Tigerteam SQL decoy",
+            "runConfigType": "model",
+            "value": 25
+          },
+          {
+            "label": "Nightowl likely gap",
+            "runConfigType": "model",
+            "value": 25
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Models reported SQL injection in 25 of 25 Tigerteam model runs, but the helper never executes SQL.",
+        "Models reported SQL injection in 25 of 25 Nightowl model runs; that finding is likely valid and should be investigated as a Snyk Code product gap."
+      ]
+    },
+    {
+      "id": "nightowl-recall-cliff",
+      "title": "Nightowl missed-reference pattern",
+      "chartType": "bar",
+      "scope": "raw-run-derived",
+      "metric": "nightowl-opus-high-miss-rate",
+      "unit": "percent",
+      "yAxisLabel": "MISSED OPPORTUNITIES",
+      "yMax": 1,
+      "section": {
+        "id": "complementarity",
+        "title": "Complementarity",
+        "subtitle": "Model review and SAST failed differently",
+        "kind": "headline"
+      },
+      "placeholder": "<!-- VISUAL: nightowl-recall-cliff -->",
+      "htmlAnchor": "index.html#chart-nightowl-recall-cliff",
+      "caption": "Reference findings missed by Claude Opus 4.6 High on the larger Nightowl fixture across five repetitions. Path traversal was missed in all 15 opportunities, while resource-limit findings were missed in 10 of 15 opportunities.",
+      "recommendedUse": "Use to support the claim that models often identify one representative pattern but fail to enumerate repeated vulnerable sinks in larger app-like fixtures.",
+      "dataSummary": {
+        "unit": "percent",
+        "rows": [
+          {
+            "label": "Path traversal",
+            "runConfigType": "model",
+            "value": 1,
+            "count": 15,
+            "total": 15
+          },
+          {
+            "label": "Resource limits",
+            "runConfigType": "model",
+            "value": 0.6666666666666666,
+            "count": 10,
+            "total": 15
+          }
+        ]
+      },
+      "talkingPoints": [
+        "Claude Opus 4.6 High was stable on Nightowl, but stably incomplete: 40.0% F1 in every repetition.",
+        "Snyk Code enumerated repeated path traversal and resource-limit findings that the model missed."
+      ]
+    }
+  ]
+}

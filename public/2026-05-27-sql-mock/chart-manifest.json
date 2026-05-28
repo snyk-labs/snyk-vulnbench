@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "reportTitle": "Tigerteam Non-Executable SQL Pattern Analysis",
+  "reportSubtitle": "Custom failure-mode charts for js-project-tigerteam-find-vulns",
+  "generatedAt": "2026-05-27T19:18:00.000Z",
+  "sourceFiles": [
+    "reports/vulnbench-js-1.0/benchmark-2026-05-20T23-06-29-348Z.jsonl"
+  ],
+  "htmlReport": "index.html",
+  "charts": [
+    {
+      "id": "tigerteam-fp-profile",
+      "title": "False-positive profile",
+      "chartType": "scatter",
+      "scope": "run",
+      "metric": "sql-pattern-fp-vs-other-fp",
+      "xAxisLabel": "NON-EXECUTABLE SQL PATTERN FP/RUN",
+      "yAxisLabel": "OTHER FALSE POSITIVES PER RUN",
+      "xUnit": "number",
+      "yUnit": "number",
+      "section": {
+        "id": "sql-pattern",
+        "title": "SQL-shaped non-sink detection",
+        "subtitle": "Raw repetition-level false-positive behavior for js-project-tigerteam-find-vulns.",
+        "kind": "custom"
+      },
+      "placeholder": "<!-- VISUAL: tigerteam-fp-profile -->",
+      "htmlAnchor": "index.html#chart-tigerteam-fp-profile",
+      "caption": "False-positive profile on Tigerteam. Every model configuration produced one false positive on the non-executable SQL pattern per run; Snyk Code SAST produced zero false positives.",
+      "recommendedUse": "Use when comparing non-executable SQL-pattern false positives against other false-positive noise.",
+      "dataSummary": {
+        "points": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "x": 0,
+            "y": 0,
+            "configsRepresented": 1
+          },
+          {
+            "label": "Opus configs",
+            "runConfigType": "model",
+            "x": 1,
+            "y": 1,
+            "configsRepresented": 3,
+            "configs": [
+              "Claude Opus 4.6 High",
+              "Claude Opus 4.6 Medium",
+              "Claude Opus 4.7 Max"
+            ]
+          },
+          {
+            "label": "Sonnet configs",
+            "runConfigType": "model",
+            "x": 1,
+            "y": 0.8,
+            "configsRepresented": 2,
+            "configs": [
+              "Claude Sonnet 4.6 High",
+              "Claude Sonnet 4.6 Medium"
+            ]
+          }
+        ]
+      },
+      "talkingPoints": [
+        "This directly compares non-executable SQL-pattern false positives against all other false positives.",
+        "Every model configuration produced one SQL-pattern false positive per run.",
+        "Snyk Code SAST is at the origin: zero SQL-pattern false positives and zero other false positives."
+      ]
+    },
+    {
+      "id": "tigerteam-precision-slope",
+      "title": "Precision ablation",
+      "chartType": "slope",
+      "scope": "run",
+      "metric": "precision-without-sql-pattern-fp",
+      "unit": "percent",
+      "section": {
+        "id": "sql-pattern",
+        "title": "SQL-shaped non-sink detection",
+        "subtitle": "Raw repetition-level false-positive behavior for js-project-tigerteam-find-vulns.",
+        "kind": "custom"
+      },
+      "placeholder": "<!-- VISUAL: tigerteam-precision-slope -->",
+      "htmlAnchor": "index.html#chart-tigerteam-precision-slope",
+      "caption": "Observed precision compared with counterfactual precision after removing only the non-executable SQL-pattern false positive.",
+      "recommendedUse": "Use when quantifying the precision cost of the SQL-shaped non-sink pattern.",
+      "dataSummary": {
+        "series": [
+          {
+            "label": "Snyk Code SAST",
+            "runConfigType": "command",
+            "observed": 1,
+            "withoutSqlPatternFp": 1
+          },
+          {
+            "label": "Claude Opus 4.6 High",
+            "runConfigType": "model",
+            "observed": 0.667,
+            "withoutSqlPatternFp": 0.8
+          },
+          {
+            "label": "Claude Opus 4.6 Medium",
+            "runConfigType": "model",
+            "observed": 0.667,
+            "withoutSqlPatternFp": 0.8
+          },
+          {
+            "label": "Claude Opus 4.7 Max",
+            "runConfigType": "model",
+            "observed": 0.684,
+            "withoutSqlPatternFp": 0.808
+          },
+          {
+            "label": "Claude Sonnet 4.6 High",
+            "runConfigType": "model",
+            "observed": 0.727,
+            "withoutSqlPatternFp": 0.857
+          },
+          {
+            "label": "Claude Sonnet 4.6 Medium",
+            "runConfigType": "model",
+            "observed": 0.731,
+            "withoutSqlPatternFp": 0.857
+          }
+        ],
+        "aggregate": {
+          "observedModelPrecision": 0.694,
+          "modelPrecisionWithoutSqlPatternFp": 0.826,
+          "recallChange": 0
+        }
+      },
+      "talkingPoints": [
+        "Removing only the SQL-pattern false positive raises aggregate model precision from 69.4% to 82.6%.",
+        "The counterfactual does not change recall; it isolates the precision cost of this false-positive pattern."
+      ]
+    }
+  ]
+}
