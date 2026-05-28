@@ -22,6 +22,13 @@ homework. Lead with the most novel, externally useful finding the data supports:
 repeatability across identical runs, complementarity between model review and SAST,
 or a cost-quality inversion. Treat reference-set F1 as context, not the headline.
 
+For public reports, avoid internal fixture codenames as prose labels. Use exact fixture
+IDs in inline code when a specific fixture must be named, such as
+`js-project-nightowl` or `js-project-tigerteam`. For chart titles, captions, section
+headings, and narrative labels, prefer generic descriptions such as "larger multi-file
+fixture" or "SQL-shaped mock helper fixture" unless the chart is explicitly a per-task
+lookup table where the fixture name helps the reader map back to the data.
+
 ## Inputs
 
 - **Required**: one or more result files (JSONL with one record per run, JSON, or CSV) with per-run scores and metrics.
@@ -95,9 +102,13 @@ Done when: you have a section-by-section outline with a one-line intent per sect
 8. For benchmark result visuals, insert placeholders and captions from `article-visuals.md` rather than generating charts in the report. Keep the leaderboard and important breakdowns as markdown tables so exact numbers remain readable without images. When a table follows a visual placeholder, add a short bridge sentence such as "The table below provides exact values for the preceding chart."
 9. In Results, explicitly explain reference-baseline scores. If a tool defines the reference set and scores 100%, say that this means it reproduced its own reference set across repeated runs, not that it proves all possible vulnerabilities were found.
 10. Look for cost-quality and speed-quality inversions. If a newer, slower, or more expensive config scores lower than a cheaper one, call that out with exact ratios and scores rather than implying cost predicts quality.
-11. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
-12. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
-13. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
+11. Normalize fixture names for public readability:
+   - In prose, use the exact fixture ID in inline code when a specific fixture matters, e.g. `js-project-nightowl`, not "Nightowl".
+   - In chart titles, captions, and headings, prefer generic labels unless the visual is a per-task lookup chart.
+   - Preserve fixture names/IDs in appendix tables, per-task breakdowns, and reproducibility notes where lookup value matters.
+12. If no chart artifacts exist, do not invent result charts. Write table-led results and mention in the delivery summary that `benchmark-chart-generator` should be run for publishable visuals.
+13. Copy methodology diagrams from the benchmark guide only if they already exist and clarify the benchmark design. Don't redraw what's already clear, and don't use methodology diagrams as substitutes for result visuals.
+14. Write the Limitations section honestly — every benchmark has caveats, and hiding them undermines credibility. See the examples in `references/example-sections.md` for calibration.
 
 Done when: every planned section is drafted, tables and visual placeholders are placed intentionally, and the report reads as one voice rather than a patchwork.
 
@@ -105,7 +116,7 @@ Done when: every planned section is drafted, tables and visual placeholders are 
 
 1. For each specific number or comparison in the report, trace it back to the scratchpad from Step 2. Any number without a source is a bug — fix it or cut the claim.
 2. Check that the Summary's headline claim actually follows from the Results section. A reader who only reads the Summary should leave with an accurate picture, not an oversold one.
-3. Check that every named model, config, and task is spelled consistently throughout.
+3. Check that every named model, config, and task is spelled consistently throughout. For public prose, avoid bare fixture codenames; use exact inline fixture IDs or generic descriptions.
 4. Run one final pass for voice: imperative where appropriate, no filler, no unsupported superlatives, no "revolutionary" or "groundbreaking" language.
 5. Verify every visual placeholder came from `article-visuals.md` and, when available, matches an entry in `chart-manifest.json`. Do not revalidate rendered chart geometry here; that belongs to `benchmark-chart-generator`.
 
@@ -237,6 +248,15 @@ Solution: Reframe the 100% score as deterministic reference reproduction and mov
 Error: "The chart is accurate but readers cannot tell which model it is about."
 Cause: The report uses aggregate-only visuals for a model-behavior story.
 Solution: Prefer model-callout visuals from `benchmark-chart-generator`: `one-run-unmatched-by-model`, `stable-unmatched-by-model`, `stable-matched-by-model`, vulnerability-type heatmaps by config, and model-only score-vs-cost. Keep aggregate figures in prose or secondary charts.
+
+---
+
+Error: "The report uses internal fixture codenames like Nightowl or Tigerteam."
+Cause: The draft copied internal task codenames into public prose or chart captions.
+Solution: In prose, use exact fixture IDs in inline code, such as `js-project-nightowl`.
+In chart titles/captions and section headings, prefer generic descriptions such as
+"larger multi-file fixture" unless the visual is a per-task lookup chart where the
+fixture name is useful.
 
 ---
 

@@ -87,18 +87,18 @@ Talking points:
 - Sonnet configurations produce a broader spread of extra vulnerability classes than Opus 4.6 Medium/High.
 - SQL-shaped extras appear across all model configs because the dataset contains both a non-executable SQL-shaped mock helper and a likely Snyk Code product gap.
 
-### FIG-6: Nightowl score by configuration
-Placeholder: `<!-- VISUAL: nightowl-score-by-config -->`
+### FIG-6: Larger multi-file fixture score by configuration
+Placeholder: `<!-- VISUAL: larger-fixture-score-by-config -->`
 
 Use: Use when explaining that the larger app-like fixture created a recall cliff for model configurations.
 
-Caption: Mean benchmark score for the larger Nightowl fixture. Error bars show standard deviation across repeated runs.
+Caption: Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.
 
-Source: `index.html#chart-nightowl-score-by-config`
-Data: `task-aggregate`, metric `nightowl-score`.
+Source: `index.html#chart-larger-fixture-score-by-config`
+Data: `task-aggregate`, metric `larger-fixture-score`.
 
 Talking points:
-- Claude Opus 4.6 High was the best model on Nightowl at 40.0% F1, while Snyk Code reproduced the reference set at 100.0%.
+- Claude Opus 4.6 High was the best model on the larger multi-file fixture at 40.0% F1, while Snyk Code reproduced the reference set at 100.0%.
 - The issue was not only noise: models missed repeated path traversal and resource-limit findings.
 
 ### FIG-7: Score vs estimated model-session cost

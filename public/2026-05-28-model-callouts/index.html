@@ -979,11 +979,11 @@
     ]
   },
   {
-    "id": "nightowl-score-by-config",
-    "title": "Nightowl score by configuration",
+    "id": "larger-fixture-score-by-config",
+    "title": "Larger multi-file fixture score by configuration",
     "chartType": "bar",
     "scope": "task-aggregate",
-    "metric": "nightowl-score",
+    "metric": "larger-fixture-score",
     "unit": "percent",
     "yAxisLabel": "F1 SCORE",
     "yMax": 1.1,
@@ -993,9 +993,9 @@
       "subtitle": "SAST coverage and model coverage fail differently",
       "kind": "headline"
     },
-    "placeholder": "<!-- VISUAL: nightowl-score-by-config -->",
-    "htmlAnchor": "index.html#chart-nightowl-score-by-config",
-    "caption": "Mean benchmark score for the larger Nightowl fixture. Error bars show standard deviation across repeated runs.",
+    "placeholder": "<!-- VISUAL: larger-fixture-score-by-config -->",
+    "htmlAnchor": "index.html#chart-larger-fixture-score-by-config",
+    "caption": "Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.",
     "recommendedUse": "Use when explaining that the larger app-like fixture created a recall cliff for model configurations.",
     "dataSummary": {
       "unit": "percent",
@@ -1045,7 +1045,7 @@
       ]
     },
     "talkingPoints": [
-      "Claude Opus 4.6 High was the best model on Nightowl at 40.0% F1, while Snyk Code reproduced the reference set at 100.0%.",
+      "Claude Opus 4.6 High was the best model on the larger multi-file fixture at 40.0% F1, while Snyk Code reproduced the reference set at 100.0%.",
       "The issue was not only noise: models missed repeated path traversal and resource-limit findings."
     ]
   },

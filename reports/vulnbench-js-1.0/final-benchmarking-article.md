@@ -85,7 +85,7 @@ The clearest way to see this is by vulnerability class. The heatmap below shows 
 
 The model configurations were strongest on familiar, high-signal exploit shapes: command injection, code injection, hardcoded credentials, SQL injection, SSRF, open redirect, prototype pollution, and ReDoS were often found cleanly. They were weaker on resource-limit findings, improper sanitization, type validation, insecure transport, framework information exposure, and repeated path traversal flows.
 
-That pattern is visible in `js-project-tigerteam-find-vulns`, where every model configuration consistently found the hardcoded database password, reflected XSS, path traversal, and command injection across all 25 model repetitions.
+That pattern is visible in `js-project-tigerteam`, where every model configuration consistently found the hardcoded database password, reflected XSS, path traversal, and command injection across all 25 model repetitions.
 
 ```js
 app.get("/greet", (req, res) => {
@@ -127,9 +127,9 @@ app.get("/users", (req, res) => {
 });
 ```
 
-Models reported SQL injection in 25 of 25 Tigerteam model runs. In this fixture, Snyk Code was right not to report it: `dbQuery()` logs the string and returns an empty array. There is no executable SQL sink. This is the kind of case where an LLM can mistake vulnerability-shaped code for an exploitable vulnerability.
+Models reported SQL injection in 25 of 25 `js-project-tigerteam` model runs. In this fixture, Snyk Code was right not to report it: `dbQuery()` logs the string and returns an empty array. There is no executable SQL sink. This is the kind of case where an LLM can mistake vulnerability-shaped code for an exploitable vulnerability.
 
-Nightowl showed the opposite lesson. All 25 model runs reported SQL injection outside the Snyk Code reference set, and this time the model signal is likely valuable:
+`js-project-nightowl` showed the opposite lesson. All 25 model runs reported SQL injection outside the Snyk Code reference set, and this time the model signal is likely valuable:
 
 ```js
 deleteTodo: (id) => db.prepare("DELETE FROM todos WHERE id = " + id).all(),
@@ -141,13 +141,13 @@ That finding was counted as unmatched because it was not in the Snyk Code refere
 
 *Figure 5: Average unmatched reports per model run by vulnerability type and model configuration. These include model false positives, adjacent review comments, and likely product-gap candidates outside the Snyk Code reference set.*
 
-This second heatmap shows the other side of complementarity: extra model reports are not one homogeneous category. Some are likely false positives, like Tigerteam's non-executable SQL-shaped mock helper. Some are adjacent security review comments that are out of scope for the reference set. Some, like Nightowl's SQL injection, are likely valid findings that should feed back into Snyk Code coverage.
+This second heatmap shows the other side of complementarity: extra model reports are not one homogeneous category. Some are likely false positives, like the non-executable SQL-shaped mock helper in `js-project-tigerteam`. Some are adjacent security review comments that are out of scope for the reference set. Some, like the SQL injection report in `js-project-nightowl`, are likely valid findings that should feed back into Snyk Code coverage.
 
-The complementarity also runs in the other direction. Nightowl is the most app-like fixture in JS 1.0: `server.js` is 198 lines, with `db.js` and `public/app.js` adding another 183 lines of JavaScript. It has routing, uploads, attachment deletion, downloads, and database state. Claude Opus 4.6 High was perfectly stable on this fixture, but stable at only 40.0% F1. Across five repetitions it missed every path-traversal reference finding and two of three resource-limit finding opportunities.
+The complementarity also runs in the other direction. `js-project-nightowl` is the most app-like fixture in JS 1.0: `server.js` is 198 lines, with `db.js` and `public/app.js` adding another 183 lines of JavaScript. It has routing, uploads, attachment deletion, downloads, and database state. Claude Opus 4.6 High was perfectly stable on this fixture, but stable at only 40.0% F1. Across five repetitions it missed every path-traversal reference finding and two of three resource-limit finding opportunities.
 
-<!-- VISUAL: nightowl-score-by-config -->
+<!-- VISUAL: larger-fixture-score-by-config -->
 
-*Figure 6: Mean benchmark score for the larger Nightowl fixture. Error bars show standard deviation across repeated runs.*
+*Figure 6: Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.*
 
 The missed pattern spanned repeated attachment flows:
 
@@ -198,7 +198,7 @@ The reference set comes from Snyk Code. That is transparent and reproducible, bu
 
 The scorer is generous. It matches by vulnerability type, not exact file, line, severity, or source-to-sink identity. A stricter scorer would likely reduce model agreement scores and expose more duplicate-flow mistakes.
 
-The fixtures are small JavaScript and Express applications. They are useful for controlled measurement, but they do not cover large monorepos, framework-heavy TypeScript applications, multi-service architectures, or business-logic vulnerabilities. The Nightowl fixture already shows that app-like structure changes model behavior.
+The fixtures are small JavaScript and Express applications. They are useful for controlled measurement, but they do not cover large monorepos, framework-heavy TypeScript applications, multi-service architectures, or business-logic vulnerabilities. `js-project-nightowl` already shows that app-like structure changes model behavior.
 
 The recurrence analysis uses normalized finding signatures. For the model-by-model unmatched charts, the signature is task + vulnerability type + file + line, grouped separately for each model configuration. Different normalization choices change the exact percentages, which is why the signature is part of the chart handoff and reproducibility notes.
 

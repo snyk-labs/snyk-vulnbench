@@ -41,6 +41,13 @@ stable reference-matched findings, score variance by config, vulnerability-type
 coverage by config, extra report types by model, the hardest/notable fixture by
 config, and model-only score vs cost.
 
+Use public-friendly fixture naming. Standard per-task aggregate sections should keep
+their task names/fixture identifiers because they help the user look up the source
+fixture. Headline-like, article-focused, or model-behavior charts should not expose
+internal codenames in titles, captions, placeholders, or section headings. Use generic
+labels such as "larger multi-file fixture" or "SQL-shaped mock helper fixture" and
+store the exact `taskId` in `dataSummary` or manifest notes when lookup is needed.
+
 The template lives at `assets/report-template.html` relative to this skill. It
 contains all CSS, SVG chart rendering JS, and the Snyk Evo color palette. Your job
 is to read the JSONL data, build compact chart specs, inject those specs into the
@@ -273,7 +280,7 @@ many vulnerability types.
 
 Mapping rules:
 - Create a headline section from `"config-aggregate"` rows when present. Include score, duration, total tokens, cost when cost exists, recall/precision when present, and supported scatter tradeoff charts when at least two comparable points exist.
-- Create one task section per `taskId` from `"task-aggregate"` rows. Include score, duration, total tokens, cost when cost exists, and recall/precision when present.
+- Create one task section per `taskId` from `"task-aggregate"` rows. Include score, duration, total tokens, cost when cost exists, and recall/precision when present. For these standard task sections, keep the task name/fixture identifier visible so the user can look up the fixture.
 - When repeated `find-vulns` raw rows exist, add the model-callout repeatability and complementarity charts described below. These are additive to the standard headline and per-task charts; do not replace the standard chart package.
 - Put `"config-aggregate"` chart specs first, followed by task-level specs in task ID order. This keeps the HTML and article handoff easy to scan.
 - Keep values numeric in `dataSummary`; format them only in captions or article prose.
@@ -352,22 +359,26 @@ Generate these heatmaps:
 
 2. `extra-reports-by-type-and-model`
    - Metric: `false-positive-type-rate-by-config`.
-   - Rows: Snyk Code SAST plus all model configs. Snyk Code should have zeros by
-     construction in this reference-set comparison.
+   - Rows: model configs only. Do not include a Snyk Code SAST zero row; it is
+     true by construction in a reference-set comparison and distracts from the model
+     behavior this chart is meant to explain.
    - Columns: top 8-12 false-positive vulnerability types by total count across
      model runs.
    - Cell value: average unmatched reports per run for that config and type.
-   - Caption must explain that these cells include false positives, adjacent review
-     comments, and likely product-gap candidates outside the reference set.
+   - Caption must say "per model run" and explain that these cells include false
+     positives, adjacent review comments, and likely product-gap candidates outside
+     the reference set.
    - Use: show how model configurations differ in the extra findings they introduce.
 
 3. Hardest/notable fixture score by config
    - Prefer a user-provided or obvious app-like task such as `nightowl`; otherwise
      choose the task with the lowest best-model F1 or a large gap between Snyk Code
      and the best model.
-   - ID format: `<task-slug>-score-by-config` when a named task is chosen
-     (example: `nightowl-score-by-config`), or `hardest-fixture-score-by-config`
-     for an automatic generic selection.
+   - For standard per-task sections, keep the task-derived ID/title because lookup is
+     useful. For article-focused callout charts, use a generic public title and ID
+     such as `larger-fixture-score-by-config` or `hardest-fixture-score-by-config`;
+     include the exact source `taskId` in `dataSummary.sourceTaskId` or manifest
+     derivation notes.
    - Source: matching `task-aggregate` rows.
    - Use: support claims like "larger app-like surfaces created a recall cliff."
 
@@ -483,9 +494,10 @@ Confirm the output files:
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
 - Pareto-style scatter plots follow the Snyk inclusion rules: model-only for `score-vs-cost`, model plus command rows for `score-vs-duration`, `recall-vs-precision`, and `score-stability`.
 - When repeated `find-vulns` raw rows exist, the model-callout package includes `one-run-unmatched-by-model`, `stable-unmatched-by-model`, `stable-matched-by-model`, and `score-variance-by-config` unless the source fields are missing.
-- When `details.byType` and false-positive details exist, the complementarity package includes `reference-coverage-by-type-and-config` and `extra-reports-by-type-and-model`.
+- When `details.byType` and false-positive details exist, the complementarity package includes `reference-coverage-by-type-and-config` and `extra-reports-by-type-and-model`. The reference-coverage heatmap includes Snyk Code SAST when it defines the reference set; the extra-reports heatmap is model-only.
 - Heatmap specs have `dataSummary.columns`, `dataSummary.rows`, and a renderer in `index.html`; the HTML must not fall back to the "Custom chart type" note for `chartType: "heatmap"`.
 - Multi-task reports include task-level chart specs when `"task-aggregate"` rows cover at least two tasks.
+- Standard per-task charts may use fixture names/IDs for lookup. Headline-like, article-focused, and model-behavior charts use public-friendly generic fixture labels unless the user explicitly asks for internal fixture names.
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top.
 
 Report success to the user with the output directory and a note that `article-visuals.md`
@@ -760,9 +772,9 @@ Actions:
 4. Build complementarity visuals:
    - `reference-coverage-by-type-and-config`
    - `extra-reports-by-type-and-model`
-   - a hardest/notable fixture score chart such as `nightowl-score-by-config`
+   - a hardest/notable fixture score chart with a public-friendly ID such as `larger-fixture-score-by-config`
 5. Keep the existing headline and per-task charts unless the user explicitly asks for a narrow article-only package.
-6. Verify every chart names model configurations or Snyk Code SAST where the narrative depends on comparing tools.
+6. Verify every chart names model configurations or Snyk Code SAST where the narrative depends on comparing tools, and uses generic fixture labels for article-focused callouts.
 
 Result: A chart package that supports the repeatability-first and complementarity-first article narrative, not only a leaderboard.
 
