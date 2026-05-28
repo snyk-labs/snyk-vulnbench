@@ -2,7 +2,7 @@
 
 We ran 300 vulnerability-finding scans to measure how repeatable agentic LLM security review is on the same code, prompt, and harness. The headline result is not that one scanner "wins" a self-referential leaderboard. It is that LLM security findings are unevenly repeatable: reference-matched findings were stable, but extra model reports varied heavily from run to run.
 
-Across 250 Claude model runs, 80 of 161 unique unmatched findings appeared in only one of five repetitions of the same task and model configuration. Only 22 of 161 appeared in all five. The true-positive side looked very different: 134 of 158 unique reference-matched findings appeared in all five repetitions. That split is the core result of Snyk VulnBench JS 1.0.
+In plain terms: when Claude reported bugs outside the Snyk Code reference list, those extra reports were often inconsistent. Across 250 model runs, 80 of 161 unique unmatched findings appeared in only one of five identical repetitions, while only 22 appeared in all five. But when Claude matched a reference finding, the behavior was much more stable: 134 of 158 unique reference-matched findings appeared in all five repetitions. That split is the core result of Snyk VulnBench JS 1.0.
 
 The benchmark also shows complementarity. Models consistently found familiar, high-signal exploit shapes, and in one case surfaced a likely Snyk Code product gap. Snyk Code SAST was deterministic and better at systematically enumerating repeated data-flow sinks. Neither result supports replacing one technique with the other. The data supports combining them.
 
