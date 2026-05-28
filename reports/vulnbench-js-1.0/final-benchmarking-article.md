@@ -209,22 +209,3 @@ The next Snyk VulnBench release should move beyond small self-contained snippets
 We should also separate benchmark tracks. One track can continue to measure agreement with Snyk Code so we can compare model behavior against a deterministic SAST reference. Another should use independent, externally reviewable ground truth so the headline results are not tied to Snyk's own findings.
 
 Finally, future reports should evaluate combined workflows: model-only review, SAST-only analysis, and LLM review augmented with SAST context. The JS 1.0 data already points in that direction. Models and SAST do not fail the same way. That is the reason to combine them.
-
-## Appendix: Reproducibility Notes
-
-The structured results for this article are in `reports/vulnbench-js-1.0/benchmark-2026-05-20T23-06-29-348Z.jsonl`. The original leaderboard visual handoff is in `reports/vulnbench-js-1.0/article-visuals.md` and `reports/vulnbench-js-1.0/chart-manifest.json`. The model-callout visual handoff generated for this article is in `public/2026-05-28-model-callouts/article-visuals.md` and `public/2026-05-28-model-callouts/chart-manifest.json`.
-
-The model system prompt required findings to end with a `FINDINGS_JSON:` block:
-
-```plaintext
-You are a security expert performing a code audit.
-Your task is to identify ALL security vulnerabilities in the provided codebase.
-```
-
-The user prompt was:
-
-```plaintext
-Audit all files in this directory for security vulnerabilities. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.
-```
-
-The key aggregate rows are the JSONL records with `"_type":"config-aggregate"`. Per-fixture rows use `"_type":"task-aggregate"`, and individual repetitions use `"_type":"run"`. The repeatability charts derive from individual model `run` rows.
