@@ -35,6 +35,8 @@ Snyk Code defines the reference set for this benchmark. That means its 100% scor
 
 The scorer is intentionally lenient: a model finding is credited if it reports the same vulnerability type as a reference finding. It does not need to match the same file, line, severity, or source-to-sink path. F1 is useful as an agreement metric, but it is not the main story.
 
+Because this benchmark does not use an independent, exhaustively adjudicated ground truth set, F1 should not be read as true vulnerability-detection accuracy. A model with lower agreement against the Snyk Code reference set could still score better against an independent ground truth if some of its unmatched findings are valid, or if it avoids issues that the reference set overstates. In this report, F1 answers a narrower question: how closely and how repeatably do model findings align with the Snyk Code reference findings?
+
 ## Result 1: LLM Repeatability Varied by Model Configuration
 
 At the configuration level, repeatability shows up as the relationship between score and variance. The stronger outcome is toward the upper-left: high agreement with the reference set and low repeated-run variance. Snyk Code SAST sits at that corner with 100.0% F1 and 0.0 percentage-point standard deviation because it reproduced its reference set deterministically. The Claude model configurations spread downward and to the right, with Claude Sonnet 4.6 High showing the largest headline variance at 3.5 percentage points.
