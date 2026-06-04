@@ -85,6 +85,10 @@ Figure 4 shows the matched side of the repeatability story. Across all model con
 
 *Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
 
+Nearly half of unique unmatched model findings appeared in only one of five identical repetitions. That is a practical reliability problem: a developer could get a materially different review queue depending on which run happened to execute.
+
+The exact distribution behind that visual is:
+
 | Repetition frequency | Unique unmatched findings | Share |
 |---|---:|---:|
 | 1 of 5 runs | 80 | 49.7% |
@@ -92,8 +96,6 @@ Figure 4 shows the matched side of the repeatability story. Across all model con
 | 3 of 5 runs | 23 | 14.3% |
 | 4 of 5 runs | 12 | 7.5% |
 | 5 of 5 runs | 22 | 13.7% |
-
-Nearly half of unique unmatched model findings appeared in only one of five identical repetitions. That is a practical reliability problem: a developer could get a materially different review queue depending on which run happened to execute.
 
 ## Result 2: LLM Agents and SAST Found Different Security Gaps
 
