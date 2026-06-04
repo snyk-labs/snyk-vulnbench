@@ -217,7 +217,7 @@
       "scope": "config-aggregate",
       "metric": "scoreStdDev",
       "unit": "percent",
-      "yAxisLabel": "F1 STANDARD DEVIATION",
+      "yAxisLabel": "SNYK-REFERENCE F1 STANDARD DEVIATION",
       "yMax": 0.045,
       "section": {
         "id": "repeatability",
@@ -227,7 +227,7 @@
       },
       "placeholder": "<!-- VISUAL: score-variance-by-config -->",
       "htmlAnchor": "index.html#chart-score-variance-by-config",
-      "caption": "Headline F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.",
+      "caption": "Headline Snyk-reference F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.",
       "recommendedUse": "Use alongside the recurrence charts to connect finding-level instability to benchmark-level score variance.",
       "dataSummary": {
         "unit": "percent",
@@ -271,18 +271,18 @@
         ]
       },
       "talkingPoints": [
-        "Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points.",
+        "Claude Sonnet 4.6 High had the largest headline Snyk-reference F1 standard deviation at 3.5 percentage points.",
         "Snyk Code SAST had 0.0 percentage-point score standard deviation against the Snyk Code reference set."
       ]
     },
     {
       "id": "score-stability-labeled-scatter",
-      "title": "F1 score vs variance by configuration",
+      "title": "Snyk-reference F1 vs variance by configuration",
       "chartType": "labeled-scatter",
       "scope": "config-aggregate",
       "metric": "score-vs-scoreStdDev",
-      "xAxisLabel": "F1 STANDARD DEVIATION",
-      "yAxisLabel": "F1 SCORE",
+      "xAxisLabel": "SNYK-REFERENCE F1 STANDARD DEVIATION",
+      "yAxisLabel": "SNYK-REFERENCE F1",
       "xUnit": "percent",
       "yUnit": "percent",
       "xRange": { "min": -0.001, "max": 0.04 },
@@ -297,7 +297,7 @@
       },
       "placeholder": "<!-- VISUAL: score-stability-labeled-scatter -->",
       "htmlAnchor": "index.html#chart-score-stability-labeled-scatter",
-      "caption": "F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.",
+      "caption": "Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points move toward the top-left: higher agreement score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.",
       "recommendedUse": "Use as an experimental repeatability visual when Snyk Code's zero-variance reference point should be visually prominent.",
       "dataSummary": {
         "points": [
@@ -310,8 +310,8 @@
         ]
       },
       "talkingPoints": [
-        "Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.",
-        "Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point F1 standard deviation across repeated runs.",
+        "Snyk Code SAST sits at 100.0% Snyk-reference F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.",
+        "Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point Snyk-reference F1 standard deviation across repeated runs.",
         "The stronger model tradeoff is toward the upper-left: high agreement with lower run-to-run variance."
       ]
     },
@@ -322,7 +322,7 @@
       "scope": "config-aggregate",
       "metric": "score-vs-cost",
       "xAxisLabel": "ESTIMATED SESSION COST",
-      "yAxisLabel": "F1 SCORE",
+      "yAxisLabel": "SNYK-REFERENCE F1",
       "xUnit": "usd",
       "yUnit": "percent",
       "section": {
@@ -333,7 +333,7 @@
       },
       "placeholder": "<!-- VISUAL: score-vs-cost-repeatability-story -->",
       "htmlAnchor": "index.html#chart-score-vs-cost-repeatability-story",
-      "caption": "Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.",
+      "caption": "Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost.",
       "recommendedUse": "Use in the cost-quality section to show that Opus 4.7 Max cost more and scored lower than Opus 4.6 Medium.",
       "dataSummary": {
         "points": [
@@ -370,7 +370,7 @@
         ]
       },
       "talkingPoints": [
-        "Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% F1.",
+        "Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% Snyk-reference F1.",
         "Claude Opus 4.6 Medium was the strongest model cost/quality point in this run."
       ]
     },
@@ -452,7 +452,7 @@
         ]
       },
       "talkingPoints": [
-        "Claude Opus 4.6 High was stable on Nightowl, but stably incomplete: 40.0% F1 in every repetition.",
+        "Claude Opus 4.6 High was stable on Nightowl, but stably incomplete: 40.0% Snyk-reference F1 in every repetition.",
         "Snyk Code enumerated repeated path traversal and resource-limit findings that the model missed."
       ]
     }

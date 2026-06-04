@@ -55,28 +55,28 @@ Placeholder: `<!-- VISUAL: score-variance-by-config -->`
 
 Use: Use alongside the recurrence charts to connect finding-level instability to benchmark-level score variance.
 
-Caption: Headline F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.
+Caption: Headline Snyk-reference F1 standard deviation across repeated runs. Lower values indicate more repeatable benchmark outcomes under the same prompt and code.
 
 Source: `index.html#chart-score-variance-by-config`
 Data: `config-aggregate`, metric `scoreStdDev`.
 
 Talking points:
-- Claude Sonnet 4.6 High had the largest headline F1 standard deviation at 3.5 percentage points.
+- Claude Sonnet 4.6 High had the largest headline Snyk-reference F1 standard deviation at 3.5 percentage points.
 - Snyk Code SAST had 0.0 percentage-point score standard deviation against the Snyk Code reference set.
 
-### FIG-5: F1 score vs variance by configuration
+### FIG-5: Snyk-reference F1 vs variance by configuration
 Placeholder: `<!-- VISUAL: score-stability-labeled-scatter -->`
 
 Use: Use as an experimental repeatability visual when Snyk Code's zero-variance reference point should be visually prominent.
 
-Caption: F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.
+Caption: Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points move toward the top-left: higher agreement score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.
 
 Source: `index.html#chart-score-stability-labeled-scatter`
 Data: `config-aggregate`, metric `score-vs-scoreStdDev`.
 
 Talking points:
-- Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.
-- Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point F1 standard deviation across repeated runs.
+- Snyk Code SAST sits at 100.0% Snyk-reference F1 and 0.0 percentage-point variance because it reproduces the reference set deterministically.
+- Claude Sonnet 4.6 High is farthest right, with 3.5 percentage-point Snyk-reference F1 standard deviation across repeated runs.
 - The stronger model tradeoff is toward the upper-left: high agreement with lower run-to-run variance.
 
 ### FIG-6: Score vs estimated model-session cost
@@ -84,13 +84,13 @@ Placeholder: `<!-- VISUAL: score-vs-cost-repeatability-story -->`
 
 Use: Use in the cost-quality section to show that Opus 4.7 Max cost more and scored lower than Opus 4.6 Medium.
 
-Caption: Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.
+Caption: Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost.
 
 Source: `index.html#chart-score-vs-cost-repeatability-story`
 Data: `config-aggregate`, metric `score-vs-cost`.
 
 Talking points:
-- Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% F1.
+- Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% Snyk-reference F1.
 - Claude Opus 4.6 Medium was the strongest model cost/quality point in this run.
 
 ### FIG-7: SQL-shaped reports outside the reference set
@@ -118,5 +118,5 @@ Source: `index.html#chart-nightowl-recall-cliff`
 Data: `raw-run-derived`, metric `nightowl-opus-high-miss-rate`.
 
 Talking points:
-- Claude Opus 4.6 High was stable on Nightowl, but stably incomplete: 40.0% F1 in every repetition.
+- Claude Opus 4.6 High was stable on Nightowl, but stably incomplete: 40.0% Snyk-reference F1 in every repetition.
 - Snyk Code enumerated repeated path traversal and resource-limit findings that the model missed.

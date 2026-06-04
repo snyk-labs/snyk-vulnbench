@@ -33,19 +33,19 @@ Each configuration ran each task five times: 10 tasks x 6 configurations x 5 rep
 
 Snyk Code defines the reference set for this benchmark. That means its 100% score is not an accuracy claim about all possible vulnerabilities in the projects. It means Snyk Code reproduced its own reference findings deterministically across repeated runs. We use that reference set to measure model agreement, model variance, and where model behavior diverges.
 
-The scorer is intentionally lenient: a model finding is credited if it reports the same vulnerability type as a reference finding. It does not need to match the same file, line, severity, or source-to-sink path. F1 is useful as an agreement metric, but it is not the main story.
+The scorer is intentionally lenient: a model finding is credited if it reports the same vulnerability type as a reference finding. It does not need to match the same file, line, severity, or source-to-sink path. We report Snyk-reference F1: the harmonic mean of precision and recall when Snyk Code findings are treated as the reference set. It is useful as an agreement metric, but it is not the main story.
 
-Because this benchmark does not use an independent, exhaustively adjudicated ground truth set, F1 should not be read as true vulnerability-detection accuracy. A model with lower agreement against the Snyk Code reference set could still score better against an independent ground truth if some of its unmatched findings are valid, or if it avoids issues that the reference set overstates. In this report, F1 answers a narrower question: how closely and how repeatably do model findings align with the Snyk Code reference findings?
+Because this benchmark does not use an independent, exhaustively adjudicated ground truth set, Snyk-reference F1 should not be read as true vulnerability-detection accuracy. A model with lower agreement against the Snyk Code reference set could still score better against an independent ground truth if some of its unmatched findings are valid, or if it avoids issues that the reference set overstates. In this report, Snyk-reference F1 answers a narrower question: how closely and how repeatably do model findings align with the Snyk Code reference findings?
 
 ## Result 1: LLM Repeatability Varied by Model Configuration
 
-At the configuration level, repeatability shows up as the relationship between score and variance. The stronger outcome is toward the upper-left: high agreement with the reference set and low repeated-run variance. Snyk Code SAST sits at that corner with 100.0% F1 and 0.0 percentage-point standard deviation because it reproduced its reference set deterministically. The Claude model configurations spread downward and to the right, with Claude Sonnet 4.6 High showing the largest headline variance at 3.5 percentage points.
+At the configuration level, repeatability shows up as the relationship between score and variance. The stronger outcome is toward the upper-left: high agreement with the reference set and low repeated-run variance. Snyk Code SAST sits at that corner with 100.0% Snyk-reference F1 and 0.0 percentage-point standard deviation because it reproduced its reference set deterministically. The Claude model configurations spread downward and to the right, with Claude Sonnet 4.6 High showing the largest headline variance at 3.5 percentage points.
 
 <!-- VISUAL: score-stability-labeled-scatter -->
 
-*Figure 1: F1 score plotted against headline F1 standard deviation. Better points move toward the top-left: higher score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.*
+*Figure 1: Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points move toward the top-left: higher agreement score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.*
 
-The scatter makes two things visible at once. First, Snyk Code's role in this benchmark is deterministic reference reproduction, not probabilistic review. Second, the model configs do not line up by cost or recency: Claude Opus 4.6 Medium and High sit close together with low variance and the strongest model F1, while Claude Opus 4.7 Max and Claude Sonnet 4.6 High are farther right, meaning their repeated runs moved more.
+The scatter makes two things visible at once. First, Snyk Code's role in this benchmark is deterministic reference reproduction, not probabilistic review. Second, the model configs do not line up by cost or recency: Claude Opus 4.6 Medium and High sit close together with low variance and the strongest model Snyk-reference F1, while Claude Opus 4.7 Max and Claude Sonnet 4.6 High are farther right, meaning their repeated runs moved more.
 
 Across all model configurations, 80 of 161 unique unmatched finding signatures appeared in only one of five repeated runs. That aggregate explains part of the variance story, but the more useful view is model-by-model.
 
@@ -167,7 +167,7 @@ That finding was counted as unmatched because it was not in the Snyk Code refere
 
 This second heatmap shows the other side of complementarity: extra model reports are not one homogeneous category. Some are likely false positives, like the non-executable SQL-shaped mock helper in `js-project-tigerteam`. Some are adjacent security review comments that are out of scope for the reference set. Some, like the SQL injection report in `js-project-nightowl`, are likely valid findings that should feed back into Snyk Code coverage.
 
-The complementarity also runs in the other direction. `js-project-nightowl` is the most app-like fixture in JS 1.0: `server.js` is 198 lines, with `db.js` and `public/app.js` adding another 183 lines of JavaScript. It has routing, uploads, attachment deletion, downloads, and database state. Claude Opus 4.6 High was perfectly stable on this fixture, but stable at only 40.0% F1. Across five repetitions it missed every path-traversal reference finding and two of three resource-limit finding opportunities.
+The complementarity also runs in the other direction. `js-project-nightowl` is the most app-like fixture in JS 1.0: `server.js` is 198 lines, with `db.js` and `public/app.js` adding another 183 lines of JavaScript. It has routing, uploads, attachment deletion, downloads, and database state. Claude Opus 4.6 High was perfectly stable on this fixture, but stable at only 40.0% Snyk-reference F1. Across five repetitions it missed every path-traversal reference finding and two of three resource-limit finding opportunities.
 
 <!-- VISUAL: larger-fixture-score-by-config -->
 
@@ -193,19 +193,19 @@ The model found some representative issues, then failed to enumerate repeated vu
 
 ## Result 3: More Expensive LLM Runs Did Not Mean Better Coverage
 
-Claude Opus 4.7 Max was the most expensive model configuration in this run, but not the best performing one. It averaged 95,969 tokens and $0.3559 per model session. Claude Opus 4.6 Medium averaged 51,574 tokens and $0.0628 per model session. Opus 4.7 Max therefore cost 5.67x more and used 1.86x more tokens, while scoring lower: 68.8% F1 versus 75.4% for Opus 4.6 Medium.
+Claude Opus 4.7 Max was the most expensive model configuration in this run, but not the best performing one. It averaged 95,969 tokens and $0.3559 per model session. Claude Opus 4.6 Medium averaged 51,574 tokens and $0.0628 per model session. Opus 4.7 Max therefore cost 5.67x more and used 1.86x more tokens, while scoring lower: 68.8% Snyk-reference F1 versus 75.4% for Opus 4.6 Medium.
 
 <!-- VISUAL: score-vs-cost-model-callouts -->
 
-*Figure 9: Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.*
+*Figure 9: Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost.*
 
 The absolute dollar amounts are small because the fixtures are small. The scaling question is not. Real security checks run during coding-agent sessions, commits, pull requests, and CI jobs across repositories that are orders of magnitude larger than these snippets. More expensive inference is not automatically better security coverage.
 
 ## Agreement Scores Against the Snyk Code Reference Set
 
-F1 is still useful, as long as it is described precisely: it measures agreement with the Snyk Code reference set. On that metric, Snyk Code SAST reproduced its reference set with 100.0% F1 and 0.0 percentage-point score standard deviation. The best model configuration was Claude Opus 4.6 Medium at 75.4% F1, 68.0% recall, and 91.5% precision.
+Snyk-reference F1 is still useful, as long as it is described precisely: it measures agreement with the Snyk Code reference set. On that metric, Snyk Code SAST reproduced its reference set with 100.0% Snyk-reference F1 and 0.0 percentage-point score standard deviation. The best model configuration was Claude Opus 4.6 Medium at 75.4% Snyk-reference F1, 68.0% recall, and 91.5% precision.
 
-| Configuration | F1 | F1 std. dev. | Recall | Precision | Avg. duration | Avg. tokens | Est. cost |
+| Configuration | Snyk-reference F1 | Snyk-reference F1 std. dev. | Recall | Precision | Avg. duration | Avg. tokens | Est. cost |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Snyk Code SAST | 100.0% | 0.0 pp | 100.0% | 100.0% | 14.8s | 0 | N/A |
 | Claude Opus 4.6 Medium | 75.4% | 0.2 pp | 68.0% | 91.5% | 27.3s | 51,574 | $0.0628 |

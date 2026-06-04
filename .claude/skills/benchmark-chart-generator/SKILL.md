@@ -353,11 +353,11 @@ Generate these bar charts when the denominators are non-zero:
    - Source: `config-aggregate` rows.
    - Include command and model rows. Snyk Code SAST often has zero score standard
      deviation, which is meaningful as deterministic reference reproduction.
-   - Caption: "Headline F1 standard deviation across repeated runs. Lower values
+   - Caption: "Headline Snyk-reference F1 standard deviation across repeated runs. Lower values
      indicate more repeatable benchmark outcomes under the same prompt and code."
    - Talking points should call out the highest-variance model config and the
      deterministic reference row when present, e.g. "Claude Sonnet 4.6 High had the
-     largest headline F1 standard deviation at 3.5 percentage points" and "Snyk Code
+     largest headline Snyk-reference F1 standard deviation at 3.5 percentage points" and "Snyk Code
      SAST had 0.0 percentage-point score standard deviation against the reference set."
    - Use: opening visual for repeatability/variance sections, then connect
      finding-level instability to benchmark-level variance.
@@ -367,7 +367,7 @@ Generate these bar charts when the denominators are non-zero:
    - Source: `config-aggregate` rows.
    - Chart type: `labeled-scatter` or another renderer that places config names
      directly on the plot.
-   - X axis: `scoreStdDev` as F1 standard deviation, formatted as percent.
+   - X axis: `scoreStdDev` as Snyk-reference F1 standard deviation, formatted as percent.
    - Y axis: `score`, formatted as percent.
    - Include command and model rows. Highlight Snyk Code SAST with the command/Snyk
      purple color at `x = 0` so deterministic reference reproduction is obvious.
@@ -391,11 +391,11 @@ Generate these bar charts when the denominators are non-zero:
    - Sort or position labels for readability rather than preserving source order.
      The reader should immediately see the upper-left ideal, the Snyk zero-variance
      reference point, and the higher-variance model configurations to the right.
-   - Caption: "F1 score plotted against headline F1 standard deviation. Better points
-     move toward the top-left: higher score with lower repeated-run variance. Snyk
+   - Caption: "Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points
+     move toward the top-left: higher agreement score with lower repeated-run variance. Snyk
      Code SAST is highlighted in purple at zero variance."
    - Recommended talking points:
-     - "Snyk Code SAST sits at 100.0% F1 and 0.0 percentage-point variance because it
+     - "Snyk Code SAST sits at 100.0% Snyk-reference F1 and 0.0 percentage-point variance because it
        reproduces the reference set deterministically."
      - "The strongest model tradeoff is toward the upper-left: high agreement with
        lower run-to-run variance."
@@ -653,7 +653,7 @@ specs from aggregate rows: `"config-aggregate"` for the report headline and
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `effort` | `"low"\|"medium"\|"high"\|"max"\|null` | Reasoning effort level. Null for command runs. |
 | `thinking` | `ThinkingConfig\|null` | Extended thinking config: `{type:"adaptive"}`, `{type:"enabled",budgetTokens:N}`, or `{type:"disabled"}`. Null for command runs. |
-| `score` | number (0-1) | Overall F1 score (find-vulns) or fraction fixed (fix-vulns) |
+| `score` | number (0-1) | Overall Snyk-reference F1 score (find-vulns) or fraction fixed (fix-vulns) |
 | `timestamp` | string (ISO 8601) | When this run happened |
 | `repetition` | number (1-indexed) | Which repetition this is (e.g. 2 of 3) |
 | `totalRepetitions` | number | Total repetitions requested for this task+config pair |

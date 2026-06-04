@@ -98,7 +98,7 @@ Source: `index.html#chart-larger-fixture-score-by-config`
 Data: `task-aggregate`, metric `larger-fixture-score`.
 
 Talking points:
-- Claude Opus 4.6 High was the best model on the larger multi-file fixture at 40.0% F1, while Snyk Code reproduced the reference set at 100.0%.
+- Claude Opus 4.6 High was the best model on the larger multi-file fixture at 40.0% Snyk-reference F1, while Snyk Code reproduced the reference set at 100.0%.
 - The issue was not only noise: models missed repeated path traversal and resource-limit findings.
 
 ### FIG-7: Score vs estimated model-session cost
@@ -106,11 +106,11 @@ Placeholder: `<!-- VISUAL: score-vs-cost-model-callouts -->`
 
 Use: Use in the cost-quality section to show that Opus 4.7 Max cost more and scored lower than Opus 4.6 Medium.
 
-Caption: Model-only cost/quality tradeoff. Better points move toward the top-left: higher F1 score at lower estimated model-session cost.
+Caption: Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost.
 
 Source: `index.html#chart-score-vs-cost-model-callouts`
 Data: `config-aggregate`, metric `score-vs-cost`.
 
 Talking points:
-- Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% F1.
+- Claude Opus 4.7 Max cost 5.67x Claude Opus 4.6 Medium while scoring lower: 68.8% vs 75.4% Snyk-reference F1.
 - Claude Opus 4.6 Medium was the strongest model cost/quality point in this run.
