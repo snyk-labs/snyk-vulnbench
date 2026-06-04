@@ -59,6 +59,10 @@ links to every report section, and a sticky left-side section rail on wide scree
 that highlights the current section while scrolling. Treat these as part of the
 standard report shell, not optional decoration.
 
+Keep the report background visually flat white. Do not add drop shadows, `box-shadow`,
+blurred glows, or translucent sticky-rail backgrounds that can cast a gray gradient
+over the chart area on wide screens.
+
 If the user provides pasted spreadsheet, CSV, markdown-table, or Google Sheets data
 instead of JSONL, normalize that table data into explicit JavaScript arrays and build
 a custom static page using the same Snyk Evo palette, typography, spacing, SVG chart
