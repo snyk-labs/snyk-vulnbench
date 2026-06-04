@@ -81,8 +81,6 @@ The matched side tells a different story. When a model found a Snyk Code referen
 
 Figure 4 shows the matched side of the repeatability story. Across all model configurations, 134 of 158 unique reference-matched findings appeared in all five repetitions (84.8%). That means when a model spotted a known Snyk Code reference finding, it usually did so reliably. The contrast with Figure 5 is the main result: true positives were usually stable, while extra non-reference reports were much noisier.
 
-The aggregate distribution shows the operational shape of that problem.
-
 <!-- VISUAL: unmatched-finding-repeatability -->
 
 *Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
