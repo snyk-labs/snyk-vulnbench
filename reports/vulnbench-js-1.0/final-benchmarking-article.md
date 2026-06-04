@@ -79,15 +79,13 @@ The matched side tells a different story. When a model found a Snyk Code referen
 
 *Figure 4: Share of unique Snyk Code reference findings matched in all five repeated runs for each model configuration.*
 
-This is the main repeatability finding: model agreement with known reference issues was much more stable than the surrounding set of extra reports. In a real developer workflow, those extra reports still matter. They are the findings that create new triage work and change from run to run.
+Figure 4 shows the matched side of the repeatability story. Across all model configurations, 134 of 158 unique reference-matched findings appeared in all five repetitions (84.8%). That means when a model spotted a known Snyk Code reference finding, it usually did so reliably. The contrast with Figure 5 is the main result: true positives were usually stable, while extra non-reference reports were much noisier.
 
 The aggregate distribution shows the operational shape of that problem.
 
 <!-- VISUAL: unmatched-finding-repeatability -->
 
 *Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
-
-The table shows how often model findings matched reference (Snyk) findings across repeated runs. The large "5 of 5 runs" percentage (84.8%) means when a model spotted a known vulnerability, it almost always did so reliably every time. The small single-digit percentages (e.g., 1/5, 2/5 runs) show that inconsistent, flaky detection of reference issues was rare (<6%). So: model-reported "real" vulns are usually reliable, while the noisy, inconsistent findings are mostly in extra (non-reference) reports. The impact: LLMs consistently catch true positives but are less repeatable in their "extra" findings.
 
 | Repetition frequency | Unique unmatched findings | Share |
 |---|---:|---:|
