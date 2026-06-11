@@ -8,35 +8,35 @@ The short answer is: LLMs were useful, but not yet deterministic. They repeatedl
 
 - The highest-recall LLM configuration found only 81% of Snyk Code reference vulnerabilities.
 
+- Claude Opus 4.6 Medium was the best-scoring LLM configuration, matching 75.4% of the Snyk Code reference set and leaving a 24.6 percentage-point gap against deterministic SAST reference reproduction.
+
 - Nearly 50% of LLM-only vulnerability reports appeared in just 1 of 5 identical scans: 80 of 161 unique extra reports.
-
-- Claude Sonnet 4.6 Medium produced the most one-off extra vulnerability reports: 61.7% of its LLM-only reports appeared in just one of five runs. Claude Opus 4.6 Medium produced zero one-off extra reports; all of its LLM-only reports appeared in at least two runs.
-
-- Of the Snyk Code reference vulnerabilities LLMs found, 85% were reported consistently across all five identical scans.
 
 - Only 14% of extra LLM vulnerability reports appeared in every run, making the non-reference review queue much less repeatable.
 
-- Claude Opus 4.6 Medium was the most repeatable model on known vulnerabilities, reproducing 100% of the Snyk-reference issues it found across all five runs; Claude Opus 4.7 Max was the least repeatable at 74.3%.
-
-- Claude Opus 4.6 Medium was the best-scoring LLM configuration, matching 75.4% of the Snyk Code reference set and leaving a 24.6 percentage-point gap against deterministic SAST reference reproduction.
+- The highest-recall LLM also had the noisiest queue: 41% of its reports fell outside the Snyk Code reference set.
 
 - Claude Sonnet 4.6 High found the most reference vulnerabilities of any LLM configuration at 81.3% recall, but precision fell to 58.6%, creating the noisiest review queue.
 
-- The highest-recall LLM also had the noisiest queue: 41% of its reports fell outside the Snyk Code reference set.
+- Claude Sonnet 4.6 High optimized for coverage over precision: it found 81.3% of Snyk-reference vulnerabilities, but only 58.6% of its reported vulnerabilities matched the reference set.
 
 - Claude Opus 4.6 Medium had the cleanest LLM review queue, reaching 91.5% precision, but it found only 68.0% of Snyk-reference vulnerabilities.
 
-- Claude Sonnet 4.6 High optimized for coverage over precision: it found 81.3% of Snyk-reference vulnerabilities, but only 58.6% of its reported vulnerabilities matched the reference set.
+- In the largest app-like fixture, Claude Opus 4.6 High was the best model at only 40.0% Snyk-reference F1, repeatedly missing path traversal and resource-limit vulnerabilities.
+
+- LLMs were weaker on systematic SAST classes: resource-limit findings, framework information exposure, insecure transport, sanitization and type-validation issues, and repeated path traversal flows.
 
 - Claude Opus 4.7 Max was the most expensive LLM configuration: it cost 5.7x more than Claude Opus 4.6 Medium, used 1.9x more tokens, and scored lower.
 
 - Claude Opus 4.6 Medium was the fastest LLM scan at 27.3 seconds on average, still almost 2x slower than Snyk Code SAST at 14.8 seconds. Claude Sonnet 4.6 High was the slowest at 94.8 seconds, more than 6x slower than Snyk Code SAST.
 
+- Claude Sonnet 4.6 Medium produced the most one-off extra vulnerability reports: 61.7% of its LLM-only reports appeared in just one of five runs. Claude Opus 4.6 Medium produced zero one-off extra reports; all of its LLM-only reports appeared in at least two runs.
+
+- Of the Snyk Code reference vulnerabilities LLMs found, 85% were reported consistently across all five identical scans.
+
 - LLMs were strongest on familiar exploit shapes like command injection, XSS, hardcoded credentials, SQL injection, SSRF, open redirect, prototype pollution, and ReDoS.
 
-- LLMs were weaker on systematic SAST classes: resource-limit findings, framework information exposure, insecure transport, sanitization and type-validation issues, and repeated path traversal flows.
-
-- In the largest app-like fixture, Claude Opus 4.6 High was the best model at only 40.0% Snyk-reference F1, repeatedly missing path traversal and resource-limit vulnerabilities.
+- Claude Opus 4.6 Medium was the most repeatable model on known vulnerabilities, reproducing 100% of the Snyk-reference issues it found across all five runs; Claude Opus 4.7 Max was the least repeatable at 74.3%.
 
 - Not every LLM-only report was noise: one unmatched SQL injection report looks like a real Snyk Code product gap to investigate.
 
