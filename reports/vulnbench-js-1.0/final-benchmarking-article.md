@@ -6,6 +6,14 @@ In plain terms: when Claude reported bugs outside the Snyk Code reference list, 
 
 The benchmark also shows complementarity. Models consistently found familiar, high-signal exploit shapes, and in one case surfaced a likely Snyk Code product gap. Snyk Code SAST was deterministic and better at systematically enumerating repeated data-flow sinks. Neither result supports replacing one technique with the other. The data supports combining them.
 
+Key Highlights:
+
+- The highest-recall LLM configuration found only 81% of Snyk Code reference vulnerabilities.
+- The best-scoring LLM configuration reached 75.4% Snyk-reference F1, leaving a 24.6-point gap against deterministic SAST reference reproduction.
+- Nearly 50% of LLM-only vulnerability reports appeared in just 1 of 5 identical scans.
+- The highest-recall LLM also had the noisiest queue: 41% of its reports fell outside the Snyk Code reference set.
+- In the largest app-like fixture, the best model scored only 40.0% Snyk-reference F1 and repeatedly missed path traversal and resource-limit vulnerabilities.
+
 ## Why LLM Security Review Needs Repeatability
 
 Coding agents are now part of the development loop. They write code, modify pull requests, explain changes, and increasingly perform security review before a human reads the diff. That makes reliability a product question: if the same agent sees the same vulnerable code twice, does it report the same security issues twice?
@@ -47,6 +55,8 @@ At the configuration level, repeatability shows up as the relationship between s
 
 The scatter makes two things visible at once. First, Snyk Code's role in this benchmark is deterministic reference reproduction, not probabilistic review. Second, the model configs do not line up by cost or recency: Claude Opus 4.6 Medium and High sit close together with low variance and the strongest model Snyk-reference F1, while Claude Opus 4.7 Max and Claude Sonnet 4.6 High are farther right, meaning their repeated runs moved more.
 
+> **Highlight:** The best-scoring LLM configuration reached 75.4% Snyk-reference F1, leaving a 24.6-point gap against deterministic SAST reference reproduction.
+
 Across all model configurations, 80 of 161 unique unmatched finding signatures appeared in only one of five repeated runs. That aggregate explains part of the variance story, but the more useful view is model-by-model.
 
 <!-- VISUAL: one-run-unmatched-by-model -->
@@ -65,6 +75,8 @@ The table below provides exact values for the preceding chart, plus the two stab
 
 The instability is not evenly distributed across models. Claude Sonnet 4.6 Medium produced the largest unmatched finding surface, with 60 unique unmatched signatures; 37 of those appeared in only one of five runs. Claude Sonnet 4.6 High and Claude Opus 4.7 Max showed a similar pattern: many extra reports appeared once and did not recur. In contrast, Claude Opus 4.6 Medium with 0.0% on the chart indicates high stability and few one-off findings, with all of its extra reports found in two or more runs but none appeared in only one out of the 5 repeated runs.
 
+> **Highlight:** Claude Sonnet 4.6 Medium produced the most one-off extra vulnerability reports: 61.7% of its LLM-only reports appeared in just one of five runs.
+
 The Opus 4.6 configurations behaved differently. They produced far fewer unmatched findings, and their extra reports were more stable. That does not make every extra report correct, but it changes the operational interpretation: fewer surprise findings, fewer one-off claims, and less triage churn.
 
 The chart below highlights how most non-Opus-4.6 configs struggled with stability in their extra (unmatched) findings across repeated runs. Both Claude Sonnet 4.6 Medium and High exhibited poor repeatability, with only 8.3% and 9.3% of unmatched findings persisting across all five runs. Claude Opus 4.7 Max also fared poorly, with just 16.7% stability. In contrast, Opus 4.6 Medium and High demonstrated much higher stability in their unmatched findings (60.0% and 50.0% respectively), underlining the less-predictable, noisier nature of unmatched findings from the Sonnet and newer Claude Opus 4.7 Max configuration.
@@ -81,11 +93,15 @@ The matched side tells a different story. When a model found a Snyk Code referen
 
 Figure 4 shows the matched side of the repeatability story. Across all model configurations, 134 of 158 unique reference-matched findings appeared in all five repetitions (84.8%). That means when a model spotted a known Snyk Code reference finding, it usually did so reliably. The contrast with Figure 5 is the main result: true positives were usually stable, while extra non-reference reports were much noisier.
 
+> **Highlight:** Of the Snyk Code reference vulnerabilities LLMs found, 85% were reported consistently across all five identical scans.
+
 <!-- VISUAL: unmatched-finding-repeatability -->
 
 *Figure 5: Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.*
 
 Nearly half of unique unmatched model findings appeared in only one of five identical repetitions. That is a practical reliability problem: a developer could get a materially different review queue depending on which run happened to execute.
+
+> **Highlight:** Only 14% of extra LLM vulnerability reports appeared in every run, making the non-reference review queue much less repeatable.
 
 The exact distribution behind that visual is:
 
@@ -108,6 +124,8 @@ The clearest way to see this is by vulnerability class. The heatmap below shows 
 *Figure 6: Mean recall against the Snyk Code reference set by vulnerability type and configuration. Snyk Code is shown as deterministic reference reproduction; model rows show where agentic review agrees or falls short by class.*
 
 The model configurations were strongest on familiar, high-signal exploit shapes: command injection, code injection, hardcoded credentials, SQL injection, SSRF, open redirect, prototype pollution, and ReDoS were often found cleanly. They were weaker on resource-limit findings, improper sanitization, type validation, insecure transport, framework information exposure, and repeated path traversal flows.
+
+> **Highlight:** LLMs were weaker on systematic SAST classes: resource-limit findings, framework information exposure, insecure transport, sanitization and type-validation issues, and repeated path traversal flows.
 
 That pattern is visible in `js-project-tigerteam`, where every model configuration consistently found the hardcoded database password, reflected XSS, path traversal, and command injection across all 25 model repetitions.
 
@@ -169,6 +187,8 @@ This second heatmap shows the other side of complementarity: extra model reports
 
 The complementarity also runs in the other direction. `js-project-nightowl` is the most app-like fixture in JS 1.0: `server.js` is 198 lines, with `db.js` and `public/app.js` adding another 183 lines of JavaScript. It has routing, uploads, attachment deletion, downloads, and database state. Claude Opus 4.6 High was perfectly stable on this fixture, but stable at only 40.0% Snyk-reference F1. Across five repetitions it missed every path-traversal reference finding and two of three resource-limit finding opportunities.
 
+> **Highlight:** In the largest app-like fixture, Claude Opus 4.6 High was the best model at only 40.0% Snyk-reference F1, repeatedly missing path traversal and resource-limit vulnerabilities.
+
 <!-- VISUAL: larger-fixture-score-by-config -->
 
 *Figure 8: Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.*
@@ -194,6 +214,8 @@ The model found some representative issues, then failed to enumerate repeated vu
 ## Result 3: More Expensive LLM Runs Did Not Mean Better Coverage
 
 Claude Opus 4.7 Max was the most expensive model configuration in this run, but not the best performing one. It averaged 95,969 tokens and $0.3559 per model session. Claude Opus 4.6 Medium averaged 51,574 tokens and $0.0628 per model session. Opus 4.7 Max therefore cost 5.67x more and used 1.86x more tokens, while scoring lower: 68.8% Snyk-reference F1 versus 75.4% for Opus 4.6 Medium.
+
+> **Highlight:** Claude Opus 4.7 Max cost 5.7x more than Claude Opus 4.6 Medium, used 1.9x more tokens, and scored lower.
 
 <!-- VISUAL: score-vs-cost-model-callouts -->
 
