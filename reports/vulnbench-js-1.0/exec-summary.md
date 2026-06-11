@@ -6,17 +6,23 @@ The short answer is: LLMs were useful, but not yet deterministic. They repeatedl
 
 ## Short Key Highlights
 
-- Across all LLM configurations, nearly half of extra vulnerability reports appeared only once across five identical scans: 80 of 161 unique LLM-only reports.
+- The highest-recall LLM configuration found only 81% of Snyk Code reference vulnerabilities.
+
+- Nearly 50% of LLM-only vulnerability reports appeared in just 1 of 5 identical scans: 80 of 161 unique extra reports.
 
 - Claude Sonnet 4.6 Medium produced the most one-off extra vulnerability reports: 61.7% of its LLM-only reports appeared in just one of five runs. Claude Opus 4.6 Medium produced zero one-off extra reports; all of its LLM-only reports appeared in at least two runs.
 
-- Across all LLM runs, models repeated 85% of the Snyk-reference vulnerabilities they found, but only 14% of extra vulnerability reports appeared in every run.
+- Of the Snyk Code reference vulnerabilities LLMs found, 85% were reported consistently across all five identical scans.
+
+- Only 14% of extra LLM vulnerability reports appeared in every run, making the non-reference review queue much less repeatable.
 
 - Claude Opus 4.6 Medium was the most repeatable model on known vulnerabilities, reproducing 100% of the Snyk-reference issues it found across all five runs; Claude Opus 4.7 Max was the least repeatable at 74.3%.
 
 - Claude Opus 4.6 Medium was the best-scoring LLM configuration, matching 75.4% of the Snyk Code reference set and leaving a 24.6 percentage-point gap against deterministic SAST reference reproduction.
 
 - Claude Sonnet 4.6 High found the most reference vulnerabilities of any LLM configuration at 81.3% recall, but precision fell to 58.6%, creating the noisiest review queue.
+
+- The highest-recall LLM also had the noisiest queue: 41% of its reports fell outside the Snyk Code reference set.
 
 - Claude Opus 4.6 Medium had the cleanest LLM review queue, reaching 91.5% precision, but it found only 68.0% of Snyk-reference vulnerabilities.
 
