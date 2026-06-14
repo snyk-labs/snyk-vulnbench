@@ -1,0 +1,55 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{anthropic-claude-code,anthropic-agent-sdk}
+\citation{snyk-code-docs}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\citation{anthropic-models-overview}
+\@writefile{toc}{\contentsline {paragraph}{Key highlights.}{2}{section*.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Methodology}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Benchmark Design}{2}{subsection.2.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Benchmark configurations.}}{2}{table.1}\protected@file@percent }
+\newlabel{tab:configs}{{1}{2}{Benchmark configurations}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Scoring}{2}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}LLM Repeatability Varied by Model Configuration}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points move toward the top-left: higher agreement score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance.}}{3}{figure.1}\protected@file@percent }
+\newlabel{fig:score-stability}{{1}{3}{Snyk-reference F1 plotted against headline Snyk-reference F1 standard deviation. Better points move toward the top-left: higher agreement score with lower repeated-run variance. Snyk Code SAST is highlighted in purple at zero variance}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Share of each model configuration's unique unmatched finding signatures that appeared in only one of five repeated runs. Signature = task + vulnerability type + file + line, grouped by model config.}}{4}{figure.2}\protected@file@percent }
+\newlabel{fig:one-run-unmatched}{{2}{4}{Share of each model configuration's unique unmatched finding signatures that appeared in only one of five repeated runs. Signature = task + vulnerability type + file + line, grouped by model config}{figure.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Unmatched and reference-matched finding stability by model configuration.}}{4}{table.2}\protected@file@percent }
+\newlabel{tab:stability-by-model}{{2}{4}{Unmatched and reference-matched finding stability by model configuration}{table.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Share of unique unmatched finding signatures that appeared in all five repeated runs for each model configuration.}}{5}{figure.3}\protected@file@percent }
+\newlabel{fig:stable-unmatched}{{3}{5}{Share of unique unmatched finding signatures that appeared in all five repeated runs for each model configuration}{figure.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Share of unique Snyk Code reference findings matched in all five repeated runs for each model configuration.}}{5}{figure.4}\protected@file@percent }
+\newlabel{fig:stable-matched}{{4}{5}{Share of unique Snyk Code reference findings matched in all five repeated runs for each model configuration}{figure.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line.}}{6}{figure.5}\protected@file@percent }
+\newlabel{fig:unmatched-repeatability}{{5}{6}{Distribution of unique unmatched model findings by how often the same finding signature appeared across five repetitions of the same task and model config. Signature = task + config + vulnerability type + file + line}{figure.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Distribution of unique unmatched findings across repeated runs.}}{6}{table.3}\protected@file@percent }
+\newlabel{tab:unmatched-distribution}{{3}{6}{Distribution of unique unmatched findings across repeated runs}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}LLM Agents and SAST Found Different Security Gaps}{6}{subsection.3.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Mean recall against the Snyk Code reference set by vulnerability type and configuration. Snyk Code is shown as deterministic reference reproduction; model rows show where agentic review agrees or falls short by class.}}{7}{figure.6}\protected@file@percent }
+\newlabel{fig:reference-coverage}{{6}{7}{Mean recall against the Snyk Code reference set by vulnerability type and configuration. Snyk Code is shown as deterministic reference reproduction; model rows show where agentic review agrees or falls short by class}{figure.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Average unmatched reports per model run by vulnerability type and model configuration. These include model false positives, adjacent review comments, and likely product-gap candidates outside the Snyk Code reference set.}}{8}{figure.7}\protected@file@percent }
+\newlabel{fig:extra-reports}{{7}{8}{Average unmatched reports per model run by vulnerability type and model configuration. These include model false positives, adjacent review comments, and likely product-gap candidates outside the Snyk Code reference set}{figure.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs.}}{9}{figure.8}\protected@file@percent }
+\newlabel{fig:larger-fixture}{{8}{9}{Mean benchmark score for the larger multi-file fixture. Error bars show standard deviation across repeated runs}{figure.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}More Expensive LLM Runs Did Not Mean Better Coverage}{9}{subsection.3.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost.}}{10}{figure.9}\protected@file@percent }
+\newlabel{fig:score-vs-cost}{{9}{10}{Model-only cost/quality tradeoff. Better points move toward the top-left: higher Snyk-reference F1 at lower estimated model-session cost}{figure.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Agreement Scores Against the Snyk Code Reference Set}{10}{subsection.3.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Agreement scores, runtime, token use, and estimated model-session cost.}}{10}{table.4}\protected@file@percent }
+\newlabel{tab:agreement}{{4}{10}{Agreement scores, runtime, token use, and estimated model-session cost}{table.4}{}}
+\citation{vero2025baxbench}
+\bibstyle{plain}
+\bibdata{references}
+\bibcite{anthropic-agent-sdk}{{1}{}{{}}{{}}}
+\bibcite{anthropic-claude-code}{{2}{}{{}}{{}}}
+\bibcite{anthropic-models-overview}{{3}{}{{}}{{}}}
+\bibcite{snyk-code-docs}{{4}{}{{}}{{}}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Discussion}{11}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion}{11}{section.5}\protected@file@percent }
+\bibcite{vero2025baxbench}{{5}{}{{}}{{}}}
+\providecommand\NAT@force@numbers{}\NAT@force@numbers
+\gdef \@abspage@last{12}

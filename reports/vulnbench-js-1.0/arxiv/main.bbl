@@ -1,0 +1,35 @@
+\begin{thebibliography}{1}
+
+\bibitem{anthropic-agent-sdk}
+{Anthropic}.
+\newblock {Agent SDK Reference -- TypeScript}.
+\newblock \url{https://code.claude.com/docs/en/agent-sdk/typescript}, 2026.
+\newblock Accessed: 2026-06-14.
+
+\bibitem{anthropic-claude-code}
+{Anthropic}.
+\newblock {Claude Code Overview}.
+\newblock \url{https://code.claude.com/docs/en/overview}, 2026.
+\newblock Accessed: 2026-06-14.
+
+\bibitem{anthropic-models-overview}
+{Anthropic}.
+\newblock {Models Overview}.
+\newblock
+  \url{https://platform.claude.com/docs/en/about-claude/models/overview}, 2026.
+\newblock Accessed: 2026-06-14.
+
+\bibitem{snyk-code-docs}
+{Snyk Limited}.
+\newblock {Snyk Code}.
+\newblock \url{https://docs.snyk.io/scan-with-snyk/snyk-code}, 2026.
+\newblock Accessed: 2026-06-14.
+
+\bibitem{vero2025baxbench}
+Mark Vero, Niels M{\"u}ndler, Victor Chibotaru, Veselin Raychev, Maximilian
+  Baader, Nikola Jovanovi{\'c}, Jingxuan He, and Martin Vechev.
+\newblock {BaxBench: Can LLMs Generate Correct and Secure Backends?}
+\newblock \url{https://arxiv.org/abs/2502.11844}, 2025.
+\newblock Accessed: 2026-06-14.
+
+\end{thebibliography}
