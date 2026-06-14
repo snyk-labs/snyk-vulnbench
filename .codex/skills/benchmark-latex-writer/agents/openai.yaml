@@ -1,0 +1,4 @@
+interface:
+  display_name: "Benchmark LaTeX Writer"
+  short_description: "Turn benchmark reports into arXiv LaTeX"
+  default_prompt: "Use $benchmark-latex-writer to convert this benchmark report into an arXiv-ready LaTeX project with PDF preview and Overleaf ZIP."
