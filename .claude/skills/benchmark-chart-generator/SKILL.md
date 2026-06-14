@@ -2,8 +2,9 @@
 name: benchmark-chart-generator
 description: >
   Generates benchmark chart artifacts from JSONL result files: a self-contained HTML
-  report, a compact chart manifest, and an article-ready visuals guide with placeholders
-  and captions. Use when the user says "generate charts", "make an HTML report",
+  report, one PDF export per rendered chart, a compact chart manifest, and an
+  article-ready visuals guide with placeholders, PDF paths, and captions. Use when
+  the user says "generate charts", "make an HTML report",
   "visualize the benchmark", "create article visuals", provides a JSONL file and asks
   for visual output, or pastes table data and asks for charts in the benchmark report
   style. For repeated security benchmark runs, also generate model-callout
@@ -13,10 +14,6 @@ description: >
   adding fixtures (use benchmark-add-new-fixture), or running benchmarks
   (use benchmark-run).
 license: Apache-2.0
-compatibility: >
-  Requires read access to benchmark JSONL files in results/ and write access to public/.
-  No external dependencies -- output is static HTML plus compact JSON/Markdown handoff
-  files that can be opened or read directly.
 metadata:
   author: lirantal
   version: 1.0.0
@@ -26,11 +23,19 @@ metadata:
 
 # Instructions
 
+## Requirements
+
+Requires read access to benchmark JSONL files in `results/` and write access to
+`public/`. The HTML/JSON/Markdown outputs are static files that can be opened
+directly. PDF chart export requires `jsdom` to render the generated HTML and
+`rsvg-convert` (`librsvg2-bin` on Debian) to convert rendered SVG charts to PDF.
+
 Turn benchmark JSONL results into polished chart artifacts with Snyk Evo styling --
 no manual HTML editing required. The primary output is a self-contained `index.html`
-that opens directly in a browser, plus `chart-manifest.json` and `article-visuals.md`
-so an article-writing agent can understand and reference the visuals without reading
-the full JSONL payload.
+that opens directly in a browser, a `figures/` directory containing one PDF per
+rendered chart, plus `chart-manifest.json` and `article-visuals.md` so an
+article-writing agent can understand and reference the visuals without reading the
+full JSONL payload.
 
 For security benchmark reports with repeated `find-vulns` raw run rows, preserve the
 standard aggregate charts and add model-visible narrative charts. The most useful
@@ -51,7 +56,13 @@ store the exact `taskId` in `dataSummary` or manifest notes when lookup is neede
 The template lives at `assets/report-template.html` relative to this skill. It
 contains all CSS, SVG chart rendering JS, and the Snyk Evo color palette. Your job
 is to read the JSONL data, build compact chart specs, inject those specs into the
-template, and write all three output artifacts from the same source of truth.
+template, and write all output artifacts from the same source of truth.
+
+The PDF exporter lives at `scripts/export-chart-pdfs.mjs` relative to this skill.
+Run it after writing `index.html`, `chart-manifest.json`, and `article-visuals.md`.
+It executes the generated static HTML with `jsdom`, extracts each rendered SVG chart,
+folds HTML legends into the SVG when needed, converts each SVG to `figures/<chart-id>.pdf`
+with `rsvg-convert`, and updates the manifest/article handoff with PDF paths.
 
 The generated HTML report must preserve the built-in section navigation UX: prominent
 purple-accented `h2` section cards, a one-level table of contents near the top that
@@ -163,6 +174,7 @@ Each chart spec must use this shape:
   },
   "placeholder": "<!-- VISUAL: headline-score -->",
   "htmlAnchor": "index.html#chart-headline-score",
+  "pdfPath": "figures/headline-score.pdf",
   "caption": "Macro-averaged benchmark score across all fixtures. Error bars show standard deviation across repeated runs.",
   "recommendedUse": "Use in the main Results section when introducing the overall comparison.",
   "dataSummary": {
@@ -194,6 +206,7 @@ Required fields:
 - `section`: where the chart appears in the HTML. Use `kind: "headline"` for the top comparison and `kind: "task"` for per-fixture sections.
 - `placeholder`: markdown-safe placeholder, always `<!-- VISUAL: <id> -->`.
 - `htmlAnchor`: relative anchor, always `index.html#chart-<id>`.
+- `pdfPath`: relative path to the exported static PDF figure, always `figures/<id>.pdf` after PDF export.
 - `caption`: publication-ready caption that explains the metric and aggregation.
 - `recommendedUse`: one sentence telling an article agent where this visual belongs.
 - `dataSummary`: compact values used by the renderer and article agent.
@@ -502,7 +515,7 @@ stacked totals) so value labels sit in white space above bars. Avoid clamping la
 to the same y position as the bar top; if a label would hit the plot boundary, raise
 `yMax`, add top margin, or lower the bar scale until the label has visible padding.
 
-### Step 4: Build the three artifacts
+### Step 4: Build the output artifacts
 
 Read the template from this skill's `assets/report-template.html`, then replace:
 - `__CHART_SPECS__` -- the compact chart spec array.
@@ -529,6 +542,7 @@ Write these files under the same output directory:
   "generatedAt": "2026-05-20T00:00:00.000Z",
   "sourceFiles": ["results/benchmark-example.jsonl"],
   "htmlReport": "index.html",
+  "pdfFiguresDir": "figures",
   "charts": []
 }
 ```
@@ -549,12 +563,18 @@ Use: Main Results section, when introducing the overall benchmark comparison.
 Caption: Macro-averaged benchmark score across all fixtures. Error bars show standard deviation across repeated runs.
 
 Source: `index.html#chart-headline-score`
+PDF: `figures/headline-score.pdf`
 Data: `config-aggregate`, metric `score`.
 
 Talking points:
 - Repeated runs are summarized as mean plus standard deviation.
 - Higher score is better.
 ```
+
+4. `figures/*.pdf`
+   - One static PDF per rendered chart, named exactly `figures/<chart-id>.pdf`.
+   - These PDFs are the article/LaTeX-ready assets for downstream report writers.
+   - Generate them from the rendered HTML/SVG output, not by screenshotting raster images, so text and lines remain vector quality.
 
 ### Step 5: Write the output
 
@@ -563,19 +583,39 @@ Generate the output directory: `public/<YYYY-MM-DD-XXXXX>/` where:
 - `XXXXX` is a random 5-character alphanumeric slug for uniqueness
 
 Create the directory and write `index.html`, `chart-manifest.json`, and
-`article-visuals.md`. Report all three paths to the user.
+`article-visuals.md`. Then export chart PDFs:
+
+```bash
+node .claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<YYYY-MM-DD-XXXXX>
+```
+
+If `jsdom` is missing, install it in a temporary prefix or project-local dependency:
+
+```bash
+npm install --prefix /tmp/benchmark-chart-export-jsdom jsdom
+```
+
+If `rsvg-convert` is missing on Debian, install:
+
+```bash
+sudo apt-get install -y librsvg2-bin
+```
+
+Report the HTML, manifest, article handoff, and `figures/` PDF paths to the user.
 
 ### Step 6: Verify
 
 Confirm the output files:
 - `index.html`, `chart-manifest.json`, and `article-visuals.md` exist and are non-empty.
+- `figures/` exists and contains one `.pdf` file for every rendered chart ID.
 - `index.html` contains valid HTML (check for `<!DOCTYPE html>` at the start).
 - `index.html` contains `const CHART_SPECS =` and does not contain `const BENCHMARK_ROWS =` during normal aggregate-report generation.
 - `index.html` includes the standard section navigation shell: `#report-toc`, `#section-rail`, `sectionAnchor`, and `setupSectionSpy`.
-- `chart-manifest.json` parses as JSON and has `schemaVersion`, `htmlReport`, and a non-empty `charts` array.
+- `chart-manifest.json` parses as JSON and has `schemaVersion`, `htmlReport`, `pdfFiguresDir`, and a non-empty `charts` array.
 - Every chart in `chart-manifest.json` has `id`, `title`, `chartType`, `scope`, `metric`, `placeholder`, `htmlAnchor`, `caption`, `recommendedUse`, and `dataSummary`.
+- Every chart in `chart-manifest.json` has `pdfPath: "figures/<id>.pdf"` and the file exists.
 - Every `htmlAnchor` in the manifest has a matching `id="chart-..."` or equivalent renderer-created anchor in the HTML template.
-- `article-visuals.md` includes one figure entry per manifest chart and uses the same placeholders.
+- `article-visuals.md` includes one figure entry per manifest chart, uses the same placeholders, and lists each chart's `PDF: figures/<id>.pdf` path.
 - Score and duration charts include standard-deviation values when aggregate rows include `scoreStdDev` / `sessionDurationStdDevMs` and `repetitions > 1`.
 - Scatter plots are present as additive sections when there are at least two valid comparable aggregate points.
 - Pareto-style scatter plots follow the Snyk inclusion rules: model-only for `score-vs-cost`, model plus command rows for `score-vs-duration`, `recall-vs-precision`, and `score-stability`.
@@ -587,11 +627,14 @@ Confirm the output files:
 - Standard per-task charts may use fixture names/IDs for lookup. Headline-like, article-focused, and model-behavior charts use public-friendly generic fixture labels unless the user explicitly asks for internal fixture names.
 - Tallest bar and stacked-bar labels have visible white space above the bars and are not pinned to the chart top.
 
-Report success to the user with the output directory and a note that `article-visuals.md`
-is the recommended input for the article-writing agent.
+Report success to the user with the output directory, `index.html`, `chart-manifest.json`,
+`article-visuals.md`, and the `figures/` directory. Note that `article-visuals.md`
+is the recommended input for the article-writing agent and that `figures/*.pdf`
+are ready for LaTeX.
 
-Done when: all three artifacts exist, the HTML renders from compact chart specs, the
-manifest describes every visual, and the user has been told where to find the files.
+Done when: all artifacts exist, the HTML renders from compact chart specs, the
+manifest describes every visual and PDF path, every rendered chart has a matching
+PDF, and the user has been told where to find the files.
 
 ## Article handoff workflow
 
@@ -603,13 +646,14 @@ explicitly asks for a full-data review.
 The handoff file should let the article agent:
 - Choose which visual belongs in each article section.
 - Insert stable placeholders such as `<!-- VISUAL: headline-score -->`.
+- Use static figure PDFs such as `figures/headline-score.pdf` directly in LaTeX.
 - Reuse publication-ready captions.
 - Mention the exact data scope and metric behind each visual.
 - Make high-level observations without spending context on raw per-run data.
 
 Keep `chart-manifest.json` for automated workflows and editorial tooling. It should
 be exact enough for a script or agent to validate placeholders, map them to HTML
-anchors, or later export each chart as SVG/PNG without re-reading the benchmark JSONL.
+anchors, and locate each exported PDF without re-reading the benchmark JSONL.
 
 ## Legacy raw-run fallback
 
@@ -786,9 +830,10 @@ Actions:
 4. Read the template and replace `__CHART_SPECS__`, title, and subtitle placeholders
 5. Generate output directory, e.g. `public/2026-05-12-a7k2m/`
 6. Write `index.html`, `chart-manifest.json`, and `article-visuals.md`
-7. Confirm all paths to the user
+7. Run `scripts/export-chart-pdfs.mjs` for the output directory
+8. Confirm the HTML, manifest, handoff, and `figures/*.pdf` paths to the user
 
-Result: A styled HTML report plus a compact chart manifest and article handoff guide with placeholders for score, duration, and recall/precision visuals.
+Result: A styled HTML report plus PDF figure exports, a compact chart manifest, and an article handoff guide with placeholders, PDF paths, and captions for score, duration, and recall/precision visuals.
 
 ---
 
@@ -800,9 +845,10 @@ Actions:
 3. Build chart specs from aggregate rows
 4. Build HTML and article handoff artifacts from those specs
 5. Write to `public/<today-slug>/`
-6. Report the output directory and recommend `article-visuals.md` for article drafting
+6. Export `figures/*.pdf` from the rendered charts
+7. Report the output directory and recommend `article-visuals.md` plus `figures/*.pdf` for article drafting
 
-Result: The most recent benchmark run visualized as an HTML chart page, with manifest metadata available for downstream article agents.
+Result: The most recent benchmark run visualized as an HTML chart page with matching PDF figure assets and manifest metadata available for downstream article agents.
 
 ---
 
@@ -814,9 +860,10 @@ Actions:
 3. Build headline specs from config aggregates and task specs grouped by `taskId`
 4. Set title to "Benchmark Results", subtitle to the list of unique task IDs
 5. Write `index.html`, `chart-manifest.json`, and `article-visuals.md` to `public/<today-slug>/`
-6. Report the path and note that the page and visual guide have multiple task sections
+6. Export one PDF per chart to `public/<today-slug>/figures/`
+7. Report the path and note that the page, visual guide, and PDF figures have multiple task sections
 
-Result: A multi-section chart package with one group of charts per task ID and an article guide that lists each figure placeholder.
+Result: A multi-section chart package with one group of charts per task ID, PDF assets for every chart, and an article guide that lists each figure placeholder and PDF path.
 
 ---
 
@@ -826,9 +873,9 @@ Actions:
 1. Find the latest JSONL file in results/
 2. Parse all rows, filter to only rows where `runConfigType === "command"`
 3. Build chart specs from the filtered subset
-4. Write all three output artifacts and report
+4. Write the output artifacts, export chart PDFs, and report
 
-Result: A chart package showing only the Snyk Code SAST results, with article placeholders that make the single-tool scope explicit.
+Result: A chart package showing only the Snyk Code SAST results, with PDF figures and article placeholders that make the single-tool scope explicit.
 
 ---
 
@@ -842,7 +889,7 @@ Actions:
 4. Apply Pareto-style inclusion rules: keep Snyk Code SAST out of score vs cost, but include it in score vs duration, recall vs precision, and score stability when those shared metrics are present.
 5. Verify the scatter specs and article placeholders appear only when there are at least two valid points.
 
-Result: A report with the usual benchmark charts plus tradeoff scatter plots, and an article guide that tells the writer where each tradeoff visual belongs.
+Result: A report with the usual benchmark charts plus tradeoff scatter plots, matching PDF exports, and an article guide that tells the writer where each tradeoff visual belongs.
 
 ---
 
@@ -865,7 +912,7 @@ Actions:
 5. Keep the existing headline and per-task charts unless the user explicitly asks for a narrow article-only package.
 6. Verify every chart names model configurations or Snyk Code SAST where the narrative depends on comparing tools, and uses generic fixture labels for article-focused callouts.
 
-Result: A chart package that supports the repeatability-first and complementarity-first article narrative, not only a leaderboard.
+Result: A chart package that supports the repeatability-first and complementarity-first article narrative, not only a leaderboard, with LaTeX-ready PDFs for each visual.
 
 ---
 
@@ -877,7 +924,7 @@ Actions:
 3. Add a task/config heatmap spec when there are at least two tasks and two configs.
 4. Use task names or IDs as rows, config names as columns, `score` as cell color, and percentage labels in cells.
 
-Result: A report that preserves the normal charts and adds a matrix view in the manifest and article guide showing task difficulty and config strengths at a glance.
+Result: A report that preserves the normal charts and adds a matrix view in the manifest, article guide, and exported PDFs showing task difficulty and config strengths at a glance.
 
 ---
 
@@ -889,7 +936,7 @@ Actions:
 3. Add a diverging delta chart spec centered at zero, labeling improvements and regressions in percentage points.
 4. Keep the absolute score charts so readers can see both the delta and the underlying score.
 
-Result: A chart package with the usual benchmark charts plus a baseline comparison visual that the article guide can reference directly.
+Result: A chart package with the usual benchmark charts plus a baseline comparison visual that the article guide and exported PDFs can reference directly.
 
 ## Troubleshooting
 
@@ -933,8 +980,8 @@ Solution: Rebuild compact chart specs from the parsed rows, replace only `__CHAR
 ---
 
 Error: Article placeholders do not match rendered chart anchors.
-Cause: `chart-manifest.json`, `article-visuals.md`, and `index.html` were generated from different chart IDs or a chart ID was edited manually.
-Solution: Regenerate all three artifacts from the same `CHART_SPECS` array. Each placeholder must be `<!-- VISUAL: <id> -->` and each anchor must be `index.html#chart-<id>`.
+Cause: `chart-manifest.json`, `article-visuals.md`, `index.html`, and `figures/*.pdf` were generated from different chart IDs or a chart ID was edited manually.
+Solution: Regenerate the artifacts from the same `CHART_SPECS` array and rerun PDF export. Each placeholder must be `<!-- VISUAL: <id> -->`, each anchor must be `index.html#chart-<id>`, and each PDF path must be `figures/<id>.pdf`.
 
 ---
 
@@ -947,3 +994,37 @@ Solution: Keep the aggregate as a supporting number, but generate model-callout 
 Error: Heatmap specs appear in the manifest but the HTML says "Custom chart type heatmap."
 Cause: The template used for this run does not include a `renderSpecHeatmap` branch.
 Solution: Add a heatmap renderer before `renderSpecChart`, route `spec.chartType === "heatmap"` to it, and verify the HTML contains both `function renderSpecHeatmap` and `spec.chartType === "heatmap"`.
+
+---
+
+Error: PDF export fails with "Missing jsdom dependency."
+Cause: `scripts/export-chart-pdfs.mjs` executes the generated HTML in a DOM runtime so browser-rendered SVG charts can be extracted, but `jsdom` is not installed.
+Solution: Install `jsdom` either in the project or a temporary prefix:
+
+```bash
+npm install --prefix /tmp/benchmark-chart-export-jsdom jsdom
+```
+
+Then rerun:
+
+```bash
+node .claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<report-id>
+```
+
+---
+
+Error: PDF export fails with "Missing rsvg-convert."
+Cause: The SVG-to-PDF converter is not installed.
+Solution: On Debian, install:
+
+```bash
+sudo apt-get install -y librsvg2-bin
+```
+
+Then rerun the exporter.
+
+---
+
+Error: A chart exists in `chart-manifest.json` but no matching PDF was exported.
+Cause: The chart spec did not render an SVG in `index.html`, often because the template fell back to a custom-chart note or a new chart type lacks a renderer.
+Solution: Add or fix the renderer so the generated HTML contains `section.chart-section[data-chart-id="<id>"] svg`, then rerun `scripts/export-chart-pdfs.mjs`. Do not ask the article/LaTeX agent to invent the missing figure.
