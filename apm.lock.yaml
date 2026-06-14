@@ -9,7 +9,5 @@ dependencies:
   is_virtual: true
   package_type: claude_skill
   deployed_files:
-  - .claude/skills/skill-creator-extra
-  - .cursor/skills/skill-creator-extra
-  - .github/skills/skill-creator-extra
+  - .agents/skills/skill-creator-extra
   content_hash: sha256:fdcb38e8f5d66b02f6c78a65a9a8aaebe9c6058e1678630c7bea1a741f449dea

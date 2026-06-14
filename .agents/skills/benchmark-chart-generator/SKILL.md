@@ -586,7 +586,7 @@ Create the directory and write `index.html`, `chart-manifest.json`, and
 `article-visuals.md`. Then export chart PDFs:
 
 ```bash
-node .claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<YYYY-MM-DD-XXXXX>
+node .agents/claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<YYYY-MM-DD-XXXXX>
 ```
 
 If `jsdom` is missing, install it in a temporary prefix or project-local dependency:
@@ -942,7 +942,7 @@ Result: A chart package with the usual benchmark charts plus a baseline comparis
 
 Error: Template file not found at the expected path.
 Cause: The skill's assets directory may not be at the expected relative location.
-Solution: Search for `report-template.html` in `.claude/skills/benchmark-chart-generator/assets/`. If the skill was moved, update the path accordingly.
+Solution: Search for `report-template.html` in `.agents/claude/skills/benchmark-chart-generator/assets/`. If the skill was moved, update the path accordingly.
 
 ---
 
@@ -1008,7 +1008,7 @@ npm install --prefix /tmp/benchmark-chart-export-jsdom jsdom
 Then rerun:
 
 ```bash
-node .claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<report-id>
+node .agents/claude/skills/benchmark-chart-generator/scripts/export-chart-pdfs.mjs public/<report-id>
 ```
 
 ---
