@@ -1,0 +1,70 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Spring Boot CoffeeShop web application with intentionally vulnerable request handling, persistence, file upload, rendering, and encryption code.",
+  "vulnerabilities": [
+    {
+      "id": "coffeeshop-insecure-deserialization-1",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/controller/OrderController.java",
+      "line": 98,
+      "description": "Untrusted HTTP input flows into YAML deserialization, allowing attacker-controlled object data (Snyk: java/Deserialization, CWE-502)."
+    },
+    {
+      "id": "coffeeshop-csrf-1",
+      "type": "csrf",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/config/SecurityConfig.java",
+      "line": 24,
+      "description": "Spring Security CSRF protection is disabled, allowing forged state-changing requests (Snyk: java/DisablesCSRFProtection, CWE-352)."
+    },
+    {
+      "id": "coffeeshop-insecure-cryptography-1",
+      "type": "insecure-cryptography",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/service/EncryptionServiceDes.java",
+      "line": 22,
+      "description": "The encryption service uses the broken DES algorithm for key generation (Snyk: java/InsecureCipher, CWE-327)."
+    },
+    {
+      "id": "coffeeshop-insecure-cryptography-2",
+      "type": "insecure-cryptography",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/service/EncryptionServiceDes.java",
+      "line": 25,
+      "description": "The encryption service uses insecure DES/ECB/PKCS5Padding for cipher operations (Snyk: java/InsecureCipher, CWE-327)."
+    },
+    {
+      "id": "coffeeshop-path-traversal-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/controller/UploadController.java",
+      "line": 34,
+      "description": "An HTTP-controlled upload path flows into file writing without sufficient containment validation (Snyk: java/PT, CWE-23)."
+    },
+    {
+      "id": "coffeeshop-sql-injection-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/controller/HomeController.java",
+      "line": 30,
+      "description": "An HTTP parameter flows into a native SQL query without parameterization (Snyk: java/Sqli, CWE-89)."
+    },
+    {
+      "id": "coffeeshop-xss-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/controller/ProductController.java",
+      "line": 91,
+      "description": "An HTTP parameter is rendered into an HTML response without adequate output encoding (Snyk: java/XSS, CWE-79)."
+    },
+    {
+      "id": "coffeeshop-xss-2",
+      "type": "xss",
+      "severity": "high",
+      "file": "src/main/java/nl/brianvermeer/coffeeshop/controller/ProductController.java",
+      "line": 101,
+      "description": "A second HTTP-controlled product value is rendered into an HTML response without adequate output encoding (Snyk: java/XSS, CWE-79)."
+    }
+  ]
+}

@@ -65,6 +65,9 @@ function mapRuleId(ruleId: string): string {
   if (/impropercodesanitization|unsafeeval/.test(id)) return "improper-code-sanitization";
   // Snyk: javascript/HttpToHttps — HTTP server/listener should use HTTPS for sensitive traffic
   if (/httptohttps|insecuretransport|cleartexttransmission/.test(id)) return "insecure-transport";
+  // Snyk: java/InsecureCipher — broken or risky cryptographic algorithm such as DES
+  if (/insecurecipher|weakcipher|brokencryptographic|riskycryptographic/.test(id))
+    return "insecure-cryptography";
   // Snyk: javascript/PrototypePollution (CWE-1321)
   if (/prototypepollution/.test(id)) return "prototype-pollution";
   // Snyk: javascript/TooPermissiveCorsHeader — SARIF shortDescription "Origin Validation Error" (CWE-942 / CWE-346)

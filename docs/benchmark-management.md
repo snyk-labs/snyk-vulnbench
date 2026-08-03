@@ -285,6 +285,7 @@ Each entry in `vulnerabilities`:
 | `"improper-code-sanitization"` | User-controlled data reaches dynamic code execution after ineffective sanitization, often through `eval` (Snyk: `javascript/ImproperCodeSanitization`) |
 | `"improper-type-validation"` | Untrusted input used as objects/properties without type checks (e.g. type confusion); distinct from prototype pollution |
 | `"insecure-transport"` | Sensitive HTTP service or redirect flow uses plaintext HTTP where HTTPS is expected (Snyk: `javascript/HttpToHttps`) |
+| `"insecure-cryptography"` | Broken or risky cryptographic algorithm, such as DES (Snyk: `java/InsecureCipher`, CWE-327) |
 | `"prototype-pollution"` | Unsafe merge or dynamic property paths that can pollute `Object.prototype` (Snyk: `javascript/PrototypePollution`, CWE-1321) |
 | `"origin-validation-error"` | Overly permissive cross-origin policy (e.g. `Access-Control-Allow-Origin: *` with credentialed requests); Snyk labels this **Origin Validation Error** (`javascript/TooPermissiveCorsHeader`, CWE-942 / CWE-346) |
 | `"other"` | Any vulnerability that doesn't fit the above categories |

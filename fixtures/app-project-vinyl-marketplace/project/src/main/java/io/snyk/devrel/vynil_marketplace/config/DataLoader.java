@@ -48,7 +48,6 @@ public class DataLoader implements CommandLineRunner {
                 new Vinyl("Revolver", "The Beatles", "Rock", 1966, 44.99, "Excellent", "/images/albums/revolver.jpg"),
                 new Vinyl("The Joshua Tree", "U2", "Rock", 1987, 39.99, "Mint", "/images/albums/the-joshua-tree.png"),
                 new Vinyl("Appetite for Destruction", "Guns N' Roses", "Hard Rock", 1987, 41.99, "Very Good", "/images/albums/appetite-for-destruction.jpg"),
-                // Stored XSS (lesson): <script> doesn't run when injected via innerHTML; img onerror does
                 new Vinyl("Blood on the Tracks", "Bob Dylan <img src=x onerror=\"alert('XSS')\">", "Folk Rock", 1975, 37.99, "Excellent", "/images/albums/blood-on-the-tracks.jpg"),
                 new Vinyl("In the Court of the Crimson King", "King Crimson", "Progressive Rock", 1969, 48.99, "Very Good", "/images/albums/in-the-court-of-the-crimson-king.jpg"),
                 new Vinyl("Graceland", "Paul Simon", "Rock", 1986, 36.99, "Excellent", "/images/albums/graceland.jpg"),

@@ -1,0 +1,7 @@
+{
+  "id": "app-project-coffeeshop-find-vulns",
+  "name": "App Java CoffeeShop: Find Vulnerabilities",
+  "category": "app-find-vulns",
+  "fixture": "app-project-coffeeshop",
+  "maxTurns": 45
+}

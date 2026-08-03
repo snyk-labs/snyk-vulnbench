@@ -68,8 +68,6 @@
             const conditionClass = getConditionClass(vinyl.condition);
             const price = vinyl.price ? vinyl.price.toFixed(2) : '0.00';
 
-            // SECURITY: Intentionally vulnerable to stored XSS for security lesson.
-            // Vinyl fields from DB are rendered without escaping - do not use in production.
             container.innerHTML = `
                 <div class="row">
                     <div class="col-md-5">
