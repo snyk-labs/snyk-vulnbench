@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <linearGradient id="vinylGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a3e"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+    <linearGradient id="labelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e94560"/>
+      <stop offset="100%" style="stop-color:#d63850"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bgGrad)"/>
+  
+  <!-- Vinyl record -->
+  <circle cx="200" cy="200" r="150" fill="url(#vinylGrad)" stroke="#0f3460" stroke-width="2"/>
+  
+  <!-- Vinyl grooves -->
+  <circle cx="200" cy="200" r="140" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="130" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="120" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="110" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="100" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="90" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  <circle cx="200" cy="200" r="80" fill="none" stroke="#3a3a4e" stroke-width="0.5" opacity="0.5"/>
+  
+  <!-- Vinyl shine effect -->
+  <ellipse cx="160" cy="160" rx="60" ry="40" fill="white" opacity="0.03" transform="rotate(-45 160 160)"/>
+  
+  <!-- Center label -->
+  <circle cx="200" cy="200" r="50" fill="url(#labelGrad)"/>
+  <circle cx="200" cy="200" r="45" fill="none" stroke="#ff6b7a" stroke-width="1" opacity="0.5"/>
+  
+  <!-- Center hole -->
+  <circle cx="200" cy="200" r="8" fill="#1a1a2e"/>
+  <circle cx="200" cy="200" r="6" fill="#0f3460"/>
+  
+  <!-- Music note icon on label -->
+  <g transform="translate(200, 200)" fill="#1a1a2e">
+    <path d="M-8,-20 L-8,5 C-8,10 -15,12 -18,8 C-21,4 -18,-2 -12,-2 C-10,-2 -8,-1 -8,0 L-8,-15 L12,-20 L12,10 C12,15 5,17 2,13 C-1,9 2,3 8,3 C10,3 12,4 12,5 L12,-15 Z" transform="scale(1.2)"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="200" y="360" text-anchor="middle" fill="#6c757d" font-family="Arial, sans-serif" font-size="14">No Image Available</text>
+</svg>

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vinyl Details - Vinyl Marketplace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="bi bi-vinyl-fill me-2"></i>Vinyl Marketplace
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <a href="/index.html" class="btn btn-back mb-4">
+            <i class="bi bi-arrow-left me-2"></i>Back to Collection
+        </a>
+
+        <div class="detail-container" id="vinylDetail">
+            <div class="text-center py-5">
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 mt-5">
+        <p class="text-muted mb-0">&copy; 2026 Vinyl Marketplace. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if (id) {
+                loadVinyl(id);
+            } else {
+                window.location.href = '/index.html';
+            }
+        });
+
+        async function loadVinyl(id) {
+            try {
+                const response = await fetch(`/api/vinyls/${id}`);
+                if (!response.ok) {
+                    window.location.href = '/index.html';
+                    return;
+                }
+                const vinyl = await response.json();
+                renderVinyl(vinyl);
+                document.title = `${vinyl.title} - Vinyl Marketplace`;
+            } catch (error) {
+                console.error('Error loading vinyl:', error);
+                window.location.href = '/index.html';
+            }
+        }
+
+        function renderVinyl(vinyl) {
+            const container = document.getElementById('vinylDetail');
+            const conditionClass = getConditionClass(vinyl.condition);
+            const price = vinyl.price ? vinyl.price.toFixed(2) : '0.00';
+
+            // SECURITY: Intentionally vulnerable to stored XSS for security lesson.
+            // Vinyl fields from DB are rendered without escaping - do not use in production.
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-5">
+                        <img src="${escapeHtml(vinyl.imageUrl || '/images/default-vinyl.svg')}" 
+                             alt="${vinyl.title}" 
+                             class="img-fluid vinyl-image w-100"
+                             onerror="this.src='/images/default-vinyl.svg'">
+                    </div>
+                    <div class="col-md-7">
+                        <h1 class="vinyl-title">${vinyl.title}</h1>
+                        <p class="vinyl-artist">${vinyl.artist}</p>
+                        
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <span class="genre-badge">${vinyl.genre}</span>
+                            <span class="condition ${conditionClass}">${vinyl.condition}</span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-6">
+                                <p class="info-label mb-1">Release Year</p>
+                                <p class="info-value">${vinyl.releaseYear}</p>
+                            </div>
+                            <div class="col-6">
+                                <p class="info-label mb-1">Price</p>
+                                <p class="price">€${price}</p>
+                            </div>
+                        </div>
+
+                        <div class="description-box">
+                            <p class="info-label mb-2">About this record</p>
+                            <p class="mb-0">${vinyl.title} by ${vinyl.artist} is a classic ${vinyl.genre} album released in ${vinyl.releaseYear}.</p>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-3">
+                            <button class="btn btn-buy btn-lg">
+                                <i class="bi bi-cart-plus me-2"></i>Add to Cart
+                            </button>
+                            <a href="/vinyl-form.html?id=${vinyl.id}" class="btn btn-outline-light btn-lg">
+                                <i class="bi bi-pencil me-2"></i>Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getConditionClass(condition) {
+            switch (condition) {
+                case 'Mint': return 'condition-mint';
+                case 'Excellent': return 'condition-excellent';
+                case 'Very Good': return 'condition-very-good';
+                default: return 'condition-good';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

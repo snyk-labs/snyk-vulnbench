@@ -1,0 +1,5 @@
+services:
+  vinyl-marketplace:
+    build: .
+    ports:
+      - "8094:8094"

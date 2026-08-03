@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Vinyl - Vinyl Marketplace</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/css/styles.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="bi bi-vinyl-fill me-2"></i>Vinyl Marketplace
+            </a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="form-container">
+            <h2 class="hero-title mb-4" id="formTitle">
+                <i class="bi bi-plus-circle me-2"></i>Add New Vinyl
+            </h2>
+            
+            <form id="vinylForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Album Title *</label>
+                    <input type="text" class="form-control" id="title" name="title" 
+                           placeholder="Enter album title" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="artist" class="form-label">Artist *</label>
+                    <input type="text" class="form-control" id="artist" name="artist" 
+                           placeholder="Enter artist name" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="genre" class="form-label">Genre *</label>
+                        <input type="text" class="form-control" id="genre" name="genre" 
+                               placeholder="e.g., Rock, Jazz, Pop" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="releaseYear" class="form-label">Release Year *</label>
+                        <input type="number" class="form-control" id="releaseYear" name="releaseYear" 
+                               placeholder="e.g., 1973" min="1900" max="2030" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="price" class="form-label">Price (€) *</label>
+                        <input type="number" class="form-control" id="price" name="price" 
+                               placeholder="e.g., 29.99" step="0.01" min="0" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="condition" class="form-label">Condition *</label>
+                        <select class="form-select" id="condition" name="condition" required>
+                            <option value="">Select condition</option>
+                            <option value="Mint">Mint</option>
+                            <option value="Excellent">Excellent</option>
+                            <option value="Very Good">Very Good</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">Album Cover Image</label>
+                    <div id="currentImageContainer" class="mb-3" style="display: none;">
+                        <p class="text-muted small mb-2">Current image:</p>
+                        <img id="currentImage" class="current-image" alt="Current cover"
+                             onerror="this.src='/images/default-vinyl.svg'">
+                    </div>
+                    <div class="upload-area" onclick="document.getElementById('image').click()">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                        <p class="mt-2 mb-0" id="uploadText">Click to upload an image</p>
+                        <small class="text-muted">PNG, JPG, GIF up to 10MB</small>
+                    </div>
+                    <input type="file" class="form-control d-none" id="image" name="image" 
+                           accept="image/*" onchange="previewImage(this)">
+                    <img id="imagePreview" class="image-preview" alt="Preview">
+                </div>
+
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-submit" id="submitBtn">
+                        <i class="bi bi-plus-lg me-1"></i>Add Vinyl
+                    </button>
+                    <a href="/index.html" class="btn btn-cancel" id="cancelBtn">
+                        <i class="bi bi-x-lg me-1"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let editMode = false;
+        let vinylId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            vinylId = urlParams.get('id');
+            
+            if (vinylId) {
+                editMode = true;
+                loadVinyl(vinylId);
+                document.getElementById('formTitle').innerHTML = '<i class="bi bi-pencil-square me-2"></i>Edit Vinyl';
+                document.getElementById('submitBtn').innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Changes';
+                document.getElementById('uploadText').textContent = 'Click to upload a new image (optional)';
+                document.getElementById('cancelBtn').href = `/vinyl-detail.html?id=${vinylId}`;
+                document.title = 'Edit Vinyl - Vinyl Marketplace';
+            }
+        });
+
+        async function loadVinyl(id) {
+            try {
+                const response = await fetch(`/api/vinyls/${id}`);
+                if (!response.ok) {
+                    window.location.href = '/index.html';
+                    return;
+                }
+                const vinyl = await response.json();
+                
+                document.getElementById('title').value = vinyl.title || '';
+                document.getElementById('artist').value = vinyl.artist || '';
+                document.getElementById('genre').value = vinyl.genre || '';
+                document.getElementById('releaseYear').value = vinyl.releaseYear || '';
+                document.getElementById('price').value = vinyl.price || '';
+                document.getElementById('condition').value = vinyl.condition || '';
+                
+                if (vinyl.imageUrl) {
+                    document.getElementById('currentImageContainer').style.display = 'block';
+                    document.getElementById('currentImage').src = vinyl.imageUrl;
+                }
+            } catch (error) {
+                console.error('Error loading vinyl:', error);
+                window.location.href = '/index.html';
+            }
+        }
+
+        document.getElementById('vinylForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('artist', document.getElementById('artist').value);
+            formData.append('genre', document.getElementById('genre').value);
+            formData.append('releaseYear', document.getElementById('releaseYear').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('condition', document.getElementById('condition').value);
+            
+            const imageFile = document.getElementById('image').files[0];
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                let url = '/api/vinyls';
+                let method = 'POST';
+                
+                if (editMode && vinylId) {
+                    url = `/api/vinyls/${vinylId}`;
+                    method = 'PUT';
+                }
+
+                const response = await fetch(url, {
+                    method: method,
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const vinyl = await response.json();
+                    if (editMode) {
+                        window.location.href = `/vinyl-detail.html?id=${vinyl.id}`;
+                    } else {
+                        window.location.href = '/index.html';
+                    }
+                } else {
+                    alert('Failed to save vinyl record. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error saving vinyl:', error);
+                alert('Failed to save vinyl record. Please try again.');
+            }
+        });
+
+        function previewImage(input) {
+            const preview = document.getElementById('imagePreview');
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+    </script>
+</body>
+</html>

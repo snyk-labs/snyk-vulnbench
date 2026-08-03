@@ -1,0 +1,415 @@
+body {
+    background-color: #1a1a2e;
+    color: #eaeaea;
+    min-height: 100vh;
+}
+
+.navbar {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+}
+
+.hero-title {
+    color: #e94560;
+    font-weight: 700;
+}
+
+.form-control, .form-select {
+    background-color: #1a1a2e;
+    border: 2px solid #0f3460;
+    color: #eaeaea;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #1a1a2e;
+    border-color: #e94560;
+    color: #eaeaea;
+    box-shadow: 0 0 0 0.25rem rgba(233, 69, 96, 0.25);
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+}
+
+.form-select option {
+    background-color: #1a1a2e;
+    color: #eaeaea;
+}
+
+.form-label {
+    color: #e94560;
+    font-weight: 500;
+}
+
+.genre-badge {
+    background-color: #e94560;
+    color: white;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.price {
+    color: #4ecca3;
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+.condition {
+    font-size: 1rem;
+    padding: 0.4rem 1rem;
+    border-radius: 15px;
+}
+
+.condition-mint { background-color: #4ecca3; color: #1a1a2e; }
+.condition-excellent { background-color: #3498db; color: white; }
+.condition-very-good { background-color: #f39c12; color: #1a1a2e; }
+.condition-good { background-color: #95a5a6; color: #1a1a2e; }
+
+.info-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-value {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.btn-search {
+    background-color: #e94560;
+    border: none;
+    padding: 0.75rem 2rem;
+}
+
+.btn-search:hover {
+    background-color: #d63850;
+}
+
+.btn-clear-search {
+    background-color: transparent;
+    border: 2px solid #e94560;
+    color: #e94560;
+    padding: 0.75rem 2rem;
+}
+
+.btn-clear-search:hover {
+    background-color: #e94560;
+    color: white;
+}
+
+.btn-submit {
+    background-color: #e94560;
+    border: none;
+    padding: 0.75rem 2rem;
+}
+
+.btn-submit:hover {
+    background-color: #d63850;
+}
+
+.btn-cancel {
+    background-color: transparent;
+    border: 2px solid #6c757d;
+    color: #6c757d;
+}
+
+.btn-cancel:hover {
+    background-color: #6c757d;
+    color: #1a1a2e;
+}
+
+.btn-back {
+    background-color: transparent;
+    border: 2px solid #e94560;
+    color: #e94560;
+}
+
+.btn-back:hover {
+    background-color: #e94560;
+    color: white;
+}
+
+.btn-buy {
+    background-color: #4ecca3;
+    border: none;
+    color: #1a1a2e;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+}
+
+.btn-buy:hover {
+    background-color: #3db892;
+    color: #1a1a2e;
+}
+
+.search-container {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+}
+
+.results-count {
+    color: #a0a0a0;
+}
+
+.no-results {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+
+.no-results i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #e94560;
+}
+
+.vinyl-card {
+    background: #16213e;
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.vinyl-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+}
+
+.vinyl-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.vinyl-card .card-body {
+    padding: 1.25rem;
+}
+
+.vinyl-card .card-title {
+    color: #e94560;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.vinyl-card .artist {
+    color: #a0a0a0;
+    font-size: 0.95rem;
+}
+
+.vinyl-card .genre-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.vinyl-card .year {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.vinyl-card .price {
+    font-size: 1.25rem;
+}
+
+.vinyl-card .condition {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+}
+
+.detail-container {
+    background: #16213e;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.vinyl-image {
+    border-radius: 15px;
+    max-height: 400px;
+    object-fit: cover;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.vinyl-title {
+    color: #e94560;
+    font-weight: 700;
+    font-size: 2.5rem;
+}
+
+.vinyl-artist {
+    color: #a0a0a0;
+    font-size: 1.5rem;
+}
+
+.description-box {
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.form-container {
+    background: #16213e;
+    padding: 2rem;
+    border-radius: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.image-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 10px;
+    display: none;
+    margin-top: 1rem;
+}
+
+.upload-area {
+    border: 2px dashed #0f3460;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.upload-area:hover {
+    border-color: #e94560;
+}
+
+.upload-area i {
+    font-size: 3rem;
+    color: #e94560;
+}
+
+.current-image {
+    max-width: 150px;
+    border-radius: 8px;
+}
+
+.btn-view-toggle {
+    background-color: transparent;
+    border: 2px solid #0f3460;
+    color: #6c757d;
+    padding: 0.5rem 0.75rem;
+}
+
+.btn-view-toggle:hover {
+    background-color: #0f3460;
+    border-color: #0f3460;
+    color: #eaeaea;
+}
+
+.btn-view-toggle.active {
+    background-color: #e94560;
+    border-color: #e94560;
+    color: white;
+}
+
+.vinyl-list-item {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vinyl-list-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 20px rgba(233, 69, 96, 0.2);
+}
+
+.vinyl-list-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.vinyl-list-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.vinyl-list-title {
+    color: #e94560;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vinyl-list-artist {
+    color: #a0a0a0;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vinyl-list-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+}
+
+.vinyl-list-meta .genre-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.vinyl-list-year {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.vinyl-list-price-condition {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    min-width: 100px;
+}
+
+.vinyl-list-price {
+    color: #4ecca3;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.vinyl-list-price-condition .condition {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .vinyl-list-item {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .vinyl-list-info {
+        flex: 1 1 calc(100% - 100px);
+    }
+    
+    .vinyl-list-meta,
+    .vinyl-list-price-condition {
+        flex-direction: row;
+        min-width: auto;
+    }
+}

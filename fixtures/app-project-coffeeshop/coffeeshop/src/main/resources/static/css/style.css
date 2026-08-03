@@ -1,0 +1,586 @@
+/* ==========================================================================
+   CoffeeShop theme — modern dark mode (black / yellow / white)
+   Layered on top of Bootstrap 3.3.4 (no framework changes, HTML untouched).
+   ========================================================================== */
+
+:root {
+  --cs-bg: #0e0e10;
+  --cs-bg-2: #141417;
+  --cs-surface: #1a1a1e;
+  --cs-surface-2: #202026;
+  --cs-elevated: #26262d;
+  --cs-border: #2c2c33;
+  --cs-border-soft: #34343c;
+
+  --cs-yellow: #ffc619;
+  --cs-yellow-dark: #e6ac00;
+  --cs-yellow-soft: rgba(255, 198, 25, 0.14);
+
+  --cs-white: #ffffff;
+  --cs-text: #ececf1;
+  --cs-muted: #9a9aa4;
+
+  --cs-radius: 14px;
+  --cs-radius-sm: 10px;
+  --cs-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.35);
+  --cs-shadow-md: 0 12px 40px rgba(0, 0, 0, 0.55);
+  --cs-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ---- Base ---------------------------------------------------------------- */
+body {
+  background:
+    radial-gradient(1100px 480px at 100% -10%, var(--cs-yellow-soft), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255, 198, 25, 0.06), transparent 55%),
+    var(--cs-bg);
+  color: var(--cs-text);
+  font-family: "Inter", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.01em;
+}
+
+.container {
+  padding-top: 24px;
+  padding-bottom: 56px;
+}
+
+h1, h2, h3, h4, h5,
+.lead,
+.navbar-brand,
+.panel-title {
+  font-family: "Poppins", "Inter", sans-serif;
+  color: var(--cs-white);
+}
+
+.lead {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+p, span, label, td, th, div {
+  color: inherit;
+}
+
+a {
+  color: var(--cs-yellow);
+  transition: color 0.15s var(--cs-ease);
+}
+a:hover,
+a:focus {
+  color: var(--cs-yellow-dark);
+  text-decoration: none;
+}
+
+small,
+.help-block,
+.text-muted {
+  color: var(--cs-muted);
+}
+
+mark {
+  background-color: var(--cs-yellow);
+  color: #141414;
+  padding: 0.1em 0.4em;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.orderLine {
+  margin-bottom: 20px;
+}
+
+::selection {
+  background: var(--cs-yellow);
+  color: #141414;
+}
+
+/* ---- Navbar (rounded floating bar) --------------------------------------- */
+.navbar-default {
+  background: linear-gradient(180deg, var(--cs-surface-2) 0%, var(--cs-surface) 100%);
+  border: 1px solid var(--cs-border-soft);
+  border-radius: var(--cs-radius);
+  margin-top: 16px;
+  margin-bottom: 32px;
+  padding: 4px 14px;
+  min-height: 60px;
+  box-shadow: var(--cs-shadow-sm);
+  position: sticky;
+  top: 16px;
+  z-index: 1030;
+  overflow: hidden;
+}
+/* yellow accent strip down the left edge — matches the card headings */
+.navbar-default::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--cs-yellow), var(--cs-yellow-dark));
+}
+
+.navbar-default .navbar-brand {
+  color: var(--cs-yellow);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  padding: 18px 15px;
+}
+/* Snyk logo: it also carries .navbar-brand, so reset the text padding
+   and pin it to a small, vertically-centred size. */
+.navbar-default img.navbar-brand {
+  height: 30px !important;
+  width: auto;
+  padding: 0;
+  margin: 15px 6px 15px 28px;
+  float: left;
+  display: inline-block;
+  opacity: 0.9;
+}
+/* space between the CoffeeShop wordmark and the Snyk logo */
+.navbar-default .navbar-brand[href="/"],
+.navbar-default a.navbar-brand {
+  margin-right: 18px;
+}
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-brand:focus {
+  color: var(--cs-white);
+}
+
+.navbar-default .navbar-nav > li > a {
+  color: #dfdfe6;
+  font-weight: 500;
+  margin: 11px 2px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: color 0.15s var(--cs-ease), background-color 0.15s var(--cs-ease);
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus {
+  color: var(--cs-white);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+  color: #141414;
+  background-color: var(--cs-yellow);
+}
+
+.navbar-default .navbar-toggle {
+  border-color: rgba(255, 198, 25, 0.55);
+  margin-top: 12px;
+}
+.navbar-default .navbar-toggle:hover,
+.navbar-default .navbar-toggle:focus {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+.navbar-default .navbar-toggle .icon-bar {
+  background-color: var(--cs-yellow);
+}
+.navbar-default .navbar-collapse,
+.navbar-default .navbar-form {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Panels (cards) ------------------------------------------------------ */
+.panel {
+  border: 1px solid var(--cs-border);
+  border-radius: var(--cs-radius);
+  background-color: var(--cs-surface);
+  box-shadow: var(--cs-shadow-sm);
+  overflow: hidden;
+  transition: transform 0.2s var(--cs-ease), box-shadow 0.2s var(--cs-ease),
+    border-color 0.2s var(--cs-ease);
+}
+.panel:hover {
+  box-shadow: var(--cs-shadow-md);
+  border-color: var(--cs-border-soft);
+}
+
+.panel-default > .panel-heading {
+  background: var(--cs-surface-2);
+  color: var(--cs-white);
+  border-bottom: 1px solid var(--cs-border);
+  padding: 18px 22px;
+  position: relative;
+}
+.panel-default > .panel-heading::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: 20px;
+  width: 4px;
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--cs-yellow), var(--cs-yellow-dark));
+}
+.panel-default > .panel-heading .lead,
+.panel-default > .panel-heading .panel-title,
+.panel-default > .panel-heading .panel-title > * {
+  color: var(--cs-white);
+  margin: 0;
+  padding-left: 16px;
+  font-size: 18px;
+}
+.panel-default > .panel-heading + .panel-heading {
+  border-top: none;
+}
+.panel-body {
+  padding: 22px;
+  color: var(--cs-text);
+}
+
+/* ---- Buttons ------------------------------------------------------------- */
+.btn {
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-width: 1px;
+  transition: transform 0.12s var(--cs-ease), background-color 0.15s var(--cs-ease),
+    color 0.15s var(--cs-ease), box-shadow 0.15s var(--cs-ease);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-sm {
+  padding: 5px 12px;
+}
+
+.btn-primary,
+input[type="submit"] {
+  background: linear-gradient(180deg, var(--cs-yellow), var(--cs-yellow-dark));
+  border-color: var(--cs-yellow-dark);
+  color: #141414;
+  box-shadow: 0 4px 16px rgba(255, 198, 25, 0.28);
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+input[type="submit"]:hover,
+input[type="submit"]:focus {
+  background: var(--cs-yellow-dark);
+  border-color: var(--cs-yellow-dark);
+  color: #141414;
+  box-shadow: 0 6px 22px rgba(255, 198, 25, 0.4);
+}
+
+.btn-success {
+  background-color: var(--cs-elevated);
+  border-color: var(--cs-border-soft);
+  color: var(--cs-yellow);
+}
+.btn-success:hover,
+.btn-success:focus,
+.btn-success:active {
+  background-color: #2f2f37;
+  border-color: var(--cs-yellow);
+  color: var(--cs-yellow);
+}
+
+.btn-default {
+  background-color: transparent;
+  border-color: var(--cs-border-soft);
+  color: var(--cs-text);
+}
+.btn-default:hover,
+.btn-default:focus,
+.btn-default:active {
+  background-color: var(--cs-yellow);
+  border-color: var(--cs-yellow);
+  color: #141414;
+}
+
+.btn-danger {
+  background-color: #e0625d;
+  border-color: #e0625d;
+  color: #ffffff;
+}
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active {
+  background-color: #cf4f4a;
+  border-color: #cf4f4a;
+  color: #ffffff;
+}
+
+input[type="submit"] {
+  border-radius: 999px;
+  padding: 8px 22px;
+  cursor: pointer;
+}
+
+/* ---- Icons --------------------------------------------------------------- */
+.glyphicon {
+  top: 1px;
+}
+/* icon-only action buttons -> crisp circular buttons */
+.btn .glyphicon {
+  font-size: 14px;
+  line-height: 1;
+}
+.btn-sm .glyphicon {
+  margin: 0;
+}
+/* the +/edit/delete action buttons in tables & headings */
+.table .btn-sm,
+.panel-heading .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+}
+.panel-heading .btn.pull-right {
+  width: 38px;
+  height: 38px;
+}
+/* make sure icon glyphs sit on high-contrast fills */
+.btn-success .glyphicon {
+  color: var(--cs-yellow);
+}
+.btn-primary .glyphicon {
+  color: #141414;
+}
+.btn-danger .glyphicon {
+  color: #ffffff;
+}
+
+/* ---- Tables -------------------------------------------------------------- */
+.table {
+  background-color: transparent;
+  margin-bottom: 0;
+  color: var(--cs-text);
+}
+.table > thead > tr > th {
+  background-color: #0f0f12;
+  color: var(--cs-yellow);
+  border-bottom: none;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 16px;
+}
+.table > tbody > tr > td {
+  vertical-align: middle;
+  padding: 14px 16px;
+  border-top: 1px solid var(--cs-border);
+  color: var(--cs-text);
+}
+.table-hover > tbody > tr {
+  transition: background-color 0.12s var(--cs-ease);
+}
+.table-hover > tbody > tr:hover {
+  background-color: var(--cs-yellow-soft);
+}
+.table > tbody > tr > td a {
+  color: var(--cs-yellow);
+}
+
+/* ---- Products table polish ----------------------------------------------- */
+.table-hover > tbody > tr {
+  position: relative;
+}
+/* yellow accent bar slides in on hover */
+.table-hover > tbody > tr > td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: box-shadow 0.15s var(--cs-ease);
+}
+.table-hover > tbody > tr:hover > td:first-child {
+  box-shadow: inset 3px 0 0 var(--cs-yellow);
+}
+
+.product-id {
+  color: var(--cs-muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.product-name {
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s var(--cs-ease), color 0.15s var(--cs-ease);
+}
+.product-name:hover,
+.product-name:focus {
+  color: var(--cs-yellow);
+  border-bottom-color: var(--cs-yellow);
+}
+
+.product-desc {
+  color: var(--cs-muted);
+  max-width: 420px;
+}
+
+.product-price {
+  white-space: nowrap;
+}
+.product-price__amount {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  color: var(--cs-yellow);
+  font-variant-numeric: tabular-nums;
+}
+.product-price__amount::before {
+  content: "€";
+  margin-right: 3px;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: "Poppins", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cs-yellow);
+  background-color: var(--cs-yellow-soft);
+  border: 1px solid rgba(255, 198, 25, 0.4);
+}
+
+/* ---- Forms --------------------------------------------------------------- */
+.form-control {
+  border-radius: var(--cs-radius-sm);
+  border: 1px solid var(--cs-border-soft);
+  background-color: var(--cs-bg-2);
+  color: var(--cs-text);
+  box-shadow: none;
+  height: auto;
+  padding: 10px 14px;
+  transition: border-color 0.15s var(--cs-ease), box-shadow 0.15s var(--cs-ease),
+    background-color 0.15s var(--cs-ease);
+}
+.form-control::placeholder {
+  color: var(--cs-muted);
+}
+.form-control:focus {
+  border-color: var(--cs-yellow);
+  background-color: var(--cs-surface);
+  box-shadow: 0 0 0 4px var(--cs-yellow-soft);
+  color: var(--cs-text);
+}
+
+.input-group-addon {
+  background-color: #0f0f12;
+  color: var(--cs-yellow);
+  border-color: var(--cs-border-soft);
+  border-top-left-radius: var(--cs-radius-sm);
+  border-bottom-left-radius: var(--cs-radius-sm);
+}
+
+label,
+.control-label {
+  color: var(--cs-text);
+  font-weight: 500;
+}
+
+/* File inputs — style the native "Choose file" button like a .btn-default */
+input[type="file"] {
+  color: var(--cs-muted);
+  font-size: 14px;
+}
+input[type="file"]::file-selector-button,
+input[type="file"]::-webkit-file-upload-button {
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cs-text);
+  background-color: transparent;
+  border: 1px solid var(--cs-border-soft);
+  border-radius: 999px;
+  padding: 8px 18px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s var(--cs-ease), color 0.15s var(--cs-ease),
+    border-color 0.15s var(--cs-ease);
+}
+input[type="file"]::file-selector-button:hover,
+input[type="file"]::-webkit-file-upload-button:hover {
+  background-color: var(--cs-yellow);
+  border-color: var(--cs-yellow);
+  color: #141414;
+}
+
+.has-error .form-control {
+  border-color: #e0625d;
+}
+.has-error .form-control:focus {
+  box-shadow: 0 0 0 4px rgba(224, 98, 93, 0.22);
+}
+.has-error .control-label,
+.has-error .help-block {
+  color: #e0625d;
+}
+
+/* Bare products search box */
+input[type="text"][name="input"] {
+  display: inline-block;
+  width: auto;
+  min-width: 320px;
+  max-width: 100%;
+  border: 1px solid var(--cs-border-soft);
+  background-color: var(--cs-bg-2);
+  color: var(--cs-text);
+  border-radius: var(--cs-radius-sm);
+  padding: 10px 14px;
+  margin-right: 8px;
+  outline: none;
+  transition: border-color 0.15s var(--cs-ease), box-shadow 0.15s var(--cs-ease);
+}
+input[type="text"][name="input"]::placeholder {
+  color: var(--cs-muted);
+}
+input[type="text"][name="input"]:focus {
+  border-color: var(--cs-yellow);
+  box-shadow: 0 0 0 4px var(--cs-yellow-soft);
+}
+
+/* ---- Alerts -------------------------------------------------------------- */
+.alert {
+  border-radius: var(--cs-radius-sm);
+  border: 1px solid var(--cs-border);
+  border-left-width: 4px;
+  font-weight: 500;
+  background-color: var(--cs-surface-2);
+  color: var(--cs-text);
+}
+.alert-success {
+  border-left-color: var(--cs-yellow-dark);
+  color: var(--cs-white);
+}
+.alert-warning {
+  border-left-color: var(--cs-yellow);
+  color: var(--cs-white);
+}
+.alert-info {
+  border-left-color: #4aa3df;
+  color: var(--cs-white);
+}
+.alert-danger {
+  border-left-color: #e0625d;
+  color: var(--cs-white);
+}
+
+/* ---- Images -------------------------------------------------------------- */
+#profilePic {
+  border: 3px solid var(--cs-border-soft);
+  border-radius: var(--cs-radius-sm);
+  padding: 3px;
+  background-color: var(--cs-surface);
+  box-shadow: var(--cs-shadow-sm);
+}
+
+/* ---- Misc ---------------------------------------------------------------- */
+hr {
+  border-color: var(--cs-border);
+}
