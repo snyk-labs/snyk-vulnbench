@@ -117,7 +117,7 @@ With the mapping above, the app is reachable at **http://localhost:8081**.
 ## Project layout
 
 ```
-src/main/java/nl/brianvermeer/workshop/coffee
+src/main/java/nl/scottjohnson/coffeeshop
 ├── api          # REST controllers
 ├── config       # Security and resource configuration
 ├── controller   # MVC controllers (web pages)

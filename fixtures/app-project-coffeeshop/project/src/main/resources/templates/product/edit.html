@@ -46,7 +46,7 @@
               <div class="col-lg-4">
                 <select id="productType" class="form-control" th:field="*{productType}">
                   <option th:value="${null}">-Select-</option>
-                  <option th:each="type : ${T(nl.brianvermeer.workshop.coffee.domain.ProductType).values()}"
+                  <option th:each="type : ${T(nl.scottjohnson.coffeeshop.domain.ProductType).values()}"
                           th:value="${type}"
                           th:text="${type}"></option>
                 </select>
