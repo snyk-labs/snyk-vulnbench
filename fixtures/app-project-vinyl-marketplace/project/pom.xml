@@ -8,7 +8,7 @@
 		<version>3.5.10</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>io.snyk.devrel</groupId>
+	<groupId>io.acme.engineering</groupId>
 	<artifactId>vinyl-marketplace</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>vinyl-marketplace</name>

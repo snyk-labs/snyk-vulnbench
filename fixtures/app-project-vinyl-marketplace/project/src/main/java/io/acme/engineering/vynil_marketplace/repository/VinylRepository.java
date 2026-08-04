@@ -1,6 +1,6 @@
-package io.snyk.devrel.vynil_marketplace.repository;
+package io.acme.engineering.vynil_marketplace.repository;
 
-import io.snyk.devrel.vynil_marketplace.domain.Vinyl;
+import io.acme.engineering.vynil_marketplace.domain.Vinyl;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

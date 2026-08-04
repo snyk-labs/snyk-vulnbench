@@ -1,7 +1,7 @@
-package io.snyk.devrel.vynil_marketplace.controller;
+package io.acme.engineering.vynil_marketplace.controller;
 
-import io.snyk.devrel.vynil_marketplace.domain.Vinyl;
-import io.snyk.devrel.vynil_marketplace.service.VinylService;
+import io.acme.engineering.vynil_marketplace.domain.Vinyl;
+import io.acme.engineering.vynil_marketplace.service.VinylService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

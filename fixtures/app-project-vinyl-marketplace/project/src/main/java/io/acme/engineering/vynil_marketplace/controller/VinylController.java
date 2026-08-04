@@ -1,4 +1,4 @@
-package io.snyk.devrel.vynil_marketplace.controller;
+package io.acme.engineering.vynil_marketplace.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

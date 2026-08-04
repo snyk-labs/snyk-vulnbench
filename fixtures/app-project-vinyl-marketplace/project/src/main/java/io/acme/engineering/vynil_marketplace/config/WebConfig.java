@@ -1,4 +1,4 @@
-package io.snyk.devrel.vynil_marketplace.config;
+package io.acme.engineering.vynil_marketplace.config;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Configuration;

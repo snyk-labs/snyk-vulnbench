@@ -1,4 +1,4 @@
-package io.snyk.devrel.vynil_marketplace;
+package io.acme.engineering.vynil_marketplace;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

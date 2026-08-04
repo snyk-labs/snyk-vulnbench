@@ -127,7 +127,7 @@ Settings live in `src/main/resources/application.properties`. Notable values:
 ## Project structure
 
 ```
-src/main/java/io/snyk/devrel/vynil_marketplace/
+src/main/java/io/acme/engineering/vynil_marketplace/
 ├── VinylMarketplaceApplication.java   # Spring Boot entry point
 ├── config/
 │   ├── DataLoader.java                # Seeds sample data on startup

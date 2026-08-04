@@ -1,4 +1,4 @@
-package io.snyk.devrel.vynil_marketplace.domain;
+package io.acme.engineering.vynil_marketplace.domain;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

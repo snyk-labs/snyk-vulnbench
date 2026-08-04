@@ -1,7 +1,7 @@
-package io.snyk.devrel.vynil_marketplace.service;
+package io.acme.engineering.vynil_marketplace.service;
 
-import io.snyk.devrel.vynil_marketplace.domain.Vinyl;
-import io.snyk.devrel.vynil_marketplace.repository.VinylRepository;
+import io.acme.engineering.vynil_marketplace.domain.Vinyl;
+import io.acme.engineering.vynil_marketplace.repository.VinylRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;

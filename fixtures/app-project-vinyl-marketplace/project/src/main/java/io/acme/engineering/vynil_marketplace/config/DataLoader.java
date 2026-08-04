@@ -1,7 +1,7 @@
-package io.snyk.devrel.vynil_marketplace.config;
+package io.acme.engineering.vynil_marketplace.config;
 
-import io.snyk.devrel.vynil_marketplace.domain.Vinyl;
-import io.snyk.devrel.vynil_marketplace.repository.VinylRepository;
+import io.acme.engineering.vynil_marketplace.domain.Vinyl;
+import io.acme.engineering.vynil_marketplace.repository.VinylRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
