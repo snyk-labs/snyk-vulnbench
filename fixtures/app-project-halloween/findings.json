@@ -1,0 +1,54 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Express TypeScript API boilerplate with intentionally vulnerable framework configuration, unchecked request types, and reflected response rendering.",
+  "vulnerabilities": [
+    {
+      "id": "halloween-information-exposure-test-error-handler-1",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "src/common/__tests__/errorHandler.test.ts",
+      "line": 11,
+      "description": "The Express test application exposes the default X-Powered-By header, revealing framework information (Snyk: javascript/DisablePoweredBy/test, CWE-200)."
+    },
+    {
+      "id": "halloween-information-exposure-test-request-logger-1",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "src/common/__tests__/requestLogger.test.ts",
+      "line": 9,
+      "description": "The Express test application exposes the default X-Powered-By header, revealing framework information (Snyk: javascript/DisablePoweredBy/test, CWE-200)."
+    },
+    {
+      "id": "halloween-improper-type-validation-filter-1",
+      "type": "improper-type-validation",
+      "severity": "low",
+      "file": "src/api/user/userController.ts",
+      "line": 16,
+      "description": "The query filter object's type and filter property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287)."
+    },
+    {
+      "id": "halloween-improper-type-validation-includes-1",
+      "type": "improper-type-validation",
+      "severity": "low",
+      "file": "src/api/user/userController.ts",
+      "line": 95,
+      "description": "The query includes object's type and includes property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287)."
+    },
+    {
+      "id": "halloween-csrf-1",
+      "type": "csrf",
+      "severity": "medium",
+      "file": "src/server.ts",
+      "line": 16,
+      "description": "The Express application accepts state-changing requests without CSRF protection (Snyk: javascript/UseCsurfForExpress, CWE-352)."
+    },
+    {
+      "id": "halloween-xss-user-response-1",
+      "type": "xss",
+      "severity": "high",
+      "file": "src/api/user/userController.ts",
+      "line": 29,
+      "description": "An HTTP parameter is rendered directly in a response without adequate output encoding (Snyk: javascript/XSS, CWE-79)."
+    }
+  ]
+}

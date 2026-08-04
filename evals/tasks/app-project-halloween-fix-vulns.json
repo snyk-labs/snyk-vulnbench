@@ -1,0 +1,7 @@
+{
+  "id": "app-project-halloween-fix-vulns",
+  "name": "App TypeScript Halloween: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-halloween",
+  "maxTurns": 45
+}
