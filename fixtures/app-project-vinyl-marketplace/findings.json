@@ -1,0 +1,94 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Spring Boot Vinyl Marketplace application with intentionally vulnerable import, file handling, database query, and browser rendering code.",
+  "vulnerabilities": [
+    {
+      "id": "vinyl-marketplace-insecure-deserialization-1",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+      "line": 87,
+      "description": "Untrusted HTTP input flows into Java ObjectInputStream deserialization (Snyk: java/Deserialization, CWE-502)."
+    },
+    {
+      "id": "vinyl-marketplace-path-traversal-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+      "line": 128,
+      "description": "An HTTP-controlled path flows into Files.copy and can write outside the intended directory (Snyk: java/PT, CWE-23)."
+    },
+    {
+      "id": "vinyl-marketplace-path-traversal-2",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+      "line": 167,
+      "description": "A second HTTP-controlled path flows into Files.copy and can write outside the intended directory (Snyk: java/PT, CWE-23)."
+    },
+    {
+      "id": "vinyl-marketplace-sql-injection-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+      "line": 42,
+      "description": "An HTTP parameter flows into a native SQL query without parameterization (Snyk: java/Sqli, CWE-89)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-1",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/main/resources/static/index.html",
+      "line": 224,
+      "description": "Data from a remote resource flows into appendChild and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-2",
+      "type": "xss",
+      "severity": "high",
+      "file": "src/main/resources/static/index.html",
+      "line": 266,
+      "description": "Document-location data flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-3",
+      "type": "xss",
+      "severity": "high",
+      "file": "src/main/resources/static/vinyl-detail.html",
+      "line": 71,
+      "description": "Document-location data flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-4",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/main/resources/static/index.html",
+      "line": 269,
+      "description": "Data from a remote resource flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-5",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/main/resources/static/index.html",
+      "line": 281,
+      "description": "Data from a remote resource flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-6",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/main/resources/static/index.html",
+      "line": 282,
+      "description": "Data from a remote resource flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    },
+    {
+      "id": "vinyl-marketplace-xss-7",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/main/resources/static/index.html",
+      "line": 381,
+      "description": "Data from a remote resource flows into innerHTML and dynamically constructs browser content (Snyk: javascript/DOMXSS, CWE-79)."
+    }
+  ]
+}

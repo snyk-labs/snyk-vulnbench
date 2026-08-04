@@ -1,0 +1,7 @@
+{
+  "id": "app-project-vinyl-marketplace-fix-vulns",
+  "name": "App Java Vinyl Marketplace: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-vinyl-marketplace",
+  "maxTurns": 50
+}
