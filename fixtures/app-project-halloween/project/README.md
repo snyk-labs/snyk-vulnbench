@@ -53,11 +53,13 @@ For a visual guide, watch the [video demo](https://github.com/user-attachments/a
 
 - Clone the repository: `git clone https://github.com/edwinhern/express-typescript-2024.git`
 - Navigate: `cd express-typescript-2024`
-- Install dependencies: `npm ci`
+- Install and select the Node.js version in `.nvmrc`: `nvm install && nvm use`
+- Install the required npm version: `npm install --global npm@11.10.0`
+- Install dependencies and build native bindings: `npm ci --ignore-scripts=false`
 
 #### Step 2: ⚙️ Environment Configuration
 
-- Create `.env`: Copy `.env.template` to `.env`
+- Create `.env`: `cp .env.template .env`
 - Update `.env`: Fill in necessary environment variables
 
 #### Step 3: 🏃‍♂️ Running the Project
