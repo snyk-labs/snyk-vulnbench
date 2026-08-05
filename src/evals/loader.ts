@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "fs";
 import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { EVAL_CATEGORIES } from "../types.js";
 import type { EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, Vulnerability, EvalCategoryId } from "../types.js";
 
@@ -31,7 +32,17 @@ function loadVulns(fixtureName: string): Vulnerability[] {
   const vulnsPath = join(FIXTURES_DIR, fixtureName, "findings.json");
   let raw: { vulnerabilities: Vulnerability[] };
   try {
-    raw = JSON.parse(readFileSync(vulnsPath, "utf-8"));
+    const errors: ParseError[] = [];
+    raw = parse(readFileSync(vulnsPath, "utf-8"), errors, {
+      allowTrailingComma: true,
+      disallowComments: false,
+    });
+    if (errors.length > 0) {
+      const details = errors
+        .map((error) => `${printParseErrorCode(error.error)} at offset ${error.offset}`)
+        .join(", ");
+      throw new SyntaxError(details);
+    }
   } catch (err) {
     throw new Error(`Failed to read findings.json for fixture "${fixtureName}" at ${vulnsPath}: ${err}`);
   }

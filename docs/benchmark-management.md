@@ -89,6 +89,8 @@ The `project/` subdirectory can contain any number of source files in any struct
 
 Create `fixtures/<your-fixture>/findings.json` inside the fixture directory (but outside `project/`). This is the **answer key** — the ground truth the scorer uses to determine whether the agent found or fixed each vulnerability. The agent's `cwd` is set to `project/`, and `denyRead` blocks the parent directory, so the agent cannot read this file.
 
+These files are parsed as JSON with Comments (JSONC), so they may contain `//` and `/* ... */` comments and trailing commas.
+
 ```json
 {
   "description": "Sinatra app for security benchmark testing",
