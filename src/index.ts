@@ -6,6 +6,7 @@ import { runTask } from "./runner.js";
 import { runCommandTask } from "./command-runner.js";
 import {
   scoreFindVulns,
+  scoreAttackerReachableFindVulns,
   findVulnsScore,
   scoreFixVulns,
   fixVulnsScore,
@@ -85,7 +86,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
 
   // Shared fields across all return sites (repetition/totalRepetitions set by caller)
-  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, runConfigType, effort, thinking, timestamp, repetition: 1, totalRepetitions: 1 };
+  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, groundTruth: task.groundTruth, runConfigType, effort, thinking, timestamp, repetition: 1, totalRepetitions: 1 };
 
   // Command configs (SAST tools) only produce findings — they can't fix code
   if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
@@ -124,8 +125,10 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       };
     }
 
-    if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.LLM_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.APP_FIND_VULNS.id) {
-      const details = scoreFindVulns(finalText, task);
+    if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.LLM_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.APP_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS.id) {
+      const details = task.groundTruth === "attacker-reachable"
+        ? scoreAttackerReachableFindVulns(finalText, task)
+        : scoreFindVulns(finalText, task);
       const score = findVulnsScore(details);
       return { ...base, score, metrics, details };
     } else {

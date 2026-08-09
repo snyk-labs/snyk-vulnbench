@@ -3,7 +3,11 @@ import { dirname, join, parse as parsePath } from "path";
 import { aggregateByConfig, aggregateByTask } from "./aggregator.js";
 import { loadEvalTasks } from "./evals/loader.js";
 import { printSummaryTable } from "./reporter.js";
-import { findVulnsScore, scoreFindVulns } from "./scorer.js";
+import {
+  findVulnsScore,
+  scoreAttackerReachableFindVulns,
+  scoreFindVulns,
+} from "./scorer.js";
 import type { AggregatedConfigResult, AggregatedTaskResult, EvalResult, FindVulnsDetails, Vulnerability, VulnType } from "./types.js";
 
 interface JsonlRecord {
@@ -96,7 +100,9 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
     }
 
     const agentFindings = normalizeStoredFindings(result, result.details.agentFindings);
-    const details = scoreFindVulns(findingsOutput(agentFindings), task);
+    const details = task.groundTruth === "attacker-reachable"
+      ? scoreAttackerReachableFindVulns(findingsOutput(agentFindings), task)
+      : scoreFindVulns(findingsOutput(agentFindings), task);
     return {
       ...result,
       score: findVulnsScore(details),

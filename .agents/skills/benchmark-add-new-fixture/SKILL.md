@@ -16,7 +16,7 @@ Drive a new benchmark fixture from an empty or existing `fixtures/<name>/` tree 
 
 **Principles (read before executing):**
 
-- Ground truth lives in **`fixtures/<fixture-name>/findings.json`** (inside the fixture dir but outside `project/`) — the agent's `cwd` is `project/` so it cannot read the answer key. See `docs/benchmark-management.md` and `docs/benchmark.md` (Snyk / scoring sections).
+- VulnBench 1.0 ground truth lives in **`fixtures/<fixture-name>/findings.json`**. VulnBench 2.0 attacker-reachable ground truth lives in **`findings-attacker-reachable.json`** and is selected by task metadata (`"groundTruth": "attacker-reachable"`). Both stay outside `project/`, where the sandbox prevents the agent from reading them. See `docs/benchmark-management.md` and `docs/benchmark.md`.
 - Find-vulns scoring matches findings to known vulns **by `VulnType` only**, in a **greedy order**: iterate parsed findings in array order; each finding consumes the **first unmatched** ground-truth row with the same `type`. Therefore **`vulnerabilities[]` order should mirror `snyk code test` `results[]` order** whenever multiple rows share a type (e.g. two `hardcoded-credentials`, two `other` or two of any same type).
 - Snyk maps SARIF **`results[].ruleId`** (e.g. `javascript/TooPermissiveCorsHeader`) to benchmark `type` via **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Driver metadata in **`runs[0].tool.driver.rules`** (`id`, `name`, `shortDescription.text`, `properties.cwe`) names the vulnerability class — use it to pick or add `VulnType` strings and regex patterns.
 
@@ -26,7 +26,7 @@ Read **`docs/benchmark-management.md`** (Adding a New Eval Task, Ground-Truth JS
 
 ### Step 1: Prepare — fixture identity and paths
 
-1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) — it must match **`evals/tasks/*.json`** `fixture` field and the file **`fixtures/<fixture-name>/findings.json`**.
+1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) and ground-truth generation: V1 (`findings.json`) or attacker-reachable V2 (`findings-attacker-reachable.json`). It must match the **`evals/tasks/*.json`** `fixture` field.
 2. Confirm source code lives under **`fixtures/<fixture-name>/project/`** and that no ground-truth secrets are only in prose you will not encode in JSON.
 3. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*/findings.json` files.
 
@@ -65,11 +65,13 @@ snyk code test "fixtures/<fixture-name>/project/" --include-ignores --json --jso
 
 ---
 
-### Step 4: Author `fixtures/<fixture-name>/findings.json`
+### Step 4: Author the selected ground-truth file
 
 1. Create **`fixtures/<fixture-name>/findings.json`** with top-level **`description`**, **`vulnerabilities`** array, and **`_note`** pointing at `docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type` (copy pattern from an existing `fixtures/*/findings.json`).
 2. Each element: **`id`** (globally unique), **`type`** (`VulnType`), **`severity`**, **`file`** (relative to `project/` root, POSIX separators), **`line`** (align with SARIF primary `startLine` when possible), **`description`** (human-readable; cite Snyk `ruleId` / CWE when helpful for maintainers).
 3. **Sort `vulnerabilities` in the same order as `runs[0].results`** from Step 2 whenever two entries could compete for the same `type` under greedy matching.
+
+For VulnBench 2.0, author `findings-attacker-reachable.json` instead. Use `filesRelated` for all source-to-sink `{file,line}` occurrences, marking endpoint objects with `"type": "source"` or `"type": "sink"` and leaving intermediate objects untyped. The V2 scorer allows ±5 lines; one- and two-location flows can match either labeled endpoint, while longer flows require matches to both source and sink. Include optional `typeAliases`, `vulnerabilityImpact`, `codeflowMultiLine`, and `codeflowCrossFile`. `codeflowCrossService` is currently optional and unscored.
 
 **Done when:** JSON validates and loader can read it (`vulnerabilities` is an array of objects with required fields).
 
@@ -77,7 +79,7 @@ snyk code test "fixtures/<fixture-name>/project/" --include-ignores --json --jso
 
 ### Step 5: Add eval tasks
 
-1. Add **`evals/tasks/<fixture-name>-find-vulns.json`** with `id`, `name`, **`category`: `"find-vulns"`**, **`fixture`**: `"<fixture-name>"`, optional **`maxTurns`**.
+1. Add **`evals/tasks/<fixture-name>-find-vulns.json`** with `id`, `name`, **`category`: `"find-vulns"`**, **`fixture`**: `"<fixture-name>"`, optional **`maxTurns`**. For V2 use a distinct task id, **`category`: `"attacker-reachable-find-vulns"`**, and **`groundTruth`: `"attacker-reachable"`**.
 2. Add **`evals/tasks/<fixture-name>-fix-vulns.json`** similarly with **`category`: `"fix-vulns"`** if the fixture is meant for fix runs (higher `maxTurns` is common for edits).
 3. No loader code change — task files are scanned automatically.
 

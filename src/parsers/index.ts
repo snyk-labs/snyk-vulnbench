@@ -1,4 +1,6 @@
 import { parseSnykCodeOutput } from "./snyk-code.js";
+import { parseSnykCodeAttackerReachableOutput } from "./snyk-code-attacker-reachable.js";
+import type { FileLocation } from "../types.js";
 
 /**
  * A parsed finding from a SAST tool — matches the fields expected by the
@@ -6,16 +8,22 @@ import { parseSnykCodeOutput } from "./snyk-code.js";
  */
 export interface FindingRecord {
   type: string;
-  file: string;
+  typeAliases?: string[];
+  file?: string;
   line?: number;
+  filesRelated?: FileLocation[];
   severity: string;
   description: string;
+  vulnerabilityImpact?: string;
+  codeflowMultiLine?: "yes" | "no";
+  codeflowCrossFile?: "yes" | "no";
 }
 
 export type ParserFn = (stdout: string) => FindingRecord[];
 
 const PARSERS: Record<string, ParserFn> = {
   "snyk-code": parseSnykCodeOutput,
+  "snyk-code-attacker-reachable": parseSnykCodeAttackerReachableOutput,
 };
 
 export function getParser(key: string): ParserFn {

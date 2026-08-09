@@ -16,11 +16,14 @@ const execFileAsync = promisify(execFile);
  * filesScanned is derived from the unique file URIs reported in findings.
  */
 export async function runCommandTask(
-  _task: EvalTask,
+  task: EvalTask,
   config: CommandRunConfig,
   fixturePath: string,
 ): Promise<RunOutput> {
-  const parser = getParser(config.parser);
+  const parserKey = task.groundTruth === "attacker-reachable" && config.parser === "snyk-code"
+    ? "snyk-code-attacker-reachable"
+    : config.parser;
+  const parser = getParser(parserKey);
   const sessionStart = Date.now();
 
   // Substitute {fixturePath} as a whole token — handles paths with spaces correctly
@@ -55,7 +58,14 @@ export async function runCommandTask(
   const finalText = `FINDINGS_JSON:\n\`\`\`json\n${JSON.stringify(findings, null, 2)}\n\`\`\``;
 
   // Unique file paths from findings — meaningful proxy for "what the tool scanned"
-  const filesScanned = [...new Set(findings.map((f) => f.file).filter(Boolean))];
+  const filesScanned = [
+    ...new Set(
+      findings.flatMap((finding) =>
+        finding.filesRelated?.map((location) => location.file)
+        ?? (finding.file ? [finding.file] : [])
+      ),
+    ),
+  ];
 
   return {
     finalText,

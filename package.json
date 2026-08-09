@@ -10,7 +10,10 @@
     "benchmark:find:js": "tsx src/index.ts --task js-project-tigerteam-find-vulns --config sonnet-4-6-high,sonnet-4-6-medium --repetitions 1",
     "benchmark:find:js-1-2": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6-high,sonnet-4-6-medium --repetitions 1",
     "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6-high,sonnet-4-6-medium,snyk-code --repetitions 1",
+    "benchmark:v2": "tsx src/index.ts --category attacker-reachable-find-vulns --repetitions 1",
+    "benchmark:v2:snyk": "tsx src/index.ts --category attacker-reachable-find-vulns --config snyk-code --repetitions 1",
     "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
+    "test": "tsx --test tests/*.test.ts",
     "report:serve": "serve",
     "//report:serve example": "pnpm report:serve public/2026-05-14-wpq2k",
     "count:loc:js-project": "find fixtures/js-project-* -type d -name 'node_modules' -prune -o -type f \\( -name '*.js' -o -name '*.html' \\) -exec wc -l {} +"

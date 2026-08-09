@@ -1,4 +1,5 @@
 import type { FindingRecord } from "./index.js";
+import type { Severity, VulnType } from "../types.js";
 
 // SARIF structure emitted by `snyk code test --json`
 interface SarifOutput {
@@ -21,7 +22,7 @@ interface SarifOutput {
  * Maps a Snyk Code ruleId (e.g. "javascript/SqlInjection") to our VulnType enum.
  * Mirrors the jq mapping used in manual analysis.
  */
-function mapRuleId(ruleId: string): string {
+export function mapRuleId(ruleId: string): VulnType {
   const id = ruleId.toLowerCase();
   // Snyk: javascript/Sqli (abbrev.) and full SqlInjection-style ids
   if (/sqli|sqlinjection/.test(id)) return "sql-injection";
@@ -79,7 +80,7 @@ function mapRuleId(ruleId: string): string {
  * Maps SARIF severity level to our Severity enum.
  * Snyk Code uses error/warning/note — it does not emit "critical".
  */
-function mapLevel(level: string): string {
+export function mapLevel(level: string): Severity {
   if (level === "error") return "high";
   if (level === "warning") return "medium";
   if (level === "note") return "low";

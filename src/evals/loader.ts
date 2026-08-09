@@ -4,7 +4,19 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { EVAL_CATEGORIES } from "../types.js";
-import type { EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, Vulnerability, EvalCategoryId } from "../types.js";
+import type {
+  AttackerReachableVulnerability,
+  CommandRunConfig,
+  EvalCategoryId,
+  EvalTask,
+  FileLocation,
+  GroundTruthKind,
+  ModelRunConfig,
+  RunConfig,
+  Severity,
+  Vulnerability,
+  VulnType,
+} from "../types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "../..");
@@ -21,6 +33,8 @@ interface TaskJson {
   category: EvalCategoryId;
   /** Name of the fixture subdirectory inside fixtures/ */
   fixture: string;
+  /** Omitted for VulnBench 1.0 tasks. */
+  groundTruth?: GroundTruthKind;
   /** Override the category's default system prompt */
   systemPrompt?: string;
   /** Override the category's default user prompt */
@@ -28,9 +42,15 @@ interface TaskJson {
   maxTurns?: number;
 }
 
-function loadVulns(fixtureName: string): Vulnerability[] {
-  const vulnsPath = join(FIXTURES_DIR, fixtureName, "findings.json");
-  let raw: { vulnerabilities: Vulnerability[] };
+export function loadVulns(
+  fixtureName: string,
+  groundTruth: GroundTruthKind = "v1",
+): Vulnerability[] {
+  const findingsFile = groundTruth === "attacker-reachable"
+    ? "findings-attacker-reachable.json"
+    : "findings.json";
+  const vulnsPath = join(FIXTURES_DIR, fixtureName, findingsFile);
+  let raw: { vulnerabilities?: unknown };
   try {
     const errors: ParseError[] = [];
     raw = parse(readFileSync(vulnsPath, "utf-8"), errors, {
@@ -44,16 +64,237 @@ function loadVulns(fixtureName: string): Vulnerability[] {
       throw new SyntaxError(details);
     }
   } catch (err) {
-    throw new Error(`Failed to read findings.json for fixture "${fixtureName}" at ${vulnsPath}: ${err}`);
+    throw new Error(`Failed to read ${findingsFile} for fixture "${fixtureName}" at ${vulnsPath}: ${err}`);
   }
   if (!Array.isArray(raw.vulnerabilities)) {
-    throw new Error(`findings.json for fixture "${fixtureName}" must have a top-level "vulnerabilities" array`);
+    throw new Error(`${findingsFile} for fixture "${fixtureName}" must have a top-level "vulnerabilities" array`);
   }
-  validateUniqueVulnIds(fixtureName, raw.vulnerabilities);
-  return raw.vulnerabilities;
+
+  const vulnerabilities = groundTruth === "attacker-reachable"
+    ? normalizeAttackerReachableVulns(fixtureName, raw.vulnerabilities)
+    : raw.vulnerabilities as Vulnerability[];
+  validateUniqueVulnIds(fixtureName, findingsFile, vulnerabilities);
+  return vulnerabilities;
 }
 
-function validateUniqueVulnIds(fixtureName: string, vulnerabilities: Vulnerability[]): void {
+function normalizeAttackerReachableVulns(
+  fixtureName: string,
+  vulnerabilities: unknown[],
+): AttackerReachableVulnerability[] {
+  return vulnerabilities.map((value, index) => {
+    if (!isRecord(value)) {
+      throw invalidAttackerReachableVuln(fixtureName, index, "must be an object");
+    }
+
+    const id = requireString(value.id, fixtureName, index, "id");
+    const type = requireString(value.type, fixtureName, index, "type") as VulnType;
+    const severity = requireSeverity(value.severity, fixtureName, index);
+    const description = requireString(value.description, fixtureName, index, "description");
+    const vulnerabilityImpact = requireString(
+      value.vulnerabilityImpact,
+      fixtureName,
+      index,
+      "vulnerabilityImpact",
+    );
+    const filesRelated = requireFileLocations(value.filesRelated, fixtureName, index);
+    validateEndpointRoles(filesRelated, fixtureName, index);
+    const typeAliases = value.typeAliases === undefined
+      ? undefined
+      : requireStringArray(value.typeAliases, fixtureName, index, "typeAliases");
+
+    const multiLineValue = value.codeflowMultiLine ?? value.codeflowMultiLines;
+    const codeflowMultiLine = requireYesNo(
+      multiLineValue,
+      fixtureName,
+      index,
+      "codeflowMultiLine/codeflowMultiLines",
+    );
+    const codeflowCrossFile = requireYesNo(
+      value.codeflowCrossFile,
+      fixtureName,
+      index,
+      "codeflowCrossFile",
+    );
+    const codeflowCrossService = value.codeflowCrossService === undefined
+      ? undefined
+      : requireYesNo(value.codeflowCrossService, fixtureName, index, "codeflowCrossService");
+
+    return {
+      id,
+      type,
+      ...(typeAliases && { typeAliases }),
+      severity,
+      filesRelated,
+      file: filesRelated[0].file,
+      line: filesRelated[0].line,
+      description,
+      vulnerabilityImpact,
+      codeflowMultiLine,
+      codeflowCrossFile,
+      ...(codeflowCrossService && { codeflowCrossService }),
+    };
+  });
+}
+
+function requireFileLocations(
+  value: unknown,
+  fixtureName: string,
+  index: number,
+): FileLocation[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw invalidAttackerReachableVuln(fixtureName, index, "filesRelated must be a non-empty array");
+  }
+  return value.map((location, locationIndex) => {
+    if (!isRecord(location)) {
+      throw invalidAttackerReachableVuln(
+        fixtureName,
+        index,
+        `filesRelated[${locationIndex}] must be an object`,
+      );
+    }
+    const file = requireString(
+      location.file,
+      fixtureName,
+      index,
+      `filesRelated[${locationIndex}].file`,
+    );
+    if (
+      typeof location.line !== "number"
+      || !Number.isInteger(location.line)
+      || location.line < 1
+    ) {
+      throw invalidAttackerReachableVuln(
+        fixtureName,
+        index,
+        `filesRelated[${locationIndex}].line must be a positive integer`,
+      );
+    }
+    const type = location.type === undefined
+      ? undefined
+      : requireEndpointType(
+        location.type,
+        fixtureName,
+        index,
+        `filesRelated[${locationIndex}].type`,
+      );
+    return { file, line: location.line, ...(type && { type }) };
+  });
+}
+
+function validateEndpointRoles(
+  filesRelated: FileLocation[],
+  fixtureName: string,
+  index: number,
+): void {
+  const endpointTypes = new Set(filesRelated.map((location) => location.type).filter(Boolean));
+  if (filesRelated.length === 1) {
+    if (endpointTypes.size === 0) {
+      throw invalidAttackerReachableVuln(
+        fixtureName,
+        index,
+        "a single filesRelated location must be marked as source or sink",
+      );
+    }
+    return;
+  }
+  if (!endpointTypes.has("source") || !endpointTypes.has("sink")) {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      "filesRelated must mark at least one source and one sink",
+    );
+  }
+}
+
+function requireEndpointType(
+  value: unknown,
+  fixtureName: string,
+  index: number,
+  field: string,
+): "source" | "sink" {
+  if (value !== "source" && value !== "sink") {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      `${field} must be "source" or "sink"`,
+    );
+  }
+  return value;
+}
+
+function requireString(
+  value: unknown,
+  fixtureName: string,
+  index: number,
+  field: string,
+): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw invalidAttackerReachableVuln(fixtureName, index, `${field} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requireStringArray(
+  value: unknown,
+  fixtureName: string,
+  index: number,
+  field: string,
+): string[] {
+  if (
+    !Array.isArray(value)
+    || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)
+  ) {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      `${field} must be an array of non-empty strings`,
+    );
+  }
+  return value;
+}
+
+function requireSeverity(value: unknown, fixtureName: string, index: number): Severity {
+  if (value !== "critical" && value !== "high" && value !== "medium" && value !== "low") {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      "severity must be critical, high, medium, or low",
+    );
+  }
+  return value;
+}
+
+function requireYesNo(
+  value: unknown,
+  fixtureName: string,
+  index: number,
+  field: string,
+): "yes" | "no" {
+  if (value !== "yes" && value !== "no") {
+    throw invalidAttackerReachableVuln(fixtureName, index, `${field} must be "yes" or "no"`);
+  }
+  return value;
+}
+
+function invalidAttackerReachableVuln(
+  fixtureName: string,
+  index: number,
+  detail: string,
+): Error {
+  return new Error(
+    `findings-attacker-reachable.json for fixture "${fixtureName}" vulnerability ${index}: ${detail}`,
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function validateUniqueVulnIds(
+  fixtureName: string,
+  findingsFile: string,
+  vulnerabilities: Vulnerability[],
+): void {
   const seenIds = new Set<string>();
   const duplicateIds = new Set<string>();
 
@@ -66,7 +307,7 @@ function validateUniqueVulnIds(fixtureName: string, vulnerabilities: Vulnerabili
 
   if (duplicateIds.size > 0) {
     throw new Error(
-      `findings.json for fixture "${fixtureName}" contains duplicate vulnerability id(s): ${[...duplicateIds].join(", ")}`,
+      `${findingsFile} for fixture "${fixtureName}" contains duplicate vulnerability id(s): ${[...duplicateIds].join(", ")}`,
     );
   }
 }
@@ -101,14 +342,28 @@ export function loadEvalTasks(): EvalTask[] {
       throw new Error(`Failed to parse task file ${filePath}: ${err}`);
     }
 
-    const { id, name, category: categoryId, fixture, systemPrompt, prompt, maxTurns } = taskJson;
+    const {
+      id,
+      name,
+      category: categoryId,
+      fixture,
+      groundTruth = "v1",
+      systemPrompt,
+      prompt,
+      maxTurns,
+    } = taskJson;
 
     if (!id || !name || !categoryId || !fixture) {
       throw new Error(`Task file ${file} is missing required fields: id, name, category, fixture`);
     }
+    if (groundTruth !== "v1" && groundTruth !== "attacker-reachable") {
+      throw new Error(
+        `Task file ${file} has unknown groundTruth "${groundTruth}". Valid values: v1, attacker-reachable`,
+      );
+    }
 
     const category = resolveCategory(categoryId);
-    const knownVulns = loadVulns(fixture);
+    const knownVulns = loadVulns(fixture, groundTruth);
     const fixturePath = resolve(FIXTURES_DIR, fixture, "project");
 
     return {
@@ -118,6 +373,7 @@ export function loadEvalTasks(): EvalTask[] {
       fixture: fixturePath,
       systemPrompt: systemPrompt ?? category.defaultSystemPrompt,
       prompt: prompt ?? category.defaultPrompt,
+      groundTruth,
       knownVulns,
       ...(maxTurns !== undefined && { maxTurns }),
     } satisfies EvalTask;

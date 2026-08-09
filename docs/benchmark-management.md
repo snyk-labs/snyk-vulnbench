@@ -49,13 +49,17 @@ fixtures/
     project/                 ← agent's working directory
       app.js
     findings.json            ← ground-truth answer key (outside agent's cwd)
+  app-project-halloween/
+    project/                 ← application source
+    findings.json            ← VulnBench 1.0 answer key
+    findings-attacker-reachable.json ← VulnBench 2.0 answer key
   your-new-fixture/
     project/                 ← agent's working directory
       ...
     findings.json            ← ground-truth answer key
 ```
 
-**Adding a new task = create a fixture directory** (with `project/` source code + `findings.json` ground truth) **+ a task descriptor**. Adding a new run config = edit one JSON array.
+**Adding a new task = create a fixture directory** (with `project/` source code + a ground-truth file) **+ a task descriptor**. VulnBench 1.0 uses `findings.json`; attacker-reachable VulnBench 2.0 tasks use `findings-attacker-reachable.json`. Adding a new run config = edit one JSON array.
 
 ---
 
@@ -157,7 +161,7 @@ Create a `.json` file in `evals/tasks/`. The filename determines alphabetical so
 }
 ```
 
-The `fixture` field must exactly match the directory name under `fixtures/`. The `category` field must be one of the registered category ids (`"find-vulns"` or `"fix-vulns"`).
+The `fixture` field must exactly match the directory name under `fixtures/`. The `category` field must be one of the registered category ids. For VulnBench 2.0, use `"category": "attacker-reachable-find-vulns"` and `"groundTruth": "attacker-reachable"`; omitting `groundTruth` preserves the V1 default.
 
 See the [Task JSON Reference](#task-json-reference) for all available fields.
 
@@ -218,8 +222,9 @@ If your task is find-vulns and you run it with a **`snyk-code`** (or other SARIF
 |---|---|---|---|
 | `id` | Yes | `string` | Unique identifier. Used in `--task` CLI filter (supports comma-separated lists) and in result files. |
 | `name` | Yes | `string` | Human-readable label shown in console output. |
-| `category` | Yes | `"find-vulns"` \| `"llm-find-vulns"` \| `"app-find-vulns"` \| `"fix-vulns"` | Which eval category this task belongs to. |
-| `fixture` | Yes | `string` | Subdirectory name under `fixtures/`. Must contain `project/` (source code) and `findings.json` (ground truth). |
+| `category` | Yes | `"find-vulns"` \| `"llm-find-vulns"` \| `"app-find-vulns"` \| `"attacker-reachable-find-vulns"` \| `"fix-vulns"` | Which eval category this task belongs to. |
+| `fixture` | Yes | `string` | Subdirectory name under `fixtures/`. Must contain `project/` and the selected ground-truth file. |
+| `groundTruth` | No | `"v1"` \| `"attacker-reachable"` | Ground-truth schema and scoring pipeline. Defaults to `"v1"` and `findings.json`; attacker-reachable loads `findings-attacker-reachable.json`. |
 | `maxTurns` | No | `number` | Max agent conversation turns. Defaults to the run config's `maxTurns`. Recommended: 20 for find-vulns, 30 for fix-vulns. |
 | `systemPrompt` | No | `string` | Overrides the category's default system prompt. Omit to use the default. |
 | `prompt` | No | `string` | Overrides the category's default user prompt. Omit to use the default. |
@@ -293,6 +298,45 @@ Each entry in `vulnerabilities`:
 | `"other"` | Any vulnerability that doesn't fit the above categories |
 
 **Scoring note:** The scorer matches findings by `type`. If your fixture has two SQL injections, give each its own entry with unique `id`s — they will be tracked and scored independently.
+
+### VulnBench 2.0 attacker-reachable ground truth
+
+**File location:** `fixtures/<fixture-name>/findings-attacker-reachable.json`. Like V1 ground truth, this is parsed as JSONC and must remain outside `project/`.
+
+Select it from a dedicated find task:
+
+```json
+{
+  "id": "my-app-attacker-reachable-find-vulns",
+  "name": "My App: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "my-app",
+  "groundTruth": "attacker-reachable"
+}
+```
+
+Each `vulnerabilities` entry uses the following shape:
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `id` | Yes | `string` | Stable, globally distinctive vulnerability id |
+| `type` | Yes | `VulnType` | Canonical vulnerability label |
+| `typeAliases` | No | `string[]` | Conservative alternate labels accepted during type matching |
+| `severity` | Yes | `Severity` | `"critical"`, `"high"`, `"medium"`, or `"low"` |
+| `filesRelated` | Yes | `{ "file": string, "line": number, "type"?: "source" \| "sink" }[]` | Non-empty source-to-sink locations; paths are relative to `project/`. Mark endpoint locations as `source` and `sink`; intermediate locations omit `type`. A one-location flow marks its sole location as either endpoint type. |
+| `description` | Yes | `string` | Explanation of the vulnerability and flow |
+| `vulnerabilityImpact` | Yes | `string` | Security impact of successful exploitation |
+| `codeflowMultiLine` | Yes | `"yes"` \| `"no"` | Whether the flow spans multiple locations. The loader also accepts the existing `codeflowMultiLines` spelling and normalizes it in memory. |
+| `codeflowCrossFile` | Yes | `"yes"` \| `"no"` | Whether locations span multiple files |
+| `codeflowCrossService` | No | `"yes"` \| `"no"` | Preserved when present, but currently out of scope for scoring |
+
+The V2 scorer requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path or exact basename; lines allow an inclusive ±5 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the threshold. A finding receives no partial credit when it misses the applicable endpoint rule.
+
+The curated V2 files currently live in:
+
+- `fixtures/app-project-halloween/findings-attacker-reachable.json`
+- `fixtures/app-project-keystonebank/findings-attacker-reachable.json`
+- `fixtures/app-project-sassyreg/findings-attacker-reachable.json`
 
 ---
 
@@ -502,6 +546,8 @@ The `{fixturePath}` placeholder is substituted at runtime with the absolute path
 4. The existing scorer runs: precision/recall/F1 against the fixture's ground-truth JSON
 5. The result lands in the JSONL file with `"runConfigType": "command"` so you can filter SAST vs model rows
 
+When the task uses attacker-reachable ground truth, the existing `snyk-code` config automatically dispatches to the separately registered `snyk-code-attacker-reachable` parser. That parser retains `codeFlows` as `filesRelated`, includes driver rule names as type aliases, derives multi-line/cross-file flags, and feeds the V2 location-aware scorer. V1 tasks continue to use the original parser and type-only scorer.
+
 **Adding a new SAST tool** requires two steps, both in source:
 
 1. Add `src/parsers/<tool-name>.ts` — a function `(stdout: string) => FindingRecord[]` that maps the tool's output format to the common schema
@@ -529,7 +575,7 @@ pnpm run benchmark -- --category find-vulns --config snyk-code
 
 ### Maintaining Snyk Code ruleId mappings
 
-Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Scoring then matches findings to ground truth **by `type` only** — if `mapRuleId` returns `"other"` for a real Snyk rule, recall against `fixtures/<name>/findings.json` will look artificially low even though the scanner found the issue.
+Snyk Code’s `snyk code test --json` output is SARIF. Each finding’s tool rule is identified by the **`ruleId`** string on each `runs[0].results[]` entry (see [`parseSnykCodeOutput` docblock](../src/parsers/snyk-code.ts) and [Command configs and Snyk Code (SAST)](./benchmark.md#command-configs-and-snyk-code-sast) in `docs/benchmark.md`). The benchmark maps that string to our shared finding `type` (a `VulnType`) inside **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. V1 scoring then matches by type only. V2 additionally uses driver rule metadata and `results[].codeFlows` in `src/parsers/snyk-code-attacker-reachable.ts`, then requires location overlap. In either pipeline, an unexpected `"other"` mapping can make recall look artificially low.
 
 **Update `mapRuleId` whenever:**
 

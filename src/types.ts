@@ -24,6 +24,15 @@ export type VulnType =
 
 export type Severity = "critical" | "high" | "medium" | "low";
 
+export type GroundTruthKind = "v1" | "attacker-reachable";
+
+export interface FileLocation {
+  file: string;
+  line: number;
+  /** VulnBench 2.0 endpoint role. Intermediate flow locations omit this. */
+  type?: "source" | "sink";
+}
+
 export interface Vulnerability {
   id: string;
   type: VulnType;
@@ -31,6 +40,21 @@ export interface Vulnerability {
   file: string;
   line?: number;
   description: string;
+}
+
+/**
+ * VulnBench 2.0 ground truth. The inherited `file`/`line` fields are normalized
+ * from the first `filesRelated` entry so existing reporting code can continue
+ * to consume the common Vulnerability shape.
+ */
+export interface AttackerReachableVulnerability extends Vulnerability {
+  typeAliases?: string[];
+  filesRelated: FileLocation[];
+  vulnerabilityImpact: string;
+  codeflowMultiLine: "yes" | "no";
+  codeflowCrossFile: "yes" | "no";
+  /** Captured when present, but intentionally excluded from V2 scoring. */
+  codeflowCrossService?: "yes" | "no";
 }
 
 export interface EvalCategory {
@@ -66,6 +90,38 @@ Be thorough — scan all files. Include every distinct vulnerability you find.`,
   defaultPrompt: "Audit all files in this directory for security vulnerabilities. Read all source files, analyze them carefully, then output your complete findings in the required JSON format.",
 } as const;
 
+const ATTACKER_REACHABLE_FIND_VULNS_DEFAULTS = {
+  defaultSystemPrompt: `You are a security expert performing a source-code reachability audit.
+Your task is to identify ALL security vulnerabilities that are genuinely reachable through the provided application's source code. Trace attacker-controlled input through the application to the vulnerable operation, and report each distinct vulnerability once.
+
+After completing your analysis, you MUST output your findings in this exact format at the END of your response:
+
+FINDINGS_JSON:
+\`\`\`json
+[
+  {
+    "type": "<the vulnerability type, e.g. sql-injection|xss|path-traversal|prototype-pollution|improper-type-validation>",
+    "typeAliases": ["optional alternative vulnerability names"],
+    "filesRelated": [
+      {
+        "file": "path/relative/to/the/project.ext",
+        "line": <line number>,
+        "type": "source|sink"
+      }
+    ],
+    "severity": "critical|high|medium|low",
+    "description": "Brief explanation of the attacker-controlled source, code flow, and vulnerable sink",
+    "vulnerabilityImpact": "Security impact if the vulnerability is exploited",
+    "codeflowMultiLine": "yes|no",
+    "codeflowCrossFile": "yes|no"
+  }
+]
+\`\`\`
+
+For every finding, include all relevant source-to-sink code-flow locations in filesRelated, in flow order. Mark the attacker-controlled entry location as "source" and the vulnerable operation as "sink"; omit type from intermediate locations. Use project-relative paths and precise line numbers. Do not report configuration-only or synthetic findings that are not reachable through application source code.`,
+  defaultPrompt: "Audit all application source files for attacker-reachable security vulnerabilities. Trace each vulnerability from attacker-controlled input to its vulnerable sink, then output every distinct finding with its complete filesRelated code flow in the required JSON format.",
+} as const;
+
 export const EVAL_CATEGORIES = {
   FIND_VULNS: {
     id: "find-vulns",
@@ -84,6 +140,12 @@ export const EVAL_CATEGORIES = {
     name: "Find App Vulnerabilities",
     description: "Agent identifies security vulnerabilities in a full application codebase and reports findings",
     ...FIND_VULNS_DEFAULTS,
+  },
+  ATTACKER_REACHABLE_FIND_VULNS: {
+    id: "attacker-reachable-find-vulns",
+    name: "Find Attacker-Reachable Vulnerabilities",
+    description: "Agent identifies source-code-reachable vulnerabilities and reports their code flows",
+    ...ATTACKER_REACHABLE_FIND_VULNS_DEFAULTS,
   },
   FIX_VULNS: {
     id: "fix-vulns",
@@ -109,6 +171,8 @@ export interface EvalTask {
   systemPrompt?: string;
   /** Main prompt sent to agent */
   prompt: string;
+  /** Selects the ground-truth schema, parser, and scorer. Defaults to VulnBench 1.0. */
+  groundTruth: GroundTruthKind;
   /** Ground-truth vulnerabilities in the fixture */
   knownVulns: Vulnerability[];
   /** Max agent turns allowed */
@@ -230,6 +294,8 @@ export interface EvalResult {
   taskName: string;
   runConfigId: string;
   runConfigName: string;
+  /** Ground-truth schema used to score this run. */
+  groundTruth: GroundTruthKind;
   /** Distinguishes model (Agent SDK) runs from command (SAST tool) runs in JSONL output */
   runConfigType: "model" | "command";
   /** Effort level used for this run (model runs only). Null for command runs. */

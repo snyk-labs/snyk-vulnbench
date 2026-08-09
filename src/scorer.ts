@@ -10,6 +10,8 @@ import type {
   Severity,
   VulnMatch,
   BreakdownEntry,
+  AttackerReachableVulnerability,
+  FileLocation,
 } from "./types.js";
 
 const anthropic = new Anthropic();
@@ -56,6 +58,105 @@ export function scoreFindVulns(agentOutput: string, task: EvalTask): FindVulnsDe
   const bySeverity = computeBreakdown(knownVulns, truePositives, falsePositives, (v) => v.severity);
 
   return { agentFindings, truePositives, falsePositives, falseNegatives, precision, recall, byType, bySeverity };
+}
+
+export const ATTACKER_REACHABLE_LINE_TOLERANCE = 5;
+
+/**
+ * VulnBench 2.0 scorer. A finding must match both the vulnerability label and
+ * enough distinct source-to-sink locations to count as a true positive.
+ */
+export function scoreAttackerReachableFindVulns(
+  agentOutput: string,
+  task: EvalTask,
+): FindVulnsDetails {
+  const agentFindings = parseAttackerReachableFindings(agentOutput);
+  const knownVulns = task.knownVulns.map((vulnerability) => {
+    if (!isAttackerReachableVulnerability(vulnerability)) {
+      throw new Error(
+        `Task "${task.id}" uses attacker-reachable scoring with non-attacker-reachable ground truth`,
+      );
+    }
+    return vulnerability;
+  });
+
+  const truePositives: VulnMatch[] = [];
+  const matchedKnownIds = new Set<string>();
+  const matchedFindingIdxs = new Set<number>();
+
+  for (let findingIndex = 0; findingIndex < agentFindings.length; findingIndex++) {
+    const found = agentFindings[findingIndex];
+    const candidates = knownVulns
+      .filter((known) =>
+        !matchedKnownIds.has(known.id)
+        && attackerReachableTypesMatch(known, found)
+      )
+      .map((known, knownIndex) => {
+        const locationMatch = summarizeLocationMatches(
+          known.filesRelated,
+          found.filesRelated,
+        );
+        return { known, knownIndex, locationMatch };
+      })
+      .filter((candidate) =>
+        attackerReachableLocationsMatch(
+          candidate.known.filesRelated,
+          candidate.locationMatch,
+        )
+      )
+      .sort((a, b) =>
+        Number(b.locationMatch.sourceAndSinkMatched)
+          - Number(a.locationMatch.sourceAndSinkMatched)
+        || b.locationMatch.endpointTypesMatched - a.locationMatch.endpointTypesMatched
+        || b.locationMatch.totalMatches - a.locationMatch.totalMatches
+        || a.knownIndex - b.knownIndex
+      );
+
+    const bestMatch = candidates[0]?.known;
+    if (!bestMatch) continue;
+
+    truePositives.push({
+      id: bestMatch.id,
+      type: bestMatch.type,
+      severity: bestMatch.severity,
+    });
+    matchedKnownIds.add(bestMatch.id);
+    matchedFindingIdxs.add(findingIndex);
+  }
+
+  const falsePositives = agentFindings.filter((_, index) => !matchedFindingIdxs.has(index));
+  const falseNegatives: VulnMatch[] = knownVulns
+    .filter((known) => !matchedKnownIds.has(known.id))
+    .map((known) => ({ id: known.id, type: known.type, severity: known.severity }));
+  const precision = agentFindings.length === 0
+    ? 0
+    : truePositives.length / agentFindings.length;
+  const recall = knownVulns.length === 0
+    ? 1
+    : truePositives.length / knownVulns.length;
+  const byType = computeBreakdown(
+    knownVulns,
+    truePositives,
+    falsePositives,
+    (vulnerability) => vulnerability.type,
+  );
+  const bySeverity = computeBreakdown(
+    knownVulns,
+    truePositives,
+    falsePositives,
+    (vulnerability) => vulnerability.severity,
+  );
+
+  return {
+    agentFindings,
+    truePositives,
+    falsePositives,
+    falseNegatives,
+    precision,
+    recall,
+    byType,
+    bySeverity,
+  };
 }
 
 export function findVulnsScore(details: FindVulnsDetails): number {
@@ -213,6 +314,120 @@ function parseFindings(output: string): Vulnerability[] {
   }
 }
 
+function parseAttackerReachableFindings(output: string): AttackerReachableVulnerability[] {
+  const marker = /FINDINGS_JSON:\s*```(?:json)?\s*([\s\S]*?)```/i;
+  const markerMatch = output.match(marker);
+  const json = markerMatch?.[1] ?? extractFirstJsonArray(output);
+  if (!json) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return Array.isArray(parsed)
+      ? normalizeAttackerReachableFindings(parsed)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizeAttackerReachableFindings(
+  raw: unknown[],
+): AttackerReachableVulnerability[] {
+  return raw
+    .filter((item): item is Record<string, unknown> =>
+      typeof item === "object" && item !== null
+    )
+    .map((item, index) => {
+      const rawType = String(item.type ?? "other");
+      const rawAliases = Array.isArray(item.typeAliases)
+        ? item.typeAliases.filter((alias): alias is string => typeof alias === "string")
+        : [];
+      const typeAliases = [...new Set([rawType, ...rawAliases])];
+      const filesRelated = normalizeReportedLocations(item.filesRelated);
+      const inferredMultiLine = filesRelated.length > 1 ? "yes" : "no";
+      const inferredCrossFile = new Set(
+        filesRelated.map((location) => normalizeFilePath(location.file)),
+      ).size > 1
+        ? "yes"
+        : "no";
+
+      return {
+        id: `found-${index}`,
+        type: normalizeVulnType(rawType),
+        typeAliases,
+        severity: normalizeSeverity(String(item.severity ?? "medium")),
+        filesRelated,
+        file: filesRelated[0]?.file ?? "",
+        line: filesRelated[0]?.line,
+        description: String(item.description ?? ""),
+        vulnerabilityImpact: String(item.vulnerabilityImpact ?? ""),
+        codeflowMultiLine: item.codeflowMultiLine === "yes" || item.codeflowMultiLine === "no"
+          ? item.codeflowMultiLine
+          : inferredMultiLine,
+        codeflowCrossFile: item.codeflowCrossFile === "yes" || item.codeflowCrossFile === "no"
+          ? item.codeflowCrossFile
+          : inferredCrossFile,
+        ...(item.codeflowCrossService === "yes" || item.codeflowCrossService === "no"
+          ? { codeflowCrossService: item.codeflowCrossService }
+          : {}),
+      };
+    });
+}
+
+function normalizeReportedLocations(value: unknown): FileLocation[] {
+  if (!Array.isArray(value)) return [];
+  return uniqueLocations(
+    value.flatMap((location) => {
+      if (typeof location !== "object" || location === null) return [];
+      const candidate = location as Record<string, unknown>;
+      if (
+        typeof candidate.file !== "string"
+        || candidate.file.trim().length === 0
+        || typeof candidate.line !== "number"
+        || !Number.isInteger(candidate.line)
+        || candidate.line < 1
+      ) {
+        return [];
+      }
+      const type = candidate.type === "source" || candidate.type === "sink"
+        ? candidate.type
+        : undefined;
+      return [{
+        file: candidate.file,
+        line: candidate.line,
+        ...(type && { type }),
+      }];
+    }),
+  );
+}
+
+function extractFirstJsonArray(output: string): string | undefined {
+  const start = output.indexOf("[");
+  if (start < 0) return undefined;
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < output.length; index++) {
+    const char = output[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === "\"") inString = false;
+      continue;
+    }
+    if (char === "\"") {
+      inString = true;
+    } else if (char === "[") {
+      depth++;
+    } else if (char === "]") {
+      depth--;
+      if (depth === 0) return output.slice(start, index + 1);
+    }
+  }
+  return undefined;
+}
+
 function normalizeFindings(raw: unknown[]): Vulnerability[] {
   return raw
     .filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null)
@@ -336,6 +551,185 @@ function vulnTypesMatch(known: VulnType, found: VulnType): boolean {
   // Allow "other" to match anything as a fallback
   if (found === "other") return false;
   return false;
+}
+
+function isAttackerReachableVulnerability(
+  vulnerability: Vulnerability,
+): vulnerability is AttackerReachableVulnerability {
+  return Array.isArray((vulnerability as Partial<AttackerReachableVulnerability>).filesRelated);
+}
+
+function attackerReachableTypesMatch(
+  known: AttackerReachableVulnerability,
+  found: AttackerReachableVulnerability,
+): boolean {
+  const knownLabels = [known.type, ...(known.typeAliases ?? [])];
+  const foundLabels = [found.type, ...(found.typeAliases ?? [])];
+
+  for (const knownLabel of knownLabels) {
+    for (const foundLabel of foundLabels) {
+      const normalizedKnown = normalizeTypeLabel(knownLabel);
+      const normalizedFound = normalizeTypeLabel(foundLabel);
+      if (normalizedKnown === normalizedFound) return true;
+
+      const canonicalKnown = normalizeVulnType(normalizedKnown);
+      const canonicalFound = normalizeVulnType(normalizedFound);
+      if (
+        canonicalKnown !== "other"
+        && canonicalFound !== "other"
+        && canonicalKnown === canonicalFound
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function normalizeTypeLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function countLocationMatches(
+  knownLocations: FileLocation[],
+  foundLocations: FileLocation[],
+): number {
+  const known = uniqueLocations(knownLocations);
+  const found = uniqueLocations(foundLocations);
+  const foundToKnown = new Array<number>(found.length).fill(-1);
+
+  function assignKnown(knownIndex: number, visitedFound: Set<number>): boolean {
+    for (let foundIndex = 0; foundIndex < found.length; foundIndex++) {
+      if (
+        visitedFound.has(foundIndex)
+        || !locationsMatch(known[knownIndex], found[foundIndex])
+      ) {
+        continue;
+      }
+      visitedFound.add(foundIndex);
+      if (
+        foundToKnown[foundIndex] === -1
+        || assignKnown(foundToKnown[foundIndex], visitedFound)
+      ) {
+        foundToKnown[foundIndex] = knownIndex;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  let matches = 0;
+  for (let knownIndex = 0; knownIndex < known.length; knownIndex++) {
+    if (assignKnown(knownIndex, new Set())) matches++;
+  }
+  return matches;
+}
+
+interface LocationMatchSummary {
+  totalMatches: number;
+  endpointTypesMatched: number;
+  sourceAndSinkMatched: boolean;
+}
+
+function summarizeLocationMatches(
+  knownLocations: FileLocation[],
+  foundLocations: FileLocation[],
+): LocationMatchSummary {
+  const known = uniqueLocations(knownLocations);
+  const found = uniqueLocations(foundLocations);
+  const matchingSourceIndexes = endpointMatchingFoundIndexes(known, found, "source");
+  const matchingSinkIndexes = endpointMatchingFoundIndexes(known, found, "sink");
+  const sourceAndSinkMatched = [...matchingSourceIndexes].some((sourceIndex) =>
+    [...matchingSinkIndexes].some((sinkIndex) => sinkIndex !== sourceIndex)
+  );
+
+  return {
+    totalMatches: countLocationMatches(known, found),
+    endpointTypesMatched:
+      Number(matchingSourceIndexes.size > 0)
+      + Number(matchingSinkIndexes.size > 0),
+    sourceAndSinkMatched,
+  };
+}
+
+function endpointMatchingFoundIndexes(
+  knownLocations: FileLocation[],
+  foundLocations: FileLocation[],
+  endpointType: "source" | "sink",
+): Set<number> {
+  const endpoints = knownLocations.filter((location) => location.type === endpointType);
+  const matches = new Set<number>();
+  for (let foundIndex = 0; foundIndex < foundLocations.length; foundIndex++) {
+    if (endpoints.some((endpoint) => locationsMatch(endpoint, foundLocations[foundIndex]))) {
+      matches.add(foundIndex);
+    }
+  }
+  return matches;
+}
+
+function attackerReachableLocationsMatch(
+  knownLocations: FileLocation[],
+  match: LocationMatchSummary,
+): boolean {
+  const locationCount = uniqueLocations(knownLocations).length;
+  if (locationCount === 1) {
+    return match.endpointTypesMatched >= 1 && match.totalMatches >= 1;
+  }
+  if (locationCount === 2) {
+    return match.totalMatches >= 2 || match.endpointTypesMatched >= 1;
+  }
+  return match.sourceAndSinkMatched;
+}
+
+function locationsMatch(known: FileLocation, found: FileLocation): boolean {
+  return filePathsMatch(known.file, found.file)
+    && Math.abs(known.line - found.line) <= ATTACKER_REACHABLE_LINE_TOLERANCE;
+}
+
+function filePathsMatch(knownPath: string, foundPath: string): boolean {
+  const known = normalizeFilePath(knownPath);
+  const found = normalizeFilePath(foundPath);
+  if (known === found || found.endsWith(`/${known}`) || known.endsWith(`/${found}`)) {
+    return true;
+  }
+
+  const knownBase = baseName(known);
+  const foundBase = baseName(found);
+  return knownBase === foundBase && (known === knownBase || found === foundBase);
+}
+
+function normalizeFilePath(value: string): string {
+  let path = value;
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // Keep the original path when percent decoding fails.
+  }
+  return path
+    .replace(/^file:\/\//i, "")
+    .replaceAll("\\", "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+/g, "/")
+    .replace(/\/$/, "");
+}
+
+function baseName(path: string): string {
+  return path.slice(path.lastIndexOf("/") + 1);
+}
+
+function uniqueLocations(locations: FileLocation[]): FileLocation[] {
+  const seen = new Set<string>();
+  return locations.filter((location) => {
+    const normalizedFile = normalizeFilePath(location.file);
+    const key = `${normalizedFile}:${location.line}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function gatherSourceFiles(dir: string): Array<{ path: string; content: string }> {

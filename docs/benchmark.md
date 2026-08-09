@@ -190,6 +190,7 @@ The `--category` CLI flag filters the task list by category id (e.g. `--category
 | `find-vulns` | Find Vulnerabilities | F1 (precision + recall) | General vulnerability finding in code snippets/small apps |
 | `llm-find-vulns` | Find LLM Integration Vulnerabilities | F1 (precision + recall) | Vulnerability finding in LLM integration code (prompt injection, unsafe output handling, insecure API integrations) |
 | `app-find-vulns` | Find App Vulnerabilities | F1 (precision + recall) | Vulnerability finding in full application codebases (multi-file, larger scope) |
+| `attacker-reachable-find-vulns` | Find Attacker-Reachable Vulnerabilities | Location-aware F1 | VulnBench 2.0 application findings matched by type and source-to-sink code-flow locations |
 | `fix-vulns` | Fix Vulnerabilities | LLM judge (fraction fixed) | Agent remediates vulnerabilities by editing source files |
 
 #### Category → Task Mapping
@@ -215,11 +216,18 @@ EVAL_CATEGORIES.FIX_VULNS
          ├── app-project-keystonebank-fix-vulns
          ├── llm-project-stardust-fix-vulns
          └── llm-project-blackmirror-fix-vulns
+
+EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS
+  { id: "attacker-reachable-find-vulns" }
+         │
+         ├── app-project-halloween-attacker-reachable-find-vulns
+         ├── app-project-keystonebank-attacker-reachable-find-vulns
+         └── app-project-sassyreg-attacker-reachable-find-vulns
 ```
 
 #### Scoring Pipelines
 
-All three find-* categories (`find-vulns`, `llm-find-vulns`, `app-find-vulns`) share the same scoring pipeline — they differ only in prompt emphasis and task grouping. The `fix-vulns` category uses a separate judge-based pipeline.
+The VulnBench 1.0 find categories (`find-vulns`, `llm-find-vulns`, `app-find-vulns`) share the original type-only scoring pipeline. `attacker-reachable-find-vulns` uses the VulnBench 2.0 location-aware scorer. The `fix-vulns` category uses a separate judge-based pipeline.
 
 ```mermaid
 flowchart LR
@@ -248,6 +256,8 @@ flowchart LR
 
 **app-find-vulns** — Targets full application codebases (multi-file, larger scope). The system prompt instructs the agent to scan all files across the project. Used for realistic application-level audit tasks.
 
+**attacker-reachable-find-vulns** — Targets human-curated vulnerabilities that are reachable through application source code. The prompt requires every relevant source-to-sink location in `filesRelated`; scoring checks both vulnerability labels and code-flow locations.
+
 **fix-vulns** — The agent not only identifies but also edits the source files to remediate vulnerabilities. We work on a copy of the fixture so the originals are never changed. Scored by an LLM judge (Claude Haiku) that evaluates whether each known vulnerability was successfully fixed.
 
 ---
@@ -266,13 +276,17 @@ fixtures/
     project/                  ← Agent's working directory (source code)
       app.js                  ← The code under test
     findings.json             ← Ground truth: exactly which vulns exist and where
+  app-project-halloween/
+    project/                  ← Full application source
+    findings.json             ← VulnBench 1.0 answer key
+    findings-attacker-reachable.json  ← VulnBench 2.0 answer key
   python-project-cobalt/
     project/
       app.py
     findings.json
 ```
 
-The `findings.json` file is the **answer key**. It describes every vulnerability that exists in the fixture, along with metadata used for scoring:
+The `findings.json` file is the VulnBench 1.0 **answer key**. It describes every vulnerability that exists in the fixture, along with metadata used for scoring:
 
 ```json
 {
@@ -289,9 +303,9 @@ The `findings.json` file is the **answer key**. It describes every vulnerability
 }
 ```
 
-The `id` field is critical — the scorer uses these IDs to track which vulnerabilities were found vs. missed, and which were fixed vs. still present.
+The `id` field is critical — the scorer uses these IDs to track which vulnerabilities were found vs. missed, and which were fixed vs. still present. VulnBench 2.0 tasks instead opt into `findings-attacker-reachable.json`, whose entries use a `filesRelated` array to describe the source-to-sink flow. The loader defaults to `findings.json`, so existing tasks retain their original behavior.
 
-**Why the answer key is outside the agent's working directory:** The agent's `cwd` is set to `fixtures/<name>/project/` — only files inside `project/` are visible to the agent. The `findings.json` file sits in the fixture root (one level up from `project/`), and `denyRead` blocks the agent from reading the parent directory. Without a fixed, known-good ground truth hidden from the agent, you cannot objectively score it.
+**Why the answer key is outside the agent's working directory:** The agent's `cwd` is set to `fixtures/<name>/project/` — only files inside `project/` are visible to the agent. Both ground-truth files sit in the fixture root (one level up from `project/`), and `denyRead` blocks the agent from reading the parent directory. Without a fixed, known-good ground truth hidden from the agent, you cannot objectively score it.
 
 ---
 
@@ -317,7 +331,7 @@ interface EvalTask {
 Key design decisions baked into the task definition:
 
 - **`systemPrompt`** tells the agent *how* to work. For find-vulns, it instructs the agent to output a structured `FINDINGS_JSON` block at the end — without this, we couldn't reliably parse the agent's findings.
-- **`knownVulns`** is loaded automatically from `fixtures/<fixture>/findings.json` by the loader — you never need to duplicate this data.
+- **`knownVulns`** is loaded automatically from `fixtures/<fixture>/findings.json`, or from `findings-attacker-reachable.json` when the task opts into that ground truth — you never need to duplicate this data.
 - **`maxTurns`** is a safety valve. An unconstrained agent could loop forever; this caps it.
 
 ---
@@ -809,6 +823,21 @@ This means a later, more precisely located finding can be reported as a **false 
 
 If you add a fixture with two different SQL injections in the same file, give them different IDs (`sqli-1`, `sqli-2`) so they appear as two ground-truth rows. The scorer will match **at most two** `sql-injection` findings to them, in **pairing order**: the *i*-th reported `sql-injection` finding in the parsed array pairs with the *i*-th still-unmatched `sql-injection` in `knownVulns` order — not by comparing line numbers to the JSON `line` fields.
 
+#### VulnBench 2.0 attacker-reachable matching
+
+Tasks with `"groundTruth": "attacker-reachable"` load `findings-attacker-reachable.json` and use `scoreAttackerReachableFindVulns`. This is a separate scorer; the V1 algorithm above is unchanged.
+
+A reported vulnerability is a true positive only when:
+
+1. Its type matches the ground-truth `type` or a `typeAliases` value. Matching first normalizes case and separators, then applies the benchmark's existing conservative aliases. It does not use substring or fuzzy matching.
+2. Its `filesRelated` entries match the labeled endpoint evidence. A file matches by normalized project-relative path or exact basename, and its line may differ by at most **5 lines** (inclusive).
+3. The endpoint rule is met:
+   - one ground-truth location: one reported match to that `source` or `sink`;
+   - exactly two ground-truth locations: either both locations match, or one reported location matches either labeled endpoint;
+   - more than two ground-truth locations: distinct reported locations must match both a labeled `source` and a labeled `sink`.
+
+Intermediate ground-truth flow locations do not increase the threshold. Each reported finding can be consumed only once, and one reported location cannot satisfy both endpoints of a longer flow. When multiple unmatched ground-truth vulnerabilities share a type, the scorer chooses the qualifying candidate with the strongest endpoint and location overlap rather than relying on JSON order. Matching remains binary per vulnerability; the existing precision, recall, F1, per-type, and per-severity calculations are reused.
+
 ### Command configs and Snyk Code (SAST)
 
 Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an external CLI against the fixture directory, parse **stdout** into the same finding shape as the LLM path, then reuse **identical** find-vulns scoring. This section is the reference for “how do Snyk’s results line up with `fixtures/js-project-tigerteam.json` (or any ground-truth file)?”
@@ -840,6 +869,17 @@ Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an 
   - **`severity`:** `mapLevel` maps SARIF `level` (`error` → `"high"`, `warning` → `"medium"`, `note` → `"low"`).
   - **`description`:** `message.text`.
 
+For attacker-reachable tasks, the same `snyk-code` run config automatically selects the separate **`snyk-code-attacker-reachable`** parser. It reads all SARIF runs and:
+
+- maps `results[].ruleId` through the same `mapRuleId`;
+- adds the matching driver rule's `shortDescription.text` and `name` as type aliases;
+- collects every `codeFlows[].threadFlows[].locations[].location.physicalLocation` plus primary result locations;
+- deduplicates `(file, startLine)` pairs into `filesRelated`;
+- labels the first and last distinct locations in each multi-location thread flow as `source` and `sink`;
+- derives `codeflowMultiLine` and `codeflowCrossFile`.
+
+`codeflowCrossService` is not inferred or scored. VulnBench 1.0 tasks continue to use `parseSnykCodeOutput` and its primary `file`/`line` shape.
+
 Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam/findings.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
 
 #### 4. Bridging to the scorer: synthetic `FINDINGS_JSON`
@@ -848,7 +888,7 @@ Still in **`src/command-runner.ts`**: after `parser(stdout)` returns `FindingRec
 
 So `scoreFindVulns` in **`src/scorer.ts`** runs unchanged: `parseFindings` extracts the JSON array, `normalizeFindings` assigns synthetic ids `found-0`, `found-1`, … and normalizes types/severities.
 
-**`metrics.filesScanned`** for command runs is derived from the **unique `file` strings** in the parsed findings (not from the Agent SDK), as noted in `command-runner.ts`.
+**`metrics.filesScanned`** for command runs is derived from the unique top-level `file` strings for V1 findings or flattened `filesRelated[].file` strings for V2 findings (not from the Agent SDK), as noted in `command-runner.ts`.
 
 #### 5. Matching to ground truth (same as LLM)
 
@@ -1629,8 +1669,9 @@ No source code changes required — the benchmark uses a directory-scanning load
 
 **Quick summary:**
 
-- **New fixture:** create `fixtures/<name>/` with a `project/` subdirectory for source code and a `findings.json` answer key
-- **New eval task:** drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture` fields
+- **New V1 fixture:** create `fixtures/<name>/` with a `project/` subdirectory for source code and a `findings.json` answer key
+- **New V2 fixture:** add `findings-attacker-reachable.json` and select it with `"groundTruth": "attacker-reachable"` in a find task
+- **New eval task:** drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture`, and optional `groundTruth` fields
 - **New model config:** append a `ModelRunConfig` entry to `evals/run-configs.json` (or omit `"type"` — it defaults to model)
 - **New SAST config:** append a `CommandRunConfig` entry with `"type": "command"`, `"command"`, and `"parser"` fields
 - **New SAST parser:** add a file to `src/parsers/` and register it in `src/parsers/index.ts`
@@ -1646,10 +1687,13 @@ pnpm run benchmark
 pnpm run benchmark -- --category find-vulns
 pnpm run benchmark -- --category llm-find-vulns
 pnpm run benchmark -- --category app-find-vulns
+pnpm run benchmark -- --category attacker-reachable-find-vulns
 pnpm run benchmark -- --category fix-vulns
 
 # Shorthand scripts for common categories
 pnpm run benchmark:find    # equivalent to --category find-vulns
+pnpm run benchmark:v2      # all VulnBench 2.0 tasks across all configs
+pnpm run benchmark:v2:snyk # VulnBench 2.0 tasks with Snyk Code only
 pnpm run benchmark:fix     # equivalent to --category fix-vulns
 
 # Filter by a specific task (one row of the matrix), across all configs
@@ -1678,6 +1722,9 @@ pnpm run benchmark -- --category llm-find-vulns --config sonnet-4-6
 
 # Run only full-app tasks
 pnpm run benchmark -- --category app-find-vulns
+
+# Run one attacker-reachable task against selected model and SAST configs
+pnpm run benchmark -- --task app-project-halloween-attacker-reachable-find-vulns --config sonnet-4-6-high,snyk-code
 
 # Preview what would run without actually running anything
 pnpm run benchmark -- --dry-run
