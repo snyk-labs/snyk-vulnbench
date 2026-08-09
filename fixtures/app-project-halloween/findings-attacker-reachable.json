@@ -33,15 +33,15 @@
         "severity": "low",
         "filesRelated": [
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 11
           },
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 21
           },
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 22,
             "type": "source"
           },
