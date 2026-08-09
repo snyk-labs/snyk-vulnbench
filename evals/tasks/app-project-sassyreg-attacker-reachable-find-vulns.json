@@ -1,0 +1,8 @@
+{
+  "id": "app-project-sassyreg-attacker-reachable-find-vulns",
+  "name": "App React SassyReg: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-sassyreg",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}
