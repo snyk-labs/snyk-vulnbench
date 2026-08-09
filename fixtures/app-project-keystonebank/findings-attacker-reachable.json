@@ -10,7 +10,8 @@
         "filesRelated": [
           {
             "file": "backend/routes/bank_statements.ts",
-            "line": 18
+            "line": 18,
+            "type": "source"
           },  
           {
             "file": "backend/routes/bank_statements.ts",
@@ -34,7 +35,8 @@
           },
           {
             "file": "backend/services/BankStatements.ts",
-            "line": 14
+            "line": 14,
+            "type": "sink"
           },
         ],
         "description": "User-controlled report_name flows into fs/promises.readFile as path (Snyk: javascript/PT, CWE-23)",
@@ -54,7 +56,8 @@
           },
           {
             "file": "backend/routes/memos.ts",
-            "line": 39
+            "line": 39,
+            "type": "source"
           },
           {
             "file": "backend/routes/memos.ts",
@@ -62,7 +65,8 @@
           },
           {
             "file": "backend/routes/memos.ts",
-            "line": 52
+            "line": 52,
+            "type": "sink"
           },
           {
             "file": "backend/routes/memos.ts",
@@ -95,7 +99,8 @@
           },
           {
             "file": "backend/routes/finchat.ts",
-            "line": 32
+            "line": 32,
+            "type": "source"
           },
           {
             "file": "backend/routes/finchat.ts",
@@ -107,7 +112,8 @@
           },
           {
             "file": "backend/routes/finchat.ts",
-            "line": 43
+            "line": 43,
+            "type": "sink"
           }
         ],
         "description": "LLM response concatenated into SQL audit INSERT without parameterization",
@@ -128,7 +134,8 @@
           },
           {
             "file": "backend/routes/bank_profile_template.ts",
-            "line": 11
+            "line": 11,
+            "type": "source"
           },
           {
             "file": "backend/routes/bank_profile_template.ts",
@@ -148,7 +155,8 @@
           },
           {
             "file": "backend/routes/bank_profile_template.ts",
-            "line": 27
+            "line": 27,
+            "type": "sink"
           }
         ],
         "description": "Unescaped profile fields interpolated into HTML sent with text/html",

@@ -9,12 +9,14 @@
         "severity": "low",
         "filesRelated": [
           {
-            "file": "src/api/user/userService.ts",
-            "line": 16
+            "file": "src/api/user/userController.ts",
+            "line": 16,
+            "type": "source"
           },
           {
-            "file": "src/api/user/userService.ts",
-            "line": 17
+            "file": "src/api/user/userController.ts",
+            "line": 17,
+            "type": "sink"
           },
         ],
         "description": "The query filter object's type and filter property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
@@ -40,7 +42,8 @@
           },
           {
             "file": "src/api/user/userService.ts",
-            "line": 22
+            "line": 22,
+            "type": "source"
           },
           {
             "file": "src/api/user/userController.ts",
@@ -48,7 +51,8 @@
           },
           {
             "file": "src/api/user/userController.ts",
-            "line": 95
+            "line": 95,
+            "type": "sink"
           },
         ],
         "description": "The query includes object's type and includes property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
@@ -71,7 +75,8 @@
           },
           {
             "file": "src/api/user/userService.ts",
-            "line": 41
+            "line": 41,
+            "type": "source"
           },
           {
             "file": "src/api/user/userController.ts",
@@ -91,7 +96,8 @@
           },
           {
             "file": "src/api/user/userService.ts",
-            "line": 87
+            "line": 87,
+            "type": "sink"
           },
           {
             "file": "src/api/user/userService.ts",

@@ -18,7 +18,8 @@
           },
           {
             "file": "src/views/examples/PackageProfile.js",
-            "line": 87
+            "line": 87,
+            "type": "source"
           },
           {
             "file": "src/views/examples/PackageProfile.js",
@@ -26,7 +27,8 @@
           },
           {
             "file": "src/views/examples/PackageProfile.js",
-            "line": 168
+            "line": 168,
+            "type": "sink"
           }
         ],
         "description": "Unsanitized input from a React useState value flows into a React dynamic 'href' attribute, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS)",
@@ -51,11 +53,13 @@
           },
           {
             "file": "src/views/examples/PackageProfile.js",
-            "line": 118
+            "line": 118,
+            "type": "source"
           },
           {
             "file": "src/views/examples/PackageProfile.js",
-            "line": 325
+            "line": 325,
+            "type": "sink"
           }
         ],
         "description": "The authorScreenshotURL is not properly sanitized and flows into a React JSX element in src attribute where it is rendered as an image tag without proper sanitzation or value double quotes enclosure",
