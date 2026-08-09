@@ -8,10 +8,10 @@ IMPORTANT: This file should be considered as a general project bookkeeping of To
 
 ## Project scorer
 
-The current scorer works as follows:
+### VulnBench 1.0 scorer
 
 ```text
-A reported finding is counted as a TP if:
+A V1 reported finding is counted as a TP if:
 
 1. Its type normalizes to the same VulnType as a ground-truth vuln.
 2. That ground-truth vuln has not already been matched by an earlier finding.
@@ -29,8 +29,24 @@ Severity is normalized and stored, but it is not part of TP matching. File and l
 So a finding like command-injection at app.js:22 can match a ground-truth command-injection at app.js:17, while a later exact-line command-injection report becomes a duplicate FP. This makes scoring tolerant of line-number drift, but it can misattribute matches and duplicate penalties in cases like Copperline.
 ```
 
-Potential consideration for improvements from the above:
-1. The scorer should first go through all findings reported and then capture the one closest to the matching criteria for the ground truth, rather than its current implementation which is a first-seen match is accounted for (which is a naive loop approach)
-2. The scorer should also match the file as part of its criteria for a match 
-3. The scorer should also match the line number as part of its criteria for a match but allow for a +-5 lines of difference match. Meaning, a ground-truth report for line number 15 should be matched if the reported finding is on line 10 or line 20 or anything between 10 to 20, but shouldn't match if it's anything else lower or higher line number.
-4. Support for configurable scorers per benchmark execution. We would have the ability to choose from different scorer implementations and configure this for the benchmark execution to use one of them.
+The V1 behavior is retained for historical compatibility with `findings.json` fixtures and past results.
+
+### VulnBench 2.0 attacker-reachable scorer
+
+V2 tasks opt into `findings-attacker-reachable.json` with `"groundTruth": "attacker-reachable"`. Their scorer addresses the original location-matching limitations:
+
+1. It compares normalized vulnerability `type` and conservative `typeAliases`.
+2. It matches normalized relative paths (or exact basenames) and allows an inclusive ±5-line difference.
+3. It uses the ground truth's `filesRelated[].type` endpoint annotations:
+   - one-location flows require a match to that `source` or `sink`;
+   - exactly two locations accept both matching locations or a match to either endpoint;
+   - longer flows require distinct reported locations matching both source and sink.
+4. When duplicate vulnerability types exist, it chooses the qualifying unmatched candidate with the strongest endpoint/location overlap instead of relying only on ground-truth array order.
+
+Intermediate flow locations remain useful diagnostics but do not increase the endpoint threshold. V1 scoring remains type-only.
+
+### Open scorer enhancements
+
+1. Support selecting/configuring scorer implementations per benchmark execution instead of deriving the scorer only from task ground-truth metadata.
+2. Decide whether any V2 location-aware behavior should be offered as an opt-in scorer for V1 fixtures without changing historical defaults.
+3. Persist match diagnostics in JSONL (candidate id, matched endpoints/locations, and failure reason) so misses do not require manual reconstruction.

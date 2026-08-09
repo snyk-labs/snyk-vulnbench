@@ -10,8 +10,9 @@ Benchmarking framework that runs AI coding agents (primarily Claude Code via the
 
 ## Primary Eval Categories
 
-1. **find-vulns**: Given a codebase with known vulnerabilities, how many can the agent correctly identify?
-2. **fix-vulns**: Given a codebase with known vulnerabilities, how many can the agent correctly fix?
+1. **VulnBench 1.0 find categories** (`find-vulns`, `llm-find-vulns`, `app-find-vulns`): Given a codebase with known vulnerabilities in `findings.json`, how many can the agent correctly identify using the original type-only scorer?
+2. **VulnBench 2.0 attacker-reachable findings** (`attacker-reachable-find-vulns`): Compare reported source-to-sink flows against human-curated `findings-attacker-reachable.json` ground truth.
+3. **fix-vulns**: Given a codebase with known vulnerabilities, how many can the agent correctly fix?
 
 ## Tech Stack
 
@@ -48,17 +49,22 @@ fixtures/
     project/
       app.py
     findings.json
+  app-project-keystonebank/
+    project/                  # Shared application source
+    findings.json             # VulnBench 1.0 ground truth
+    findings-attacker-reachable.json  # VulnBench 2.0 ground truth
 
 results/            # Benchmark output (JSONL files)
 ```
 
 ## Adding a New Eval Task (Open/Closed)
 
-No source code changes required. Just:
+No source code changes required. Choose the ground-truth generation, then:
 
-1. Add a fixture directory `fixtures/<name>/` with a `project/` subdirectory containing the source code and a `findings.json` ground-truth file
-2. Drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture` fields
-3. Run — the loader picks it up automatically
+1. Add a fixture directory `fixtures/<name>/` with a `project/` subdirectory containing the source code.
+2. For VulnBench 1.0, add `findings.json`. For VulnBench 2.0, add `findings-attacker-reachable.json` with `filesRelated` source/sink endpoint annotations.
+3. Drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, and `fixture`. V2 tasks also use `"category": "attacker-reachable-find-vulns"` and `"groundTruth": "attacker-reachable"`.
+4. Run — the loader picks it up automatically.
 
 See [`docs/benchmark-management.md`](docs/benchmark-management.md) for step-by-step task and fixture setup. For how the benchmark pipeline, scoring (including Snyk/SAST and vuln-type matching), and metrics work, see [`docs/benchmark.md`](docs/benchmark.md).
 
@@ -84,10 +90,20 @@ From the chat-summary.txt context:
 
 ## Scoring Approach
 
-### find-vulns
+### VulnBench 1.0 find-vulns
 - Agent is asked to output findings as a JSON array with `type`, `file`, `line`, `severity`, `description`
 - Parse the JSON from the agent's final output (look for `FINDINGS_JSON:` marker)
+- Match greedily by normalized vulnerability type; file and line are retained but do not affect V1 matching
 - Score = recall (found / total known) with precision penalty for false positives
+
+### VulnBench 2.0 attacker-reachable-find-vulns
+- Agent/SAST output uses `filesRelated` source-to-sink locations; endpoint objects can be labeled `source` or `sink`
+- Ground truth comes from `findings-attacker-reachable.json`
+- Type matching uses canonical `type` plus conservative `typeAliases`
+- Files match by normalized relative path or exact basename with an inclusive ±5-line tolerance
+- One-location flows require that endpoint; two-location flows accept both locations or either endpoint; longer flows require distinct reported matches for both source and sink
+- Snyk Code automatically uses the rich SARIF code-flow parser for V2 tasks while retaining the V1 parser for existing tasks
+- The headline score remains F1 from vulnerability-level precision and recall
 
 ### fix-vulns
 - Agent runs on a temp copy of the fixture directory (to avoid permanent changes)
@@ -111,6 +127,8 @@ Run `claude auth status` to see which is active. Either works; no special setup 
 ```bash
 pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
+pnpm run benchmark:v2                   # all attacker-reachable V2 tasks
+pnpm run benchmark:v2:snyk              # V2 tasks with Snyk Code only
 pnpm run benchmark:fix                  # only fix-vulns tasks
 pnpm benchmark -- --config opus-only    # specific run config
 pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task
@@ -130,15 +148,15 @@ This uses the `serve` npm package and defaults to `0.0.0.0:3000`; pass standard 
 ## Important Notes
 
 - Fixtures are **intentionally vulnerable** code — they exist for security research/testing
-- Each fixture contains a `findings.json` ground-truth file and a `project/` subdirectory with source code — the agent's `cwd` is set to `project/` so it cannot read the answer key
+- Each fixture contains a `project/` source directory and one or both supported answer keys: V1 `findings.json` and V2 `findings-attacker-reachable.json`. Task metadata selects which one to load.
 - Run configs define model + MCP servers — comparison across configs is the core benchmark value
 - The `fix-vulns` eval works on temp copies; original fixtures are never modified
-- **The agent runner (`src/runner.ts`) must always sandbox the agent to its fixture `cwd`.** `sandbox.filesystem.allowWrite: [cwd]` is a hard whitelist — the agent cannot write outside `project/`. `sandbox.filesystem.denyRead: [dirname(cwd)]` blocks reading the fixture root (which contains `findings.json`). Do not remove or loosen these restrictions: without them the agent can read the answer key and invalidate every score.
+- **The agent runner (`src/runner.ts`) must always sandbox the agent to its fixture `cwd`.** `sandbox.filesystem.allowWrite: [cwd]` is a hard whitelist — the agent cannot write outside `project/`. `sandbox.filesystem.denyRead: [dirname(cwd)]` blocks reading the fixture root (which contains both forms of ground truth). Do not remove or loosen these restrictions: without them the agent can read the answer key and invalidate every score.
 
 ## Benchmark Documentation and Guidelines
 
-- **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add eval tasks and fixtures without code changes: directory-scanning loader behavior, step-by-step fixture + ground-truth + task JSON workflow, task and ground-truth schema references, extending vulnerability types, run-config updates (models, MCP servers and permissions, SAST commands, Snyk ruleId mappings), worked example, troubleshooting.
-- **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, components (fixtures, tasks, run configs, runner, scorer, reporter, results), scoring deep-dive (command tools, Snyk Code and `mapRuleId`), metrics and token accounting, sample CLI/JSONL output, pointer to extending tasks via the management guide.
+- **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add V1 and V2 eval tasks and fixtures without code changes: both ground-truth schemas, source/sink annotations, directory-scanning loader behavior, task JSON, vulnerability types, run configs, SAST commands, Snyk mappings, and troubleshooting.
+- **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, V1 type-only and V2 endpoint-aware scoring, Snyk's V1/rich SARIF parsers, aggregation, metrics, and result formats.
 
 ## TODO
 
