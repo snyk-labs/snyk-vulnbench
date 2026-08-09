@@ -332,6 +332,8 @@ Each `vulnerabilities` entry uses the following shape:
 
 The V2 scorer requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path or exact basename; lines allow an inclusive ±5 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the threshold. A finding receives no partial credit when it misses the applicable endpoint rule.
 
+Each V2 run persists a complete scoring trace at `details.matchDiagnostics` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, line deltas, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. This data is intentionally verbose so reports can analyze near misses and alternative scoring policies later. It does not change the computed score. See [`docs/benchmark.md` → V2 match diagnostics](./benchmark.md#v2-match-diagnostics) for the complete field-by-field contract and enum values.
+
 The curated V2 files currently live in:
 
 - `fixtures/app-project-halloween/findings-attacker-reachable.json`

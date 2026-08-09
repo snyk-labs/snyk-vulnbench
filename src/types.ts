@@ -272,6 +272,109 @@ export interface BreakdownEntry {
   f1: number;
 }
 
+export type AttackerReachablePathMatch = "relative-path" | "basename" | "none";
+export type AttackerReachableLocationRequirement =
+  | "single-endpoint"
+  | "both-locations-or-either-endpoint"
+  | "source-and-sink";
+export type AttackerReachableCandidateStatus =
+  | "selected"
+  | "ineligible"
+  | "ground-truth-already-matched"
+  | "lower-ranked-candidate";
+export type AttackerReachableFailureReason =
+  | "type-mismatch"
+  | "no-location-match"
+  | "single-endpoint-requirement-not-met"
+  | "two-location-requirement-not-met"
+  | "missing-source"
+  | "missing-sink"
+  | "missing-source-and-sink"
+  | "ground-truth-already-matched"
+  | "lower-ranked-candidate";
+
+export interface AttackerReachableTypeComparison {
+  groundTruthLabel: string;
+  reportedLabel: string;
+  normalizedGroundTruthLabel: string;
+  normalizedReportedLabel: string;
+  canonicalGroundTruthType: VulnType;
+  canonicalReportedType: VulnType;
+  matchedBy: "normalized-label" | "canonical-type" | null;
+}
+
+export interface AttackerReachableLocationComparison {
+  groundTruthLocationIndex: number;
+  reportedLocationIndex: number;
+  groundTruth: FileLocation;
+  reported: FileLocation;
+  pathMatch: AttackerReachablePathMatch;
+  lineDelta: number;
+  absoluteLineDelta: number;
+  withinLineTolerance: boolean;
+  locationMatched: boolean;
+}
+
+export interface AttackerReachableEndpointEvidence {
+  endpoint: "source" | "sink";
+  groundTruthLocationIndex: number;
+  reportedLocationIndex: number;
+  groundTruth: FileLocation;
+  reported: FileLocation;
+  pathMatch: Exclude<AttackerReachablePathMatch, "none">;
+  lineDelta: number;
+}
+
+export interface AttackerReachableCandidateDiagnostic {
+  findingId: string;
+  vulnerabilityId: string;
+  reportedType: string;
+  groundTruthType: string;
+  typeMatched: boolean;
+  typeComparisons: AttackerReachableTypeComparison[];
+  groundTruthLocationCount: number;
+  reportedLocationCount: number;
+  locationRequirement: AttackerReachableLocationRequirement;
+  locationRequirementMet: boolean;
+  totalLocationMatches: number;
+  matchedEndpointTypes: Array<"source" | "sink">;
+  missingEndpointTypes: Array<"source" | "sink">;
+  distinctSourceSinkPairMatched: boolean;
+  endpointEvidence: AttackerReachableEndpointEvidence[];
+  locationComparisons: AttackerReachableLocationComparison[];
+  eligible: boolean;
+  groundTruthAlreadyMatchedBeforeFinding: boolean;
+  selected: boolean;
+  status: AttackerReachableCandidateStatus;
+  failureReasons: AttackerReachableFailureReason[];
+}
+
+export interface AttackerReachableFindingDiagnostic {
+  findingId: string;
+  status: "matched" | "false-positive";
+  matchedVulnerabilityId?: string;
+  bestCandidateVulnerabilityId?: string;
+  eligibleCandidateVulnerabilityIds: string[];
+  failureReason?: "no-type-match" | "endpoint-requirement-not-met" | "duplicate-finding";
+}
+
+export interface AttackerReachableVulnerabilityDiagnostic {
+  vulnerabilityId: string;
+  status: "matched" | "missed";
+  matchedFindingId?: string;
+  bestCandidateFindingId?: string;
+  comparedFindingIds: string[];
+  failureReason?: "no-reported-findings" | "no-type-match" | "endpoint-requirement-not-met" | "eligible-candidate-not-selected";
+}
+
+export interface AttackerReachableScoringDiagnostics {
+  schemaVersion: "v2-endpoint-diagnostics-1";
+  lineTolerance: number;
+  candidateComparisons: AttackerReachableCandidateDiagnostic[];
+  findingOutcomes: AttackerReachableFindingDiagnostic[];
+  vulnerabilityOutcomes: AttackerReachableVulnerabilityDiagnostic[];
+}
+
 export interface FindVulnsDetails {
   agentFindings: Vulnerability[];
   truePositives: VulnMatch[];
@@ -281,6 +384,8 @@ export interface FindVulnsDetails {
   recall: number;
   byType: Record<string, BreakdownEntry>;
   bySeverity: Record<string, BreakdownEntry>;
+  /** Present for VulnBench 2.0 runs; omitted for V1 compatibility. */
+  matchDiagnostics?: AttackerReachableScoringDiagnostics;
 }
 
 export interface FixVulnsDetails {

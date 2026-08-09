@@ -45,8 +45,9 @@ V2 tasks opt into `findings-attacker-reachable.json` with `"groundTruth": "attac
 
 Intermediate flow locations remain useful diagnostics but do not increase the endpoint threshold. V1 scoring remains type-only.
 
+V2 run rows also persist complete candidate/type/location comparisons and finding/vulnerability outcomes under `details.matchDiagnostics`, including structured failure reasons for report generation and post-hoc scoring analysis.
+
 ### Open scorer enhancements
 
 1. Support selecting/configuring scorer implementations per benchmark execution instead of deriving the scorer only from task ground-truth metadata.
 2. Decide whether any V2 location-aware behavior should be offered as an opt-in scorer for V1 fixtures without changing historical defaults.
-3. Persist match diagnostics in JSONL (candidate id, matched endpoints/locations, and failure reason) so misses do not require manual reconstruction.

@@ -712,12 +712,15 @@ For **find-vulns**:
   recall: number;                           // 0–1
   byType: Record<VulnType, BreakdownEntry>; // per-vulnerability-type precision/recall/F1
   bySeverity: Record<Severity, BreakdownEntry>; // per-severity precision/recall/F1
+  matchDiagnostics?: AttackerReachableScoringDiagnostics; // rich V2-only candidate evidence
 }
 
 // Where:
 // VulnMatch  = { id: string; type: VulnType; severity: Severity }
 // BreakdownEntry = { total: number; found: number; precision: number; recall: number; f1: number }
 ```
+
+V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field.
 
 For **fix-vulns**:
 ```typescript
@@ -837,6 +840,81 @@ A reported vulnerability is a true positive only when:
    - more than two ground-truth locations: distinct reported locations must match both a labeled `source` and a labeled `sink`.
 
 Intermediate ground-truth flow locations do not increase the threshold. Each reported finding can be consumed only once, and one reported location cannot satisfy both endpoints of a longer flow. When multiple unmatched ground-truth vulnerabilities share a type, the scorer chooses the qualifying candidate with the strongest endpoint and location overlap rather than relying on JSON order. Matching remains binary per vulnerability; the existing precision, recall, F1, per-type, and per-severity calculations are reused.
+
+#### V2 match diagnostics
+
+Every successful V2 scoring pass adds `details.matchDiagnostics` with schema version `v2-endpoint-diagnostics-1`. The diagnostic payload is intentionally rich:
+
+- `candidateComparisons` contains the Cartesian product of reported findings and known vulnerabilities. Each candidate records every label-pair comparison, every location-pair comparison, endpoint evidence, the applicable endpoint requirement, eligibility, whether ground truth was already consumed, selection status, and structured failure reasons.
+- `findingOutcomes` provides a convenient finding-centric view: matched vulnerability, best candidate, every eligible candidate, or a false-positive reason (`no-type-match`, `endpoint-requirement-not-met`, or `duplicate-finding`).
+- `vulnerabilityOutcomes` provides the ground-truth-centric view: matched/best finding or a miss reason (`no-reported-findings`, `no-type-match`, `endpoint-requirement-not-met`, or `eligible-candidate-not-selected`).
+
+Location comparisons preserve both coordinates, optional source/sink roles, path match mode (`relative-path`, `basename`, or `none`), signed and absolute line deltas, the active tolerance, and the final location-match boolean. Diagnostics do not affect scoring; they expose why the scorer made each decision and support post-hoc report generation.
+
+##### `matchDiagnostics` field reference
+
+| Field | Type | Meaning |
+|---|---|---|
+| `schemaVersion` | `"v2-endpoint-diagnostics-1"` | Version of the diagnostic payload contract |
+| `lineTolerance` | `number` | Inclusive line tolerance used during this scoring pass |
+| `candidateComparisons` | `AttackerReachableCandidateDiagnostic[]` | Every reported-finding × ground-truth comparison |
+| `findingOutcomes` | `AttackerReachableFindingDiagnostic[]` | One final outcome per reported finding |
+| `vulnerabilityOutcomes` | `AttackerReachableVulnerabilityDiagnostic[]` | One final outcome per ground-truth vulnerability |
+
+Each `candidateComparisons[]` object contains:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `findingId` | `string` | Synthetic reported finding id, such as `found-3` |
+| `vulnerabilityId` | `string` | Ground-truth vulnerability id |
+| `reportedType` | `string` | Raw reported type label retained by the V2 normalizer |
+| `groundTruthType` | `string` | Canonical ground-truth type label |
+| `typeMatched` | `boolean` | Whether any label-pair comparison matched |
+| `typeComparisons` | `AttackerReachableTypeComparison[]` | Cartesian product of canonical labels and aliases |
+| `groundTruthLocationCount` | `number` | Unique ground-truth `filesRelated` locations |
+| `reportedLocationCount` | `number` | Unique reported `filesRelated` locations |
+| `locationRequirement` | `"single-endpoint"` \| `"both-locations-or-either-endpoint"` \| `"source-and-sink"` | Endpoint rule selected from ground-truth flow length |
+| `locationRequirementMet` | `boolean` | Whether the candidate satisfied that endpoint rule |
+| `totalLocationMatches` | `number` | Maximum one-to-one matching location pairs |
+| `matchedEndpointTypes` | `("source" \| "sink")[]` | Ground-truth endpoint types with at least one reported location match |
+| `missingEndpointTypes` | `("source" \| "sink")[]` | Labeled endpoints without a reported location match |
+| `distinctSourceSinkPairMatched` | `boolean` | Whether different reported locations covered source and sink |
+| `endpointEvidence` | `AttackerReachableEndpointEvidence[]` | All matching reported/ground-truth endpoint pairs |
+| `locationComparisons` | `AttackerReachableLocationComparison[]` | Cartesian product of reported and ground-truth locations |
+| `eligible` | `boolean` | `typeMatched && locationRequirementMet`, independent of greedy consumption |
+| `groundTruthAlreadyMatchedBeforeFinding` | `boolean` | Whether an earlier reported finding had already consumed this vulnerability |
+| `selected` | `boolean` | Whether this candidate became the true-positive pairing |
+| `status` | `"selected"` \| `"ineligible"` \| `"ground-truth-already-matched"` \| `"lower-ranked-candidate"` | Final candidate selection state |
+| `failureReasons` | `AttackerReachableFailureReason[]` | Zero or more structured reasons explaining rejection/non-selection |
+
+Each `typeComparisons[]` object contains:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `groundTruthLabel`, `reportedLabel` | `string` | Original candidate labels |
+| `normalizedGroundTruthLabel`, `normalizedReportedLabel` | `string` | Lowercased, separator-normalized labels |
+| `canonicalGroundTruthType`, `canonicalReportedType` | `VulnType` | Result of benchmark canonicalization; unknown labels become `other` |
+| `matchedBy` | `"normalized-label"` \| `"canonical-type"` \| `null` | Match mechanism, or `null` for a nonmatching label pair |
+
+Each `locationComparisons[]` object contains:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `groundTruthLocationIndex`, `reportedLocationIndex` | `number` | Indices in the deduplicated location arrays |
+| `groundTruth`, `reported` | `FileLocation` | Full `{ file, line, type? }` objects |
+| `pathMatch` | `"relative-path"` \| `"basename"` \| `"none"` | Path matching mechanism |
+| `lineDelta` | `number` | Signed `reported.line - groundTruth.line` |
+| `absoluteLineDelta` | `number` | Absolute line distance |
+| `withinLineTolerance` | `boolean` | Whether the line distance is within `lineTolerance` |
+| `locationMatched` | `boolean` | True when path and line checks both pass |
+
+Each `endpointEvidence[]` object is a matching location comparison narrowed to a labeled endpoint. It contains `endpoint`, both location indices/objects, the successful `pathMatch`, and signed `lineDelta`.
+
+Each `findingOutcomes[]` object contains `findingId`, `status` (`matched` or `false-positive`), optional `matchedVulnerabilityId`, optional `bestCandidateVulnerabilityId`, every `eligibleCandidateVulnerabilityIds`, and optional `failureReason`. Finding failure reasons are `no-type-match`, `endpoint-requirement-not-met`, or `duplicate-finding`.
+
+Each `vulnerabilityOutcomes[]` object contains `vulnerabilityId`, `status` (`matched` or `missed`), optional `matchedFindingId`, optional `bestCandidateFindingId`, every `comparedFindingIds`, and optional `failureReason`. Vulnerability failure reasons are `no-reported-findings`, `no-type-match`, `endpoint-requirement-not-met`, or `eligible-candidate-not-selected`.
+
+Candidate `failureReasons` values are: `type-mismatch`, `no-location-match`, `single-endpoint-requirement-not-met`, `two-location-requirement-not-met`, `missing-source`, `missing-sink`, `missing-source-and-sink`, `ground-truth-already-matched`, and `lower-ranked-candidate`.
 
 ### Command configs and Snyk Code (SAST)
 
@@ -1097,6 +1175,9 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **False negatives** | `Missed      :  id1, id2` | `details.falseNegatives` | Array of `{ id, type, severity }` for missed vulns |
 | **By type** | — | `details.byType` | Per-vuln-type breakdown: `{ total, found, precision, recall, f1 }` |
 | **By severity** | — | `details.bySeverity` | Per-severity breakdown: `{ total, found, precision, recall, f1 }` |
+| **V2 candidate diagnostics** | — | `details.matchDiagnostics.candidateComparisons` | Every reported-finding × ground-truth comparison, including type and location evidence |
+| **V2 finding outcomes** | — | `details.matchDiagnostics.findingOutcomes` | Match/false-positive outcome and best/eligible ground-truth candidates for each report |
+| **V2 vulnerability outcomes** | — | `details.matchDiagnostics.vulnerabilityOutcomes` | Match/miss outcome, best reported candidate, and normalized failure reason for each known vulnerability |
 
 #### Quality metrics (fix-vulns)
 
@@ -1497,6 +1578,36 @@ Each JSONL file contains three row types distinguished by `_type`. Raw run resul
       "medium": { "total": 2, "found": 0, "precision": 0, "recall": 0, "f1": 0 }
     }
   }
+}
+```
+
+V2 run rows additionally include rich scorer evidence under `details.matchDiagnostics`. A shortened candidate looks like:
+
+```json
+{
+  "schemaVersion": "v2-endpoint-diagnostics-1",
+  "lineTolerance": 5,
+  "candidateComparisons": [
+    {
+      "findingId": "found-3",
+      "vulnerabilityId": "halloween-improper-type-validation-includes-1",
+      "typeMatched": true,
+      "locationRequirement": "source-and-sink",
+      "locationRequirementMet": false,
+      "totalLocationMatches": 1,
+      "matchedEndpointTypes": ["sink"],
+      "missingEndpointTypes": ["source"],
+      "eligible": false,
+      "selected": false,
+      "status": "ineligible",
+      "failureReasons": ["missing-source"],
+      "typeComparisons": ["... all label pairs ..."],
+      "endpointEvidence": ["... all endpoint matches ..."],
+      "locationComparisons": ["... all location pairs ..."]
+    }
+  ],
+  "findingOutcomes": ["... one row per reported finding ..."],
+  "vulnerabilityOutcomes": ["... one row per known vulnerability ..."]
 }
 ```
 

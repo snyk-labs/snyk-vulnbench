@@ -96,6 +96,7 @@ test("V1 matching remains type-only", () => {
 
   assert.equal(details.truePositives.length, 1);
   assert.equal(details.recall, 1);
+  assert.equal(details.matchDiagnostics, undefined);
 });
 
 test("V2 matches aliases, basenames, and the inclusive five-line boundary", () => {
@@ -117,6 +118,10 @@ test("V2 matches aliases, basenames, and the inclusive five-line boundary", () =
 
   assert.equal(atBoundary.truePositives.length, 1);
   assert.equal(outsideBoundary.truePositives.length, 0);
+  const comparison = atBoundary.matchDiagnostics?.candidateComparisons[0];
+  assert.equal(comparison?.locationComparisons[0].pathMatch, "basename");
+  assert.equal(comparison?.locationComparisons[0].lineDelta, 5);
+  assert.equal(comparison?.locationComparisons[0].locationMatched, true);
 });
 
 test("one-location ground truth accepts a matching source or sink", () => {
@@ -185,6 +190,34 @@ test("flows longer than two locations require distinct source and sink matches",
   assert.equal(bothEndpoints.truePositives.length, 1);
   assert.equal(sourceOnly.truePositives.length, 0);
   assert.equal(intermediateOnly.truePositives.length, 0);
+
+  const diagnostic = sourceOnly.matchDiagnostics;
+  assert.equal(diagnostic?.schemaVersion, "v2-endpoint-diagnostics-1");
+  assert.equal(diagnostic?.lineTolerance, 5);
+  assert.equal(diagnostic?.candidateComparisons.length, 1);
+  assert.deepEqual(
+    diagnostic?.candidateComparisons[0].matchedEndpointTypes,
+    ["source"],
+  );
+  assert.deepEqual(
+    diagnostic?.candidateComparisons[0].missingEndpointTypes,
+    ["sink"],
+  );
+  assert.ok(
+    diagnostic?.candidateComparisons[0].failureReasons.includes("missing-sink"),
+  );
+  assert.equal(
+    diagnostic?.candidateComparisons[0].locationComparisons.length,
+    3,
+  );
+  assert.equal(
+    diagnostic?.findingOutcomes[0].failureReason,
+    "endpoint-requirement-not-met",
+  );
+  assert.equal(
+    diagnostic?.vulnerabilityOutcomes[0].failureReason,
+    "endpoint-requirement-not-met",
+  );
 });
 
 test("one reported location cannot satisfy both endpoints of a long flow", () => {
@@ -220,6 +253,35 @@ test("duplicate types pair by best location overlap instead of JSON order", () =
     "second-xss",
     "first-xss",
   ]);
+  assert.equal(details.matchDiagnostics?.candidateComparisons.length, 4);
+  assert.deepEqual(
+    details.matchDiagnostics?.vulnerabilityOutcomes.map((outcome) => outcome.status),
+    ["matched", "matched"],
+  );
+});
+
+test("diagnostics retain duplicate candidate and finding outcomes", () => {
+  const known = attackerVuln("single-xss", "xss", [
+    { file: "src/view.ts", line: 10, type: "sink" },
+  ]);
+  const details = scoreAttackerReachableFindVulns(
+    output([
+      finding("xss", [{ file: "src/view.ts", line: 10 }]),
+      finding("xss", [{ file: "src/view.ts", line: 10 }]),
+    ]),
+    attackerTask([known]),
+  );
+
+  assert.equal(details.truePositives.length, 1);
+  assert.equal(details.falsePositives.length, 1);
+  assert.equal(
+    details.matchDiagnostics?.candidateComparisons[1].status,
+    "ground-truth-already-matched",
+  );
+  assert.equal(
+    details.matchDiagnostics?.findingOutcomes[1].failureReason,
+    "duplicate-finding",
+  );
 });
 
 test("nested filesRelated arrays parse without a FINDINGS_JSON marker", () => {
@@ -249,4 +311,9 @@ test("malformed V2 findings produce false negatives instead of throwing", () => 
 
   assert.equal(details.agentFindings.length, 0);
   assert.equal(details.falseNegatives.length, 1);
+  assert.equal(details.matchDiagnostics?.candidateComparisons.length, 0);
+  assert.equal(
+    details.matchDiagnostics?.vulnerabilityOutcomes[0].failureReason,
+    "no-reported-findings",
+  );
 });
