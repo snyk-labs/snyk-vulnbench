@@ -1,6 +1,6 @@
-# ☕ Java Coffee Shop
+# A Shop
 
-A web application for a coffee shop, built in **Java** with the **Spring Boot** ecosystem. It lets customers browse the catalog of coffees and beers, register an account, place and manage orders, and maintain their profile, while administrators manage the products, customers, and orders behind the scenes.
+A web application for a shop that serves coffee to buyers
 
 ## Tech stack
 
