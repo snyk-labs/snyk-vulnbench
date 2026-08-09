@@ -1,0 +1,68 @@
+{
+    "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+    "description": "The React Suspended vulnerable application to XSS attacks",
+    "vulnerabilities": [
+      {
+        "id": "sassyapp-cross-site-scripting-1",
+        "type": "xss",
+        "typeAliases": ["xss", "cross-site scripting", "persistent xss", "dom xss"],
+        "severity": "medium",
+        "filesRelated": [
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 83
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 85
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 87
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 91
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 168
+          }
+        ],
+        "description": "Unsanitized input from a React useState value flows into a React dynamic 'href' attribute, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS)",
+        "vulnerabilityImpact": "User controlled twitter link flows into a React JSX element in href attribute where it is rendered as an anchor tag without proper sanitzation or value double quotes enclosure",
+        "codeflowMultiLines": "yes",
+        "codeflowCrossFile": "no",
+        "codeflowCrossService": "no",
+      },
+      {
+        "id": "sassyapp-cross-site-scripting-2",
+        "type": "xss",
+        "typeAliases": ["xss", "cross-site scripting", "persistent xss", "dom xss"],
+        "severity": "medium",
+        "filesRelated": [
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 114
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 116
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 118
+          },
+          {
+            "file": "src/views/examples/PackageProfile.js",
+            "line": 325
+          }
+        ],
+        "description": "The authorScreenshotURL is not properly sanitized and flows into a React JSX element in src attribute where it is rendered as an image tag without proper sanitzation or value double quotes enclosure",
+        "vulnerabilityImpact": "When users can control JSX elememnts that are rendered with a dangerouslySetInnerHTML and the JSX element is not properly using double quotes for the attribute value enclosure then values can escape the attribute boundary and be interpreted as a new element attribute",
+        "codeflowMultiLines": "yes",
+        "codeflowCrossFile": "no",
+        "codeflowCrossService": "no",
+      }
+    ]
+}

@@ -54,6 +54,7 @@ import authorPicture from '../../assets/img/author.jpg'
 
 
 let ps = null;
+const authorUrl = "https://miro.medium.com/max/5138/0*bd98yHi9ydSq_xU.png"
 
 export default function PackageProfile() {
   const [tabs, setTabs] = useState(1);
@@ -100,7 +101,7 @@ export default function PackageProfile() {
     '<': '&lt',
   };
   
-  function xss(s) {
+  function cleanXSSString(s) {
     if (!s) {
       return s;
     }
@@ -320,8 +321,8 @@ export default function PackageProfile() {
                         <Row className="justify-content-between align-items-center">
                             <div dangerouslySetInnerHTML={
                                 {__html: `
-                                <img src=${database.authorScreenshotURL}
-                                     alt=${authorScreenshotDescription} />
+                                <img src=${authorUrl}
+                                     alt=${cleanXSSString(authorScreenshotDescription)} />
                                 `
                                 }
                             } />
