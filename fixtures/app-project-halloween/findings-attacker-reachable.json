@@ -65,8 +65,8 @@
       },
       {
         "id": "halloween-mass-assignment-1",
-        "type": "xss",
-        "typeAliases": ["cross-site scripting", "xss"],
+        "type": "mass-assignment",
+        "typeAliases": ["mass assignment", "autobinding", "auto binding", "object injection"],
         "severity": "high",
         "filesRelated": [
           {
