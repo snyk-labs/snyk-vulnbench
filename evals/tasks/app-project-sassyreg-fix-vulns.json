@@ -1,0 +1,7 @@
+{
+  "id": "app-project-sassyreg-fix-vulns",
+  "name": "App React SassyReg: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-sassyreg",
+  "maxTurns": 45
+}

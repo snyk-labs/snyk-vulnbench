@@ -1,0 +1,14 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "React package registry frontend with remotely sourced profile data rendered into dynamic page attributes.",
+  "vulnerabilities": [
+    {
+      "id": "sassyreg-dom-xss-1",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/views/examples/PackageProfile.js",
+      "line": 168,
+      "description": "A remotely sourced Twitter link flows through React state into a dynamic href attribute without adequate URL validation, enabling DOM-based XSS (Snyk: javascript/DOMXSS, CWE-79)."
+    }
+  ]
+}
