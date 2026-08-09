@@ -1,0 +1,8 @@
+{
+  "id": "app-project-halloween-attacker-reachable-find-vulns",
+  "name": "App TypeScript Halloween: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-halloween",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}
