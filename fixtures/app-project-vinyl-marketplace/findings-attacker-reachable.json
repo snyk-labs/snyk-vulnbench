@@ -1,128 +1,229 @@
 {
-    "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-    "description": "Java Vinly Marketplace app",
-    "vulnerabilities": [
-      {
-        "id": "vinyl-marketplace-sql-injection-1",
-        "type": "sql-injection",
-        "typeAliases": ["sql injection", "sql injection", "sql injection"],
-        "severity": "high",
-        "filesRelated": [
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 40,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 42,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/service/VinylService.java",
-            "line": 40,
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/service/VinylService.java",
-            "line": 41,
-            "type": "sink"
-          }
-        ],
-        "description": "Unsanitized input from an HTTP parameter flows into createNativeQuery, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
-        "vulnerabilityImpact": "Attackers can manipulate search parameters to execute arbitrary SQL commands, as the raw query is then executed by the database.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "yes",
-        "codeflowCrossService": "no"
-      },
-      {
-        "id": "vinyl-marketplace-unsafe-deserialization-1",
-        "type": "unsafe-deserialization",
-        "typeAliases": ["unsafe deserialization", "deserialization of untrusted data", "deserialization", "object deserialization"],
-        "severity": "high",
-        "filesRelated": [
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 81,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 86,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 87,
-            "type": "sink"
-          }
-        ],
-        "description": "Unsanitized input from an HTTP parameter flows into java.io.ObjectInputStream, where it is used to deserialize an object. This may result in an Unsafe Deserialization vulnerability.",
-        "vulnerabilityImpact": "Attackers can deserialize arbitrary objects, including malicious ones, which can lead to remote code execution.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "no",
-        "codeflowCrossService": "no"
-      },
-      {
-        "id": "vinyl-marketplace-path-traversal-1",
-        "type": "path-traversal",
-        "typeAliases": ["path traversal", "directory traversal", "relative path traversal"],
-        "severity": "high",
-        "filesRelated": [
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 113,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 126
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 127
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 128,
-            "type": "sink"
-          }
-        ],
-        "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
-        "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "no",
-        "codeflowCrossService": "no"
-      },
-      {
-        "id": "vinyl-marketplace-path-traversal-2",
-        "type": "path-traversal",
-        "typeAliases": ["path traversal", "directory traversal", "relative path traversal"],
-        "severity": "high",
-        "filesRelated": [
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 148,
-            "type": "source"
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 165
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 166
-          },
-          {
-            "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
-            "line": 167,
-            "type": "sink"
-          }
-        ],
-        "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
-        "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "no",
-        "codeflowCrossService": "no"
-      }
-    ]
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Java Vinly Marketplace app",
+  "vulnerabilities": [
+    {
+      "id": "vinyl-marketplace-sql-injection-1",
+      "type": "sql-injection",
+      "typeAliases": ["sql injection", "sql injection", "sql injection"],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 40,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 42,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/service/VinylService.java",
+          "line": 40
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/service/VinylService.java",
+          "line": 41,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from an HTTP parameter flows into createNativeQuery, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
+      "vulnerabilityImpact": "Attackers can manipulate search parameters to execute arbitrary SQL commands, as the raw query is then executed by the database.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "yes",
+      "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-unsafe-deserialization-1",
+      "type": "unsafe-deserialization",
+      "typeAliases": ["unsafe deserialization", "deserialization of untrusted data", "deserialization", "object deserialization"],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 81,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 86,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 87,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from an HTTP parameter flows into java.io.ObjectInputStream, where it is used to deserialize an object. This may result in an Unsafe Deserialization vulnerability.",
+      "vulnerabilityImpact": "Attackers can deserialize arbitrary objects, including malicious ones, which can lead to remote code execution.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "no",
+      "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-path-traversal-1",
+      "type": "path-traversal",
+      "typeAliases": ["path traversal", "directory traversal", "relative path traversal"],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 113,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 126
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 127
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 128,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
+      "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "no",
+      "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-path-traversal-2",
+      "type": "path-traversal",
+      "typeAliases": ["path traversal", "directory traversal", "relative path traversal"],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 148,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 165
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 166
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 167,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
+      "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "no",
+      "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-xss-1",
+      "type": "xss",
+      "typeAliases": ["xss", "cross-site scripting", "cross-site script injection"],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 113,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 129,
+          "type": "source"
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 258
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 281
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 282
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 297,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 319
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 330,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from a remote resource flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
+      "vulnerabilityImpact": "Attackers can provide an image filename containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "yes",
+      "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-xss-2",
+      "type": "xss",
+      "typeAliases": [
+        "xss",
+        "cross-site scripting",
+        "stored xss"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 107,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 116
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 258
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 281
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 282
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 298,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 319
+        },
+        {
+          "file": "src/main/resources/static/index.html",
+          "line": 331,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from a remote resource flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
+      "vulnerabilityImpact": "Attackers can provide a vinyl title containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "yes",
+      "codeflowCrossService": "no"
+    }
+  ]
 }
