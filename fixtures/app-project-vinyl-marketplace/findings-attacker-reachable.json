@@ -224,6 +224,116 @@
       "codeflowMultiLine": "yes",
       "codeflowCrossFile": "yes",
       "codeflowCrossService": "no"
+    },
+    {
+      "id": "vinyl-marketplace-xss-3",
+      "type": "xss",
+      "typeAliases": [
+        "xss",
+        "cross-site scripting",
+        "stored xss"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 107,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 108,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 109,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 113,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 113,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 116,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 117,
+          "type": "source"
+        },
+        {
+          "file": "src/main/java/io/acme/engineering/vynil_marketplace/controller/VinylApiController.java",
+          "line": 118,
+          "type": "source"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 58
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 66
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 71,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 74,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 75,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 80,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 81,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 84,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 91,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 95,
+          "type": "sink"
+        },
+        {
+          "file": "src/main/resources/static/vinyl-detail.html",
+          "line": 101,
+          "type": "sink"
+        }
+      ],
+      "description": "Unsanitized input from the document location flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
+      "vulnerabilityImpact": "Attackers can provide a vinyl title containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
+      "codeflowMultiLine": "yes",
+      "codeflowCrossFile": "yes",
+      "codeflowCrossService": "no"
     }
   ]
 }
