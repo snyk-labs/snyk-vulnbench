@@ -116,8 +116,5 @@ public class XML2OrderParser {
         }
 
     }
-
-//    saxParser.getXMLReader().setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-//    saxParser.getXMLReader().setFeature("http://xml.org/sax/features/external-general-entities", false);
 }
 

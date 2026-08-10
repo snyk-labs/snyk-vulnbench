@@ -23,7 +23,6 @@ public class XMLExporter {
 
         writer.writeStartDocument("utf-8", "1.0");
 
-        // <company>
         writer.writeStartElement("Orders");
 
         for (var order : orders) {
