@@ -17,7 +17,7 @@
             "file": "src/api/user/userController.ts",
             "line": 17,
             "type": "sink"
-          },
+          }
         ],
         "description": "The query filter object's type and filter property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
         "vulnerabilityImpact": "Improper Type Validation in query filter object can be tampered via HTTP Parameter Pollution leading to others types flowing into the search query in the sink",
@@ -53,7 +53,7 @@
             "file": "src/api/user/userController.ts",
             "line": 95,
             "type": "sink"
-          },
+          }
         ],
         "description": "The query includes object's type and includes property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
         "vulnerabilityImpact": "Improper Type Validation in query name field flows into sanitize XSS function without proper validation, leading to an XSS bypass in the response.",
