@@ -1,6 +1,6 @@
 # Vinyl Marketplace
 
-A small Spring Boot demo application for browsing, searching, and managing a catalog of vinyl records. It ships with a static HTML/JavaScript frontend, a REST API, and an in-memory H2 database that is seeded with a collection of classic albums on startup.
+A Spring Boot application for browsing, searching, and managing a catalog of vinyl records. It ships with a static HTML/JavaScript frontend, a REST API, and an in-memory H2 database that is seeded with a collection of classic albums on startup.
 
 ## Features
 

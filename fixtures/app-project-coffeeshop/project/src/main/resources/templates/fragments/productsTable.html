@@ -41,7 +41,6 @@
           <tbody>
             <tr th:each="product : ${products}">
               <td class="product-id" th:text="${product.id}">ID</td>
-<!--              <td th:text="${product.productName}">Name</td>-->
               <td><a class="product-name" th:href="'/products/direct?param=' + ${product.productName}" th:text="${product.productName}">Name</a></td>
               <td class="product-desc" th:utext="${product.description}">Description</td>
               <td class="product-price"><span class="product-price__amount" th:text="${#numbers.formatDecimal(product.price, 1, 2)}">##.##</span></td>
