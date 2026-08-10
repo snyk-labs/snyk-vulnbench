@@ -35,7 +35,7 @@
         "vulnerabilityImpact": "User controlled twitter link flows into a React JSX element in href attribute where it is rendered as an anchor tag without proper sanitzation or value double quotes enclosure",
         "codeflowMultiLines": "yes",
         "codeflowCrossFile": "no",
-        "codeflowCrossService": "no",
+        "codeflowCrossService": "no"
       },
       {
         "id": "sassyapp-cross-site-scripting-2",
@@ -66,7 +66,7 @@
         "vulnerabilityImpact": "When users can control JSX elememnts that are rendered with a dangerouslySetInnerHTML and the JSX element is not properly using double quotes for the attribute value enclosure then values can escape the attribute boundary and be interpreted as a new element attribute",
         "codeflowMultiLines": "yes",
         "codeflowCrossFile": "no",
-        "codeflowCrossService": "no",
+        "codeflowCrossService": "no"
       }
     ]
 }
