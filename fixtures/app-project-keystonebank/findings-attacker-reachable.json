@@ -12,7 +12,7 @@
             "file": "backend/routes/bank_statements.ts",
             "line": 18,
             "type": "source"
-          },  
+          },
           {
             "file": "backend/routes/bank_statements.ts",
             "line": 25
@@ -37,12 +37,13 @@
             "file": "backend/services/BankStatements.ts",
             "line": 14,
             "type": "sink"
-          },
+          }
         ],
         "description": "User-controlled report_name flows into fs/promises.readFile as path (Snyk: javascript/PT, CWE-23)",
         "vulnerabilityImpact": "Path traversal vulnerability allows an attacker to read arbitrary files on the system",
         "codeflowMultiLines": "yes",
         "codeflowCrossFile": "yes",
+        "codeflowCrossService": "no"
         // poc: curl -X 'GET' -H 'accept: application/json' "http://localhost:3005/api/bank_statements?report_name=%252e%252e%252f%252e%252e%252f.env"
       },
       {
@@ -164,7 +165,7 @@
         "codeflowMultiLine": "yes",
         "codeflowCrossFile": "no",
         // the vulnerability manifests when the frontend Vue component (`bank_profile.vue`) programmatically calls the backend API (a GET request) to return an HTML template that then renders as an HTML component for a PDF export capability that is ran within the client-side browser
-        "codeflowCrossService": "yes",
+        "codeflowCrossService": "yes"
       }
     ]
 }
