@@ -297,6 +297,32 @@ export function printSummaryTable(
     });
 
     formatTable(hdr, hRows, new Set([0]), 1);
+
+    if (configAggregates.some((config) => config.groundTruths.length > 1)) {
+      console.log(`\n  ${s(["bold", "dim"], "Headline breakdown by ground truth:")}`);
+      const breakdownHeader = hasFindVulns
+        ? ["Config", "Ground truth", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Fixtures"]
+        : ["Config", "Ground truth", hasReps ? "Score ±SD" : "Score", "Fixtures"];
+      const breakdownRows: string[][] = [];
+      for (const config of configAggregates) {
+        for (const groundTruth of config.groundTruths) {
+          const metrics = config.byGroundTruth[groundTruth];
+          if (!metrics) continue;
+          const row = [
+            config.runConfigId,
+            groundTruth,
+            scoreWithStdDev(metrics.score, metrics.scoreStdDev, hasReps),
+          ];
+          if (hasFindVulns) {
+            row.push(metrics.recall != null ? `${(metrics.recall * 100).toFixed(0)}%` : "-");
+            row.push(metrics.precision != null ? `${(metrics.precision * 100).toFixed(0)}%` : "-");
+          }
+          row.push(String(metrics.fixtureCount));
+          breakdownRows.push(row);
+        }
+      }
+      formatTable(breakdownHeader, breakdownRows, new Set([0, 1]), 2);
+    }
   } else {
     // Single task, single rep — just show the simple avg-by-config line like before
     const avgParts = configAggregates.map((c) =>

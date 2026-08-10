@@ -334,6 +334,8 @@ The V2 scorer requires a type match against `type` or `typeAliases` plus endpoin
 
 Each V2 run persists a complete scoring trace at `details.matchDiagnostics` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, line deltas, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. This data is intentionally verbose so reports can analyze near misses and alternative scoring policies later. It does not change the computed score. See [`docs/benchmark.md` → V2 match diagnostics](./benchmark.md#v2-match-diagnostics) for the complete field-by-field contract and enum values.
 
+Aggregate JSONL rows preserve the generation context: each `task-aggregate` has a scalar `groundTruth`, while each `config-aggregate` has `groundTruths` plus a `byGroundTruth` metric breakdown. The existing overall config headline remains available for backward compatibility even when a run mixes V1 and V2 tasks.
+
 The curated V2 files currently live in:
 
 - `fixtures/app-project-halloween/findings-attacker-reachable.json`

@@ -1041,6 +1041,15 @@ The headline score for each config is a **macro-average** (unweighted mean) acro
 
 This is the standard approach used by SWE-bench (resolve rate = mean of binary pass/fail per task), HumanEval, MBPP, MMLU, and most frontier eval suites.
 
+#### Ground-truth-aware aggregates
+
+Raw run rows carry `groundTruth`, and task aggregates copy that value because every repetition of a task must use the same generation. Config aggregates preserve the existing overall macro-average for backward compatibility, but an overall row can mix V1 and attacker-reachable V2 tasks. Therefore each config aggregate also contains:
+
+- `groundTruths`: the generations represented in the overall headline, in stable V1-then-V2 order;
+- `byGroundTruth`: a generation-keyed object containing the same aggregate metric family (`fixtureCount`, repetitions, score/SD, recall, precision, duration/SD, tokens, and cost) calculated from only that generation's tasks and raw repetitions.
+
+This keeps the historical all-task headline while allowing reports to compare V1 and V2 directly without joining raw rows or accidentally treating a mixed score as a single benchmark generation. When a run selects only one generation, `groundTruths` contains one value and `byGroundTruth` contains one entry.
+
 ---
 
 ### Repetitions
@@ -1520,6 +1529,7 @@ Each JSONL file contains three row types distinguished by `_type`. Raw run resul
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
+  "groundTruth": "v1",
   "effort": "high",
   "thinking": { "type": "adaptive" },
   "score": 0.667,
@@ -1621,6 +1631,7 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
+  "groundTruth": "v1",
   "effort": "high",
   "thinking": { "type": "adaptive" },
   "repetitions": 3,
@@ -1643,6 +1654,33 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
+  "groundTruths": ["v1", "attacker-reachable"],
+  "byGroundTruth": {
+    "v1": {
+      "fixtureCount": 1,
+      "repetitions": 3,
+      "score": 0.7,
+      "scoreStdDev": 0.04,
+      "recall": 0.72,
+      "precision": 0.65,
+      "sessionDurationMs": 36000,
+      "sessionDurationStdDevMs": 1700,
+      "totalTokens": 50000,
+      "totalCostUsd": 0.043
+    },
+    "attacker-reachable": {
+      "fixtureCount": 1,
+      "repetitions": 3,
+      "score": 0.75,
+      "scoreStdDev": 0.05,
+      "recall": 0.794,
+      "precision": 0.74,
+      "sessionDurationMs": 39354,
+      "sessionDurationStdDevMs": 2080,
+      "totalTokens": 54364,
+      "totalCostUsd": 0.05
+    }
+  },
   "fixtureCount": 2,
   "repetitions": 3,
   "score": 0.725,
@@ -1664,8 +1702,11 @@ jq 'select(._type == "run") | .score' results/benchmark-*.jsonl
 # Get headline scores, runtimes, and error bars per config (for charts)
 jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs, recall: .recall}' results/benchmark-*.jsonl
 
+# Get V2-only headline metrics directly from each config aggregate
+jq 'select(._type == "config-aggregate") | {config: .runConfigId, v2: .byGroundTruth["attacker-reachable"]}' results/benchmark-*.jsonl
+
 # Get per-fixture scores, runtimes, and run-to-run spread
-jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs}' results/benchmark-*.jsonl
+jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, groundTruth: .groundTruth, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs}' results/benchmark-*.jsonl
 
 # Compare model vs SAST scores for the same task
 jq 'select(._type == "run" and .taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl

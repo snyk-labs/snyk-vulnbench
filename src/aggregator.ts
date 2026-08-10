@@ -3,6 +3,8 @@ import type {
   FindVulnsDetails,
   AggregatedTaskResult,
   AggregatedConfigResult,
+  AggregatedGroundTruthResult,
+  GroundTruthKind,
 } from "./types.js";
 
 function mean(values: number[]): number {
@@ -66,6 +68,12 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
   for (const runs of groups.values()) {
     const first = runs[0];
     const hasFindVulns = runs.some((r) => !r.error && "recall" in r.details);
+    const groundTruths = new Set(runs.map((run) => run.groundTruth));
+    if (groundTruths.size !== 1) {
+      throw new Error(
+        `Task aggregate "${first.taskId}::${first.runConfigId}" mixes ground-truth generations`,
+      );
+    }
 
     aggregated.push({
       taskId: first.taskId,
@@ -73,6 +81,7 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
       runConfigType: first.runConfigType,
+      groundTruth: first.groundTruth,
       effort: first.effort,
       thinking: first.thinking,
       repetitions: runs.length,
@@ -92,6 +101,27 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
   }
 
   return aggregated;
+}
+
+function aggregateConfigMetrics(
+  tasks: AggregatedTaskResult[],
+  rawRuns: EvalResult[],
+): AggregatedGroundTruthResult {
+  const hasRecall = tasks.some((task) => task.recall != null);
+  const repetitionScores = headlineScoresByRepetition(rawRuns);
+  const repetitionDurations = headlineDurationsByRepetition(rawRuns);
+  return {
+    fixtureCount: tasks.length,
+    repetitions: repetitionScores.length,
+    score: mean(tasks.map((task) => task.score)),
+    scoreStdDev: sampleStdDev(repetitionScores),
+    recall: hasRecall ? meanNullable(tasks.map((task) => task.recall)) : null,
+    precision: hasRecall ? meanNullable(tasks.map((task) => task.precision)) : null,
+    sessionDurationMs: mean(tasks.map((task) => task.sessionDurationMs)),
+    sessionDurationStdDevMs: sampleStdDev(repetitionDurations),
+    totalTokens: mean(tasks.map((task) => task.totalTokens)),
+    totalCostUsd: meanNullable(tasks.map((task) => task.totalCostUsd)),
+  };
 }
 
 /**
@@ -119,25 +149,25 @@ export function aggregateByConfig(
   const aggregated: AggregatedConfigResult[] = [];
   for (const tasks of groups.values()) {
     const first = tasks[0];
-    const hasRecall = tasks.some((t) => t.recall != null);
     const rawRuns = rawGroups.get(first.runConfigId) ?? [];
-    const repetitionScores = headlineScoresByRepetition(rawRuns);
-    const repetitionDurations = headlineDurationsByRepetition(rawRuns);
+    const overall = aggregateConfigMetrics(tasks, rawRuns);
+    const groundTruths = (["v1", "attacker-reachable"] as GroundTruthKind[])
+      .filter((groundTruth) => tasks.some((task) => task.groundTruth === groundTruth));
+    const byGroundTruth: Partial<Record<GroundTruthKind, AggregatedGroundTruthResult>> = {};
+    for (const groundTruth of groundTruths) {
+      byGroundTruth[groundTruth] = aggregateConfigMetrics(
+        tasks.filter((task) => task.groundTruth === groundTruth),
+        rawRuns.filter((run) => run.groundTruth === groundTruth),
+      );
+    }
 
     aggregated.push({
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
       runConfigType: first.runConfigType,
-      fixtureCount: tasks.length,
-      repetitions: repetitionScores.length,
-      score: mean(tasks.map((t) => t.score)),
-      scoreStdDev: sampleStdDev(repetitionScores),
-      recall: hasRecall ? meanNullable(tasks.map((t) => t.recall)) : null,
-      precision: hasRecall ? meanNullable(tasks.map((t) => t.precision)) : null,
-      sessionDurationMs: mean(tasks.map((t) => t.sessionDurationMs)),
-      sessionDurationStdDevMs: sampleStdDev(repetitionDurations),
-      totalTokens: mean(tasks.map((t) => t.totalTokens)),
-      totalCostUsd: meanNullable(tasks.map((t) => t.totalCostUsd)),
+      groundTruths,
+      byGroundTruth,
+      ...overall,
     });
   }
 

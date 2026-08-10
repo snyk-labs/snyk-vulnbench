@@ -425,6 +425,7 @@ export interface AggregatedTaskResult {
   runConfigId: string;
   runConfigName: string;
   runConfigType: "model" | "command";
+  groundTruth: GroundTruthKind;
   effort: EffortLevel | null;
   thinking: ThinkingConfig | null;
   repetitions: number;
@@ -440,11 +441,29 @@ export interface AggregatedTaskResult {
   totalCostUsd: number | null;
 }
 
+/** Config-level metrics restricted to one ground-truth generation. */
+export interface AggregatedGroundTruthResult {
+  fixtureCount: number;
+  repetitions: number;
+  score: number;
+  scoreStdDev: number;
+  recall: number | null;
+  precision: number | null;
+  sessionDurationMs: number;
+  sessionDurationStdDevMs: number;
+  totalTokens: number;
+  totalCostUsd: number | null;
+}
+
 /** Headline numbers for one config, macro-averaged across all fixtures. */
 export interface AggregatedConfigResult {
   runConfigId: string;
   runConfigName: string;
   runConfigType: "model" | "command";
+  /** Ground-truth generations included in the overall headline. */
+  groundTruths: GroundTruthKind[];
+  /** Generation-specific headline metrics for direct V1/V2 analysis. */
+  byGroundTruth: Partial<Record<GroundTruthKind, AggregatedGroundTruthResult>>;
   fixtureCount: number;
   repetitions: number;
   score: number;
