@@ -12,6 +12,7 @@ import type {
   BreakdownEntry,
   AttackerReachableVulnerability,
   AttackerReachableCandidateDiagnostic,
+  AttackerReachableEndpointMatchKind,
   AttackerReachableEndpointEvidence,
   AttackerReachableFailureReason,
   AttackerReachableFindingDiagnostic,
@@ -98,10 +99,11 @@ export function scoreAttackerReachableFindVulns(
   for (let findingIndex = 0; findingIndex < agentFindings.length; findingIndex++) {
     const found = agentFindings[findingIndex];
     const candidates = knownVulns.map((known, knownIndex) => {
-      const diagnostic = buildCandidateDiagnostic(found, known);
+      const diagnostic = buildCandidateDiagnostic(found, known, knownIndex);
       diagnostic.groundTruthAlreadyMatchedBeforeFinding = matchedKnownIds.has(known.id);
       return { known, knownIndex, diagnostic };
     });
+    const rankedCandidates = [...candidates].sort(compareCandidateEvaluations);
     const availableCandidates = candidates
       .filter((candidate) =>
         candidate.diagnostic.eligible
@@ -111,6 +113,14 @@ export function scoreAttackerReachableFindVulns(
     const selectedCandidate = availableCandidates[0];
 
     for (const candidate of candidates) {
+      candidate.diagnostic.ranking.rankAmongAllCandidates =
+        rankedCandidates.indexOf(candidate) + 1;
+      const availableRank = availableCandidates.indexOf(candidate);
+      candidate.diagnostic.ranking.rankAmongAvailableCandidates =
+        availableRank >= 0 ? availableRank + 1 : null;
+      candidate.diagnostic.ranking.candidateCount = candidates.length;
+      candidate.diagnostic.ranking.availableCandidateCount =
+        availableCandidates.length;
       if (candidate === selectedCandidate) {
         candidate.diagnostic.selected = true;
         candidate.diagnostic.status = "selected";
@@ -126,7 +136,7 @@ export function scoreAttackerReachableFindVulns(
       candidateComparisons.push(candidate.diagnostic);
     }
 
-    const bestCandidate = [...candidates].sort(compareCandidateEvaluations)[0];
+    const bestCandidate = rankedCandidates[0];
     const eligibleCandidateVulnerabilityIds = candidates
       .filter((candidate) => candidate.diagnostic.eligible)
       .map((candidate) => candidate.known.id);
@@ -204,7 +214,7 @@ export function scoreAttackerReachableFindVulns(
     byType,
     bySeverity,
     matchDiagnostics: {
-      schemaVersion: "v2-endpoint-diagnostics-1",
+      schemaVersion: "v2-endpoint-diagnostics-2",
       lineTolerance: ATTACKER_REACHABLE_LINE_TOLERANCE,
       candidateComparisons,
       findingOutcomes,
@@ -665,6 +675,7 @@ interface CandidateEvaluation {
 function buildCandidateDiagnostic(
   found: AttackerReachableVulnerability,
   known: AttackerReachableVulnerability,
+  groundTruthCandidateIndex: number,
 ): AttackerReachableCandidateDiagnostic {
   const typeComparisons = compareAttackerReachableTypes(known, found);
   const typeMatched = typeComparisons.some((comparison) => comparison.matchedBy !== null);
@@ -674,6 +685,16 @@ function buildCandidateDiagnostic(
     known.filesRelated,
     locationMatch,
   );
+  const endpointMatchKind = endpointMatchKindFor(locationMatch.matchedEndpointTypes);
+  const endpointEvidenceStrength = endpointMatchKind === "source-and-sink"
+    ? 3
+    : endpointMatchKind === "sink-only"
+      ? 2
+      : endpointMatchKind === "source-only"
+        ? 1
+        : 0;
+  const closestEndpointEvidence = [...locationMatch.endpointEvidence]
+    .sort((a, b) => a.absoluteLineDelta - b.absoluteLineDelta)[0];
   const failureReasons: AttackerReachableFailureReason[] = [];
 
   if (!typeMatched) {
@@ -702,6 +723,7 @@ function buildCandidateDiagnostic(
   return {
     findingId: found.id,
     vulnerabilityId: known.id,
+    groundTruthCandidateIndex,
     reportedType: found.typeAliases?.[0] ?? found.type,
     groundTruthType: known.type,
     typeMatched,
@@ -716,12 +738,42 @@ function buildCandidateDiagnostic(
     distinctSourceSinkPairMatched: locationMatch.sourceAndSinkMatched,
     endpointEvidence: locationMatch.endpointEvidence,
     locationComparisons: locationMatch.locationComparisons,
+    ranking: {
+      endpointMatchKind,
+      endpointEvidenceStrength,
+      closestEndpointLineDelta: closestEndpointEvidence?.lineDelta ?? null,
+      closestEndpointAbsoluteLineDelta:
+        closestEndpointEvidence?.absoluteLineDelta ?? null,
+      rankAmongAllCandidates: 0,
+      rankAmongAvailableCandidates: null,
+      candidateCount: 0,
+      availableCandidateCount: 0,
+      factors: {
+        eligible: typeMatched && locationRequirementMet,
+        typeMatched,
+        distinctSourceSinkPairMatched: locationMatch.sourceAndSinkMatched,
+        matchedEndpointTypeCount: locationMatch.matchedEndpointTypes.length,
+        totalLocationMatches: locationMatch.totalMatches,
+        groundTruthCandidateIndex,
+      },
+    },
     eligible: typeMatched && locationRequirementMet,
     groundTruthAlreadyMatchedBeforeFinding: false,
     selected: false,
     status: "ineligible",
     failureReasons,
   };
+}
+
+function endpointMatchKindFor(
+  matchedEndpointTypes: Array<"source" | "sink">,
+): AttackerReachableEndpointMatchKind {
+  const sourceMatched = matchedEndpointTypes.includes("source");
+  const sinkMatched = matchedEndpointTypes.includes("sink");
+  if (sourceMatched && sinkMatched) return "source-and-sink";
+  if (sinkMatched) return "sink-only";
+  if (sourceMatched) return "source-only";
+  return "none";
 }
 
 function compareCandidateEvaluations(
@@ -862,6 +914,7 @@ function summarizeLocationMatches(
       reported: comparison.reported,
       pathMatch: comparison.pathMatch as Exclude<AttackerReachablePathMatch, "none">,
       lineDelta: comparison.lineDelta,
+      absoluteLineDelta: comparison.absoluteLineDelta,
     }));
   const sourceEvidence = endpointEvidence.filter((evidence) => evidence.endpoint === "source");
   const sinkEvidence = endpointEvidence.filter((evidence) => evidence.endpoint === "sink");

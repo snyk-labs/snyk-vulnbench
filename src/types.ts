@@ -273,6 +273,11 @@ export interface BreakdownEntry {
 }
 
 export type AttackerReachablePathMatch = "relative-path" | "basename" | "none";
+export type AttackerReachableEndpointMatchKind =
+  | "source-and-sink"
+  | "sink-only"
+  | "source-only"
+  | "none";
 export type AttackerReachableLocationRequirement =
   | "single-endpoint"
   | "both-locations-or-either-endpoint"
@@ -323,11 +328,38 @@ export interface AttackerReachableEndpointEvidence {
   reported: FileLocation;
   pathMatch: Exclude<AttackerReachablePathMatch, "none">;
   lineDelta: number;
+  absoluteLineDelta: number;
+}
+
+export interface AttackerReachableCandidateRanking {
+  /** Compact endpoint evidence classification; does not itself change eligibility. */
+  endpointMatchKind: AttackerReachableEndpointMatchKind;
+  /** Evidence tier for analysis: both=3, sink=2, source=1, none=0. */
+  endpointEvidenceStrength: 0 | 1 | 2 | 3;
+  /** Signed offset of the closest endpoint match, or null when no endpoint matched. */
+  closestEndpointLineDelta: number | null;
+  closestEndpointAbsoluteLineDelta: number | null;
+  /** 1-based rank among every ground-truth candidate for this reported finding. */
+  rankAmongAllCandidates: number;
+  /** 1-based rank after excluding already-consumed/ineligible candidates. */
+  rankAmongAvailableCandidates: number | null;
+  candidateCount: number;
+  availableCandidateCount: number;
+  /** Exact signals used by the current candidate comparator, in priority order. */
+  factors: {
+    eligible: boolean;
+    typeMatched: boolean;
+    distinctSourceSinkPairMatched: boolean;
+    matchedEndpointTypeCount: number;
+    totalLocationMatches: number;
+    groundTruthCandidateIndex: number;
+  };
 }
 
 export interface AttackerReachableCandidateDiagnostic {
   findingId: string;
   vulnerabilityId: string;
+  groundTruthCandidateIndex: number;
   reportedType: string;
   groundTruthType: string;
   typeMatched: boolean;
@@ -342,6 +374,7 @@ export interface AttackerReachableCandidateDiagnostic {
   distinctSourceSinkPairMatched: boolean;
   endpointEvidence: AttackerReachableEndpointEvidence[];
   locationComparisons: AttackerReachableLocationComparison[];
+  ranking: AttackerReachableCandidateRanking;
   eligible: boolean;
   groundTruthAlreadyMatchedBeforeFinding: boolean;
   selected: boolean;
@@ -368,7 +401,7 @@ export interface AttackerReachableVulnerabilityDiagnostic {
 }
 
 export interface AttackerReachableScoringDiagnostics {
-  schemaVersion: "v2-endpoint-diagnostics-1";
+  schemaVersion: "v2-endpoint-diagnostics-2";
   lineTolerance: number;
   candidateComparisons: AttackerReachableCandidateDiagnostic[];
   findingOutcomes: AttackerReachableFindingDiagnostic[];

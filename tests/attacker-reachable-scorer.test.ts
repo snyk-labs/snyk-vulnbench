@@ -122,6 +122,10 @@ test("V2 matches aliases, basenames, and the inclusive five-line boundary", () =
   assert.equal(comparison?.locationComparisons[0].pathMatch, "basename");
   assert.equal(comparison?.locationComparisons[0].lineDelta, 5);
   assert.equal(comparison?.locationComparisons[0].locationMatched, true);
+  assert.equal(comparison?.endpointEvidence[0].absoluteLineDelta, 5);
+  assert.equal(comparison?.ranking.endpointMatchKind, "sink-only");
+  assert.equal(comparison?.ranking.endpointEvidenceStrength, 2);
+  assert.equal(comparison?.ranking.closestEndpointLineDelta, 5);
 });
 
 test("one-location ground truth accepts a matching source or sink", () => {
@@ -162,6 +166,14 @@ test("two-location ground truth accepts both locations or either endpoint", () =
   assert.equal(both.truePositives.length, 1);
   assert.equal(sourceOnly.truePositives.length, 1);
   assert.equal(sinkOnly.truePositives.length, 1);
+  assert.equal(
+    sourceOnly.matchDiagnostics?.candidateComparisons[0].ranking.endpointMatchKind,
+    "source-only",
+  );
+  assert.equal(
+    sinkOnly.matchDiagnostics?.candidateComparisons[0].ranking.endpointMatchKind,
+    "sink-only",
+  );
 });
 
 test("flows longer than two locations require distinct source and sink matches", () => {
@@ -192,7 +204,7 @@ test("flows longer than two locations require distinct source and sink matches",
   assert.equal(intermediateOnly.truePositives.length, 0);
 
   const diagnostic = sourceOnly.matchDiagnostics;
-  assert.equal(diagnostic?.schemaVersion, "v2-endpoint-diagnostics-1");
+  assert.equal(diagnostic?.schemaVersion, "v2-endpoint-diagnostics-2");
   assert.equal(diagnostic?.lineTolerance, 5);
   assert.equal(diagnostic?.candidateComparisons.length, 1);
   assert.deepEqual(
@@ -254,6 +266,18 @@ test("duplicate types pair by best location overlap instead of JSON order", () =
     "first-xss",
   ]);
   assert.equal(details.matchDiagnostics?.candidateComparisons.length, 4);
+  assert.equal(
+    details.matchDiagnostics?.candidateComparisons[0].ranking.rankAmongAllCandidates,
+    2,
+  );
+  assert.equal(
+    details.matchDiagnostics?.candidateComparisons[1].ranking.rankAmongAllCandidates,
+    1,
+  );
+  assert.equal(
+    details.matchDiagnostics?.candidateComparisons[1].ranking.endpointMatchKind,
+    "sink-only",
+  );
   assert.deepEqual(
     details.matchDiagnostics?.vulnerabilityOutcomes.map((outcome) => outcome.status),
     ["matched", "matched"],

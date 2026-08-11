@@ -103,7 +103,7 @@ From the chat-summary.txt context:
 - Files match by normalized relative path or exact basename with an inclusive ±5-line tolerance
 - One-location flows require that endpoint; two-location flows accept both locations or either endpoint; longer flows require distinct reported matches for both source and sink
 - Snyk Code automatically uses the rich SARIF code-flow parser for V2 tasks while retaining the V1 parser for existing tasks
-- Every V2 JSONL run stores all candidate type/location comparisons and structured finding/vulnerability outcomes under `details.matchDiagnostics`
+- Every V2 JSONL run stores all candidate type/location comparisons, source-and-sink/sink-only/source-only evidence classes, explicit ranks, line offsets, and structured finding/vulnerability outcomes under `details.matchDiagnostics`
 - The headline score remains F1 from vulnerability-level precision and recall
 
 ### fix-vulns

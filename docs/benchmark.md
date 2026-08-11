@@ -843,7 +843,7 @@ Intermediate ground-truth flow locations do not increase the threshold. Each rep
 
 #### V2 match diagnostics
 
-Every successful V2 scoring pass adds `details.matchDiagnostics` with schema version `v2-endpoint-diagnostics-1`. The diagnostic payload is intentionally rich:
+Every successful V2 scoring pass adds `details.matchDiagnostics` with schema version `v2-endpoint-diagnostics-2`. The diagnostic payload is intentionally rich:
 
 - `candidateComparisons` contains the Cartesian product of reported findings and known vulnerabilities. Each candidate records every label-pair comparison, every location-pair comparison, endpoint evidence, the applicable endpoint requirement, eligibility, whether ground truth was already consumed, selection status, and structured failure reasons.
 - `findingOutcomes` provides a convenient finding-centric view: matched vulnerability, best candidate, every eligible candidate, or a false-positive reason (`no-type-match`, `endpoint-requirement-not-met`, or `duplicate-finding`).
@@ -855,7 +855,7 @@ Location comparisons preserve both coordinates, optional source/sink roles, path
 
 | Field | Type | Meaning |
 |---|---|---|
-| `schemaVersion` | `"v2-endpoint-diagnostics-1"` | Version of the diagnostic payload contract |
+| `schemaVersion` | `"v2-endpoint-diagnostics-2"` | Version of the diagnostic payload contract |
 | `lineTolerance` | `number` | Inclusive line tolerance used during this scoring pass |
 | `candidateComparisons` | `AttackerReachableCandidateDiagnostic[]` | Every reported-finding × ground-truth comparison |
 | `findingOutcomes` | `AttackerReachableFindingDiagnostic[]` | One final outcome per reported finding |
@@ -867,6 +867,7 @@ Each `candidateComparisons[]` object contains:
 |---|---|---|
 | `findingId` | `string` | Synthetic reported finding id, such as `found-3` |
 | `vulnerabilityId` | `string` | Ground-truth vulnerability id |
+| `groundTruthCandidateIndex` | `number` | Stable zero-based ground-truth order used as the final rank tie-breaker |
 | `reportedType` | `string` | Raw reported type label retained by the V2 normalizer |
 | `groundTruthType` | `string` | Canonical ground-truth type label |
 | `typeMatched` | `boolean` | Whether any label-pair comparison matched |
@@ -881,6 +882,7 @@ Each `candidateComparisons[]` object contains:
 | `distinctSourceSinkPairMatched` | `boolean` | Whether different reported locations covered source and sink |
 | `endpointEvidence` | `AttackerReachableEndpointEvidence[]` | All matching reported/ground-truth endpoint pairs |
 | `locationComparisons` | `AttackerReachableLocationComparison[]` | Cartesian product of reported and ground-truth locations |
+| `ranking` | `AttackerReachableCandidateRanking` | Compact evidence class, explicit ranks, closest endpoint offset, and comparator factors |
 | `eligible` | `boolean` | `typeMatched && locationRequirementMet`, independent of greedy consumption |
 | `groundTruthAlreadyMatchedBeforeFinding` | `boolean` | Whether an earlier reported finding had already consumed this vulnerability |
 | `selected` | `boolean` | Whether this candidate became the true-positive pairing |
@@ -908,7 +910,23 @@ Each `locationComparisons[]` object contains:
 | `withinLineTolerance` | `boolean` | Whether the line distance is within `lineTolerance` |
 | `locationMatched` | `boolean` | True when path and line checks both pass |
 
-Each `endpointEvidence[]` object is a matching location comparison narrowed to a labeled endpoint. It contains `endpoint`, both location indices/objects, the successful `pathMatch`, and signed `lineDelta`.
+Each `endpointEvidence[]` object is a matching location comparison narrowed to a labeled endpoint. It contains `endpoint`, both location indices/objects, the successful `pathMatch`, signed `lineDelta`, and `absoluteLineDelta`.
+
+Each candidate `ranking` object contains:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `endpointMatchKind` | `"source-and-sink"` \| `"sink-only"` \| `"source-only"` \| `"none"` | Compact endpoint evidence classification |
+| `endpointEvidenceStrength` | `3` \| `2` \| `1` \| `0` | Analysis tier for both, sink-only, source-only, or no endpoint evidence |
+| `closestEndpointLineDelta` | `number \| null` | Signed offset for the closest matching endpoint |
+| `closestEndpointAbsoluteLineDelta` | `number \| null` | Absolute offset for the closest matching endpoint |
+| `rankAmongAllCandidates` | `number` | 1-based rank among every ground-truth candidate for this finding |
+| `rankAmongAvailableCandidates` | `number \| null` | 1-based rank after removing ineligible/already-consumed candidates |
+| `candidateCount` | `number` | Total ground-truth candidates compared to this finding |
+| `availableCandidateCount` | `number` | Eligible, unconsumed candidates available for selection |
+| `factors` | `object` | Exact current comparator signals: eligibility, type match, distinct source/sink pair, endpoint-type count, total location matches, and ground-truth order |
+
+The compact evidence tier is recorded for analysis but does **not** change the current scoring criteria or comparator. The current comparator still orders by `eligible`, `typeMatched`, `distinctSourceSinkPairMatched`, matched endpoint-type count, total location matches, then ground-truth order. This preserves current behavior while making both/sink/source evidence and every line offset available for future scorer experiments.
 
 Each `findingOutcomes[]` object contains `findingId`, `status` (`matched` or `false-positive`), optional `matchedVulnerabilityId`, optional `bestCandidateVulnerabilityId`, every `eligibleCandidateVulnerabilityIds`, and optional `failureReason`. Finding failure reasons are `no-type-match`, `endpoint-requirement-not-met`, or `duplicate-finding`.
 
@@ -1595,7 +1613,7 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
 
 ```json
 {
-  "schemaVersion": "v2-endpoint-diagnostics-1",
+  "schemaVersion": "v2-endpoint-diagnostics-2",
   "lineTolerance": 5,
   "candidateComparisons": [
     {
@@ -1609,6 +1627,24 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
       "missingEndpointTypes": ["source"],
       "eligible": false,
       "selected": false,
+      "ranking": {
+        "endpointMatchKind": "sink-only",
+        "endpointEvidenceStrength": 2,
+        "closestEndpointLineDelta": 0,
+        "closestEndpointAbsoluteLineDelta": 0,
+        "rankAmongAllCandidates": 1,
+        "rankAmongAvailableCandidates": null,
+        "candidateCount": 3,
+        "availableCandidateCount": 0,
+        "factors": {
+          "eligible": false,
+          "typeMatched": true,
+          "distinctSourceSinkPairMatched": false,
+          "matchedEndpointTypeCount": 1,
+          "totalLocationMatches": 1,
+          "groundTruthCandidateIndex": 1
+        }
+      },
       "status": "ineligible",
       "failureReasons": ["missing-source"],
       "typeComparisons": ["... all label pairs ..."],
