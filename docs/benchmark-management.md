@@ -295,6 +295,8 @@ Each entry in `vulnerabilities`:
 | `"insecure-cryptography"` | Broken or risky cryptographic algorithm, such as DES (Snyk: `java/InsecureCipher`, CWE-327) |
 | `"prototype-pollution"` | Unsafe merge or dynamic property paths that can pollute `Object.prototype` (Snyk: `javascript/PrototypePollution`, CWE-1321) |
 | `"origin-validation-error"` | Overly permissive cross-origin policy (e.g. `Access-Control-Allow-Origin: *` with credentialed requests); Snyk labels this **Origin Validation Error** (`javascript/TooPermissiveCorsHeader`, CWE-942 / CWE-346) |
+| `"mass-assignment"` | User-controlled object properties are bound to sensitive model fields without an allowlist |
+| `"template-injection"` | User-controlled content is evaluated or rendered in a template context without appropriate escaping |
 | `"other"` | Any vulnerability that doesn't fit the above categories |
 
 **Scoring note:** The scorer matches findings by `type`. If your fixture has two SQL injections, give each its own entry with unique `id`s — they will be tracked and scored independently.
@@ -326,9 +328,9 @@ Each `vulnerabilities` entry uses the following shape:
 | `filesRelated` | Yes | `{ "file": string, "line": number, "type"?: "source" \| "sink" }[]` | Non-empty source-to-sink locations; paths are relative to `project/`. Mark endpoint locations as `source` and `sink`; intermediate locations omit `type`. A one-location flow marks its sole location as either endpoint type. |
 | `description` | Yes | `string` | Explanation of the vulnerability and flow |
 | `vulnerabilityImpact` | Yes | `string` | Security impact of successful exploitation |
-| `codeflowMultiLine` | Yes | `"yes"` \| `"no"` | Whether the flow spans multiple locations. The loader also accepts the existing `codeflowMultiLines` spelling and normalizes it in memory. |
-| `codeflowCrossFile` | Yes | `"yes"` \| `"no"` | Whether locations span multiple files |
-| `codeflowCrossService` | No | `"yes"` \| `"no"` | Preserved when present, but currently out of scope for scoring |
+| `codeFlowMultiLine` | Yes | `"yes"` \| `"no"` | Whether the flow spans multiple locations. It must agree with `filesRelated`. |
+| `codeFlowCrossFile` | Yes | `"yes"` \| `"no"` | Whether locations span multiple files. It must agree with `filesRelated`. |
+| `codeFlowCrossService` | No | `"yes"` \| `"no"` | Preserved when present, but currently out of scope for scoring |
 
 The V2 scorer requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path or exact basename; lines allow an inclusive ±5 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the threshold. A finding receives no partial credit when it misses the applicable endpoint rule.
 
@@ -338,9 +340,11 @@ Aggregate JSONL rows preserve the generation context: each `task-aggregate` has 
 
 The curated V2 files currently live in:
 
+- `fixtures/app-project-coffeeshop/findings-attacker-reachable.json`
 - `fixtures/app-project-halloween/findings-attacker-reachable.json`
 - `fixtures/app-project-keystonebank/findings-attacker-reachable.json`
 - `fixtures/app-project-sassyreg/findings-attacker-reachable.json`
+- `fixtures/app-project-vinyl-marketplace/findings-attacker-reachable.json`
 
 ---
 

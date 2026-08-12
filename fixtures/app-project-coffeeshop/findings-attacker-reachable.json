@@ -33,9 +33,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into createNativeQuery, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
       "vulnerabilityImpact": "Unsanitized input from an HTTP parameter flows from Controller to Repository and then is used to construct a raw SQL query. The attacker can manipulate the input to execute arbitrary SQL commands, as the raw query is then executed by the database.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "coffeeshop-path-traversal-1",
@@ -64,9 +64,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.write, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
       "vulnerabilityImpact": "Attackers can use the logo image upload feature to overwrite arbitrary files on the server due to incorrectly sanitizing the filename which creates an arbitrary file write and path traversal impact on the server.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "coffeeshop-xss-1",
@@ -91,9 +91,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into write, where it is used to render an HTML page returned to the user. This may result in a Cross-Site Scripting attack (XSS).",
       "vulnerabilityImpact": "Attackers can inject JavaScript code into the param query parameter, which gets reflected back to users in the generated HTML page on the products page",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "coffeeshop-xss-2",
@@ -123,9 +123,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into write, where it is used to render an HTML page returned to the user. This may result in a Cross-Site Scripting attack (XSS).",
       "vulnerabilityImpact": "Attackers can execute JavaScript code on the client-side in the ProductController page by injecting code to the Product database fields which then gets loaded through a product search query and flows through the Product list page as-is in an HTML template",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "coffeeshop-template-injection-1",
@@ -155,9 +155,9 @@
       ],
       "description": "Unsanitized input from user controlled fields flows into the database and then outputed in an uncontrolled and unfiltered manner into an HTML template context. This may result in a Template Injection vulnerability.",
       "vulnerabilityImpact": "Attackers can inject XSS payloads into the product description field which then gets persisted on the page in the products table via the insecure Thymeleaf template engine use of the th:utext directive.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     }
   ]
 }

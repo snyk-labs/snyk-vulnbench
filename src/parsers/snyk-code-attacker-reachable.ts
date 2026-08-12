@@ -87,8 +87,8 @@ export function parseSnykCodeAttackerReachableOutput(stdout: string): FindingRec
           severity: mapLevel(result.level ?? ""),
           description,
           vulnerabilityImpact: description,
-          codeflowMultiLine: filesRelated.length > 1 ? "yes" as const : "no" as const,
-          codeflowCrossFile: new Set(filesRelated.map((location) => location.file)).size > 1
+          codeFlowMultiLine: filesRelated.length > 1 ? "yes" as const : "no" as const,
+          codeFlowCrossFile: new Set(filesRelated.map((location) => location.file)).size > 1
             ? "yes" as const
             : "no" as const,
         };

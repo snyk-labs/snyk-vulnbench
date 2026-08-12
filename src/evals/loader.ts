@@ -87,7 +87,7 @@ function normalizeAttackerReachableVulns(
     }
 
     const id = requireString(value.id, fixtureName, index, "id");
-    const type = requireString(value.type, fixtureName, index, "type") as VulnType;
+    const type = requireVulnType(value.type, fixtureName, index);
     const severity = requireSeverity(value.severity, fixtureName, index);
     const description = requireString(value.description, fixtureName, index, "description");
     const vulnerabilityImpact = requireString(
@@ -102,22 +102,29 @@ function normalizeAttackerReachableVulns(
       ? undefined
       : requireStringArray(value.typeAliases, fixtureName, index, "typeAliases");
 
-    const multiLineValue = value.codeflowMultiLine ?? value.codeflowMultiLines;
-    const codeflowMultiLine = requireYesNo(
-      multiLineValue,
+    rejectLegacyCodeFlowFields(value, fixtureName, index);
+    const codeFlowMultiLine = requireYesNo(
+      value.codeFlowMultiLine,
       fixtureName,
       index,
-      "codeflowMultiLine/codeflowMultiLines",
+      "codeFlowMultiLine",
     );
-    const codeflowCrossFile = requireYesNo(
-      value.codeflowCrossFile,
+    const codeFlowCrossFile = requireYesNo(
+      value.codeFlowCrossFile,
       fixtureName,
       index,
-      "codeflowCrossFile",
+      "codeFlowCrossFile",
     );
-    const codeflowCrossService = value.codeflowCrossService === undefined
+    validateDerivedCodeFlowFields(
+      filesRelated,
+      codeFlowMultiLine,
+      codeFlowCrossFile,
+      fixtureName,
+      index,
+    );
+    const codeFlowCrossService = value.codeFlowCrossService === undefined
       ? undefined
-      : requireYesNo(value.codeflowCrossService, fixtureName, index, "codeflowCrossService");
+      : requireYesNo(value.codeFlowCrossService, fixtureName, index, "codeFlowCrossService");
 
     return {
       id,
@@ -129,9 +136,9 @@ function normalizeAttackerReachableVulns(
       line: filesRelated[0].line,
       description,
       vulnerabilityImpact,
-      codeflowMultiLine,
-      codeflowCrossFile,
-      ...(codeflowCrossService && { codeflowCrossService }),
+      codeFlowMultiLine,
+      codeFlowCrossFile,
+      ...(codeFlowCrossService && { codeFlowCrossService }),
     };
   });
 }
@@ -232,6 +239,88 @@ function requireString(
     throw invalidAttackerReachableVuln(fixtureName, index, `${field} must be a non-empty string`);
   }
   return value;
+}
+
+function requireVulnType(value: unknown, fixtureName: string, index: number): VulnType {
+  const type = requireString(value, fixtureName, index, "type");
+  if (!VULN_TYPES.has(type as VulnType)) {
+    throw invalidAttackerReachableVuln(fixtureName, index, `type must be a supported VulnType, got "${type}"`);
+  }
+  return type as VulnType;
+}
+
+const VULN_TYPES = new Set<VulnType>([
+  "sql-injection",
+  "xss",
+  "path-traversal",
+  "command-injection",
+  "code-injection",
+  "hardcoded-credentials",
+  "insecure-deserialization",
+  "idor",
+  "xxe",
+  "ssrf",
+  "open-redirect",
+  "csrf",
+  "information-exposure",
+  "allocation-of-resources-without-limits-or-throttling",
+  "redos",
+  "improper-code-sanitization",
+  "improper-type-validation",
+  "insecure-transport",
+  "insecure-cryptography",
+  "prototype-pollution",
+  "origin-validation-error",
+  "mass-assignment",
+  "template-injection",
+  "other",
+]);
+
+function rejectLegacyCodeFlowFields(
+  value: Record<string, unknown>,
+  fixtureName: string,
+  index: number,
+): void {
+  const legacyFields = [
+    "codeflowMultiLine",
+    "codeflowMultiLines",
+    "codeflowCrossFile",
+    "codeflowCrossService",
+  ].filter((field) => field in value);
+  if (legacyFields.length > 0) {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      `${legacyFields.join(", ")} uses legacy casing; use codeFlow… fields instead`,
+    );
+  }
+}
+
+function validateDerivedCodeFlowFields(
+  filesRelated: FileLocation[],
+  codeFlowMultiLine: "yes" | "no",
+  codeFlowCrossFile: "yes" | "no",
+  fixtureName: string,
+  index: number,
+): void {
+  const expectedMultiLine = filesRelated.length > 1 ? "yes" : "no";
+  const expectedCrossFile = new Set(filesRelated.map((location) => location.file)).size > 1
+    ? "yes"
+    : "no";
+  if (codeFlowMultiLine !== expectedMultiLine) {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      `codeFlowMultiLine must be "${expectedMultiLine}" for ${filesRelated.length} filesRelated location(s)`,
+    );
+  }
+  if (codeFlowCrossFile !== expectedCrossFile) {
+    throw invalidAttackerReachableVuln(
+      fixtureName,
+      index,
+      `codeFlowCrossFile must be "${expectedCrossFile}" for the declared filesRelated locations`,
+    );
+  }
 }
 
 function requireStringArray(

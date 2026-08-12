@@ -30,13 +30,13 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into createNativeQuery, where it is used in an SQL query. This may result in an SQL Injection vulnerability.",
       "vulnerabilityImpact": "Attackers can manipulate search parameters to execute arbitrary SQL commands, as the raw query is then executed by the database.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-unsafe-deserialization-1",
-      "type": "unsafe-deserialization",
+      "type": "insecure-deserialization",
       "typeAliases": ["unsafe deserialization", "deserialization of untrusted data", "deserialization", "object deserialization"],
       "severity": "high",
       "filesRelated": [
@@ -58,9 +58,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into java.io.ObjectInputStream, where it is used to deserialize an object. This may result in an Unsafe Deserialization vulnerability.",
       "vulnerabilityImpact": "Attackers can deserialize arbitrary objects, including malicious ones, which can lead to remote code execution.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-path-traversal-1",
@@ -89,9 +89,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
       "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-path-traversal-2",
@@ -120,9 +120,9 @@
       ],
       "description": "Unsanitized input from an HTTP parameter flows into java.nio.file.Files.copy, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to write to arbitrary files.",
       "vulnerabilityImpact": "Attackers can write to arbitrary files, which can lead to remote code execution or other security issues.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "no",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-xss-1",
@@ -169,9 +169,9 @@
       ],
       "description": "Unsanitized input from a remote resource flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
       "vulnerabilityImpact": "Attackers can provide an image filename containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-xss-2",
@@ -221,9 +221,9 @@
       ],
       "description": "Unsanitized input from a remote resource flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
       "vulnerabilityImpact": "Attackers can provide a vinyl title containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     },
     {
       "id": "vinyl-marketplace-xss-3",
@@ -331,9 +331,9 @@
       ],
       "description": "Unsanitized input from the document location flows into innerHTML, where it is used to dynamically construct the HTML page on client side. This may result in a DOM Based Cross-Site Scripting attack (DOMXSS).",
       "vulnerabilityImpact": "Attackers can provide a vinyl title containing HTML tags such as x%22%20onerror%3D%22alert(document.domain)%22%20a%3D%22.jpg which upon decoding will effectively be interpreted as a legitimate file name on disk and persisted as a path that later passes down to the HTML layout that uses an incorrect context for escapeHtml() function to sanitize the data, becoming a valid persistent XSS attack vector.",
-      "codeflowMultiLine": "yes",
-      "codeflowCrossFile": "yes",
-      "codeflowCrossService": "no"
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
     }
   ]
 }

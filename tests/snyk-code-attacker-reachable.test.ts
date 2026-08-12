@@ -76,8 +76,8 @@ test("rich Snyk parser extracts and deduplicates all code-flow locations", () =>
     severity: "high",
     description: "User input reaches readFile",
     vulnerabilityImpact: "User input reaches readFile",
-    codeflowMultiLine: "yes",
-    codeflowCrossFile: "yes",
+    codeFlowMultiLine: "yes",
+    codeFlowCrossFile: "yes",
   });
 });
 
@@ -107,6 +107,6 @@ test("rich parser handles invalid, empty, and location-free SARIF", () => {
     }],
   }));
   assert.deepEqual(withoutLocations[0]?.filesRelated, []);
-  assert.equal(withoutLocations[0]?.codeflowMultiLine, "no");
-  assert.equal(withoutLocations[0]?.codeflowCrossFile, "no");
+  assert.equal(withoutLocations[0]?.codeFlowMultiLine, "no");
+  assert.equal(withoutLocations[0]?.codeFlowCrossFile, "no");
 });

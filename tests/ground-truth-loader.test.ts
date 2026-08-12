@@ -16,10 +16,20 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
     "app-project-sassyreg",
     "attacker-reachable",
   ) as AttackerReachableVulnerability[];
+  const coffeeshop = loadVulns(
+    "app-project-coffeeshop",
+    "attacker-reachable",
+  ) as AttackerReachableVulnerability[];
+  const vinylMarketplace = loadVulns(
+    "app-project-vinyl-marketplace",
+    "attacker-reachable",
+  ) as AttackerReachableVulnerability[];
 
   assert.equal(halloween.length, 3);
   assert.equal(keystonebank.length, 4);
   assert.equal(sassyreg.length, 2);
+  assert.equal(coffeeshop.length, 5);
+  assert.equal(vinylMarketplace.length, 7);
   assert.deepEqual(
     { file: halloween[0].file, line: halloween[0].line },
     {
@@ -27,15 +37,19 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
       line: halloween[0].filesRelated[0].line,
     },
   );
-  assert.equal(sassyreg[0].codeflowMultiLine, "yes");
-  assert.equal(keystonebank[0].codeflowCrossService, undefined);
+  assert.equal(sassyreg[0].codeFlowMultiLine, "yes");
+  assert.equal(keystonebank[0].codeFlowCrossService, "no");
   assert.equal(halloween[0].filesRelated[0].type, "source");
   assert.equal(halloween[0].filesRelated[1].type, "sink");
   assert.equal(sassyreg[0].filesRelated[2].type, "source");
   assert.equal(sassyreg[0].filesRelated[4].type, "sink");
+  assert.equal(coffeeshop[0].filesRelated[0].type, "source");
+  assert.equal(coffeeshop[0].filesRelated.at(-1)?.type, "sink");
+  assert.equal(vinylMarketplace[0].filesRelated[0].type, "source");
+  assert.equal(vinylMarketplace[0].filesRelated.at(-1)?.type, "sink");
 });
 
-test("task loading defaults V1 and opts the three new tasks into V2", () => {
+test("task loading defaults V1 and opts attacker-reachable tasks into V2", () => {
   const tasks = loadEvalTasks();
   const v1 = tasks.find((task) => task.id === "app-project-halloween-find-vulns");
   const v2Tasks = tasks.filter((task) =>
@@ -43,10 +57,10 @@ test("task loading defaults V1 and opts the three new tasks into V2", () => {
   );
 
   assert.equal(v1?.groundTruth, "v1");
-  assert.equal(v2Tasks.length, 3);
+  assert.equal(v2Tasks.length, 5);
   assert.ok(v2Tasks.every((task) => task.groundTruth === "attacker-reachable"));
   assert.deepEqual(
     v2Tasks.map((task) => task.knownVulns.length).sort((a, b) => a - b),
-    [2, 3, 4],
+    [2, 3, 4, 5, 7],
   );
 });

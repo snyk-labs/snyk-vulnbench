@@ -1,0 +1,8 @@
+{
+  "id": "app-project-vinyl-marketplace-attacker-reachable-find-vulns",
+  "name": "App Java Vinyl Marketplace: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-vinyl-marketplace",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 45
+}

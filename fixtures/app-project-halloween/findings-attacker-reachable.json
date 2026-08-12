@@ -21,9 +21,9 @@
         ],
         "description": "The query filter object's type and filter property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
         "vulnerabilityImpact": "Improper Type Validation in query filter object can be tampered via HTTP Parameter Pollution leading to others types flowing into the search query in the sink",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "no",
-        "codeflowCrossService": "no"
+        "codeFlowMultiLine": "yes",
+        "codeFlowCrossFile": "no",
+        "codeFlowCrossService": "no"
         // poc: curl -X 'GET' -H 'accept: application/json' "http://localhost:8080/users?filter[]=A"| jq
       },
       {
@@ -57,9 +57,9 @@
         ],
         "description": "The query includes object's type and includes property are user-controlled without runtime type validation (Snyk: javascript/HTTPSourceWithUncheckedType, CWE-1287).",
         "vulnerabilityImpact": "Improper Type Validation in query name field flows into sanitize XSS function without proper validation, leading to an XSS bypass in the response.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "no",
-        "codeflowCrossService": "no"
+        "codeFlowMultiLine": "yes",
+        "codeFlowCrossFile": "no",
+        "codeFlowCrossService": "no"
         // poc: curl -G -X 'GET' -H 'accept: application/json' "http://localhost:8080/users/component" --data-urlencode "name[]=<img src=x onError=alert(1) />"
         // poc expected response: "<h1>Hello, <img src=x onError=alert(1) />!</h1>"
       },
@@ -110,9 +110,9 @@
         ],
         "description": "Mass Assignment allows an attacker to modify the user's profile data, including sensitive information like email and role, leading to unauthorized access and data breaches.",
         "vulnerabilityImpact": "Mass Assignment allows an attacker to modify the user's profile data, including sensitive information like email and role, leading to unauthorized access and data breaches.",
-        "codeflowMultiLine": "yes",
-        "codeflowCrossFile": "yes",
-        "codeflowCrossService": "no"
+        "codeFlowMultiLine": "yes",
+        "codeFlowCrossFile": "yes",
+        "codeFlowCrossService": "no"
         // poc: curl -X POST -H 'Content-Type: application/json' http://localhost:8080/users/1/profile -d '{"name": "Liran", "email": "liran@example.com", "age": 30, "role": "admin"}'
       }
     ]

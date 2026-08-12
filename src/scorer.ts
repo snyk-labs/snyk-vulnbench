@@ -425,14 +425,14 @@ function normalizeAttackerReachableFindings(
         line: filesRelated[0]?.line,
         description: String(item.description ?? ""),
         vulnerabilityImpact: String(item.vulnerabilityImpact ?? ""),
-        codeflowMultiLine: item.codeflowMultiLine === "yes" || item.codeflowMultiLine === "no"
-          ? item.codeflowMultiLine
+        codeFlowMultiLine: item.codeFlowMultiLine === "yes" || item.codeFlowMultiLine === "no"
+          ? item.codeFlowMultiLine
           : inferredMultiLine,
-        codeflowCrossFile: item.codeflowCrossFile === "yes" || item.codeflowCrossFile === "no"
-          ? item.codeflowCrossFile
+        codeFlowCrossFile: item.codeFlowCrossFile === "yes" || item.codeFlowCrossFile === "no"
+          ? item.codeFlowCrossFile
           : inferredCrossFile,
-        ...(item.codeflowCrossService === "yes" || item.codeflowCrossService === "no"
-          ? { codeflowCrossService: item.codeflowCrossService }
+        ...(item.codeFlowCrossService === "yes" || item.codeFlowCrossService === "no"
+          ? { codeFlowCrossService: item.codeFlowCrossService }
           : {}),
       };
     });
@@ -524,6 +524,10 @@ function normalizeVulnType(raw: string): VulnType {
     "code injection": "code-injection",
     "code-injection": "code-injection",
     "eval injection": "code-injection",
+    "mass assignment": "mass-assignment",
+    "mass-assignment": "mass-assignment",
+    "template injection": "template-injection",
+    "template-injection": "template-injection",
     "hardcoded credentials": "hardcoded-credentials",
     "hardcoded-credentials": "hardcoded-credentials",
     "hardcoded secret": "hardcoded-credentials",

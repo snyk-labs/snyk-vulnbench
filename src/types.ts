@@ -20,6 +20,8 @@ export type VulnType =
   | "insecure-cryptography"
   | "prototype-pollution"
   | "origin-validation-error"
+  | "mass-assignment"
+  | "template-injection"
   | "other";
 
 export type Severity = "critical" | "high" | "medium" | "low";
@@ -51,10 +53,10 @@ export interface AttackerReachableVulnerability extends Vulnerability {
   typeAliases?: string[];
   filesRelated: FileLocation[];
   vulnerabilityImpact: string;
-  codeflowMultiLine: "yes" | "no";
-  codeflowCrossFile: "yes" | "no";
+  codeFlowMultiLine: "yes" | "no";
+  codeFlowCrossFile: "yes" | "no";
   /** Captured when present, but intentionally excluded from V2 scoring. */
-  codeflowCrossService?: "yes" | "no";
+  codeFlowCrossService?: "yes" | "no";
 }
 
 export interface EvalCategory {
@@ -77,7 +79,7 @@ FINDINGS_JSON:
 \`\`\`json
 [
   {
-    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|code-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|redos|improper-code-sanitization|improper-type-validation|insecure-transport|insecure-cryptography|prototype-pollution|origin-validation-error|insecure-deserialization|idor|xxe|other>",
+    "type": "<one of the VulnType strings documented for this benchmark, e.g. sql-injection|xss|path-traversal|command-injection|code-injection|hardcoded-credentials|ssrf|csrf|open-redirect|information-exposure|allocation-of-resources-without-limits-or-throttling|redos|improper-code-sanitization|improper-type-validation|insecure-transport|insecure-cryptography|prototype-pollution|origin-validation-error|mass-assignment|template-injection|insecure-deserialization|idor|xxe|other>",
     "file": "filename.ext",
     "line": <line number or null>,
     "severity": "critical|high|medium|low",
@@ -100,7 +102,7 @@ FINDINGS_JSON:
 \`\`\`json
 [
   {
-    "type": "<the vulnerability type, e.g. sql-injection|xss|path-traversal|prototype-pollution|improper-type-validation>",
+    "type": "<the vulnerability type, e.g. sql-injection|xss|path-traversal|prototype-pollution|improper-type-validation|mass-assignment|template-injection>",
     "typeAliases": ["optional alternative vulnerability names"],
     "filesRelated": [
       {
@@ -112,8 +114,8 @@ FINDINGS_JSON:
     "severity": "critical|high|medium|low",
     "description": "Brief explanation of the attacker-controlled source, code flow, and vulnerable sink",
     "vulnerabilityImpact": "Security impact if the vulnerability is exploited",
-    "codeflowMultiLine": "yes|no",
-    "codeflowCrossFile": "yes|no"
+    "codeFlowMultiLine": "yes|no",
+    "codeFlowCrossFile": "yes|no"
   }
 ]
 \`\`\`

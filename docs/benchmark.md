@@ -220,9 +220,11 @@ EVAL_CATEGORIES.FIX_VULNS
 EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS
   { id: "attacker-reachable-find-vulns" }
          │
+         ├── app-project-coffeeshop-attacker-reachable-find-vulns
          ├── app-project-halloween-attacker-reachable-find-vulns
          ├── app-project-keystonebank-attacker-reachable-find-vulns
-         └── app-project-sassyreg-attacker-reachable-find-vulns
+         ├── app-project-sassyreg-attacker-reachable-find-vulns
+         └── app-project-vinyl-marketplace-attacker-reachable-find-vulns
 ```
 
 #### Scoring Pipelines
@@ -972,9 +974,9 @@ For attacker-reachable tasks, the same `snyk-code` run config automatically sele
 - collects every `codeFlows[].threadFlows[].locations[].location.physicalLocation` plus primary result locations;
 - deduplicates `(file, startLine)` pairs into `filesRelated`;
 - labels the first and last distinct locations in each multi-location thread flow as `source` and `sink`;
-- derives `codeflowMultiLine` and `codeflowCrossFile`.
+- derives `codeFlowMultiLine` and `codeFlowCrossFile`.
 
-`codeflowCrossService` is not inferred or scored. VulnBench 1.0 tasks continue to use `parseSnykCodeOutput` and its primary `file`/`line` shape.
+`codeFlowCrossService` is not inferred or scored. VulnBench 1.0 tasks continue to use `parseSnykCodeOutput` and its primary `file`/`line` shape.
 
 Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam/findings.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
 
@@ -1625,8 +1627,6 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
       "totalLocationMatches": 1,
       "matchedEndpointTypes": ["sink"],
       "missingEndpointTypes": ["source"],
-      "eligible": false,
-      "selected": false,
       "ranking": {
         "endpointMatchKind": "sink-only",
         "endpointEvidenceStrength": 2,
@@ -1645,6 +1645,8 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
           "groundTruthCandidateIndex": 1
         }
       },
+      "eligible": false,
+      "selected": false,
       "status": "ineligible",
       "failureReasons": ["missing-source"],
       "typeComparisons": ["... all label pairs ..."],

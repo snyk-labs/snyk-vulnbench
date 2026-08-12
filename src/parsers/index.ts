@@ -15,8 +15,9 @@ export interface FindingRecord {
   severity: string;
   description: string;
   vulnerabilityImpact?: string;
-  codeflowMultiLine?: "yes" | "no";
-  codeflowCrossFile?: "yes" | "no";
+  codeFlowMultiLine?: "yes" | "no";
+  codeFlowCrossFile?: "yes" | "no";
+  codeFlowCrossService?: "yes" | "no";
 }
 
 export type ParserFn = (stdout: string) => FindingRecord[];

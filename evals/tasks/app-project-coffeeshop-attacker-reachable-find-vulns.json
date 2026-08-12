@@ -1,0 +1,8 @@
+{
+  "id": "app-project-coffeeshop-attacker-reachable-find-vulns",
+  "name": "App Java CoffeeShop: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-coffeeshop",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 45
+}

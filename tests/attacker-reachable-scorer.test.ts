@@ -29,8 +29,8 @@ function attackerVuln(
     line: filesRelated[0].line,
     description: id,
     vulnerabilityImpact: "test impact",
-    codeflowMultiLine: filesRelated.length > 1 ? "yes" : "no",
-    codeflowCrossFile: new Set(filesRelated.map((location) => location.file)).size > 1
+    codeFlowMultiLine: filesRelated.length > 1 ? "yes" : "no",
+    codeFlowCrossFile: new Set(filesRelated.map((location) => location.file)).size > 1
       ? "yes"
       : "no",
   };
