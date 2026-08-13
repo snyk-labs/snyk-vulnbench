@@ -1,0 +1,127 @@
+{
+  "description": "React Slingshot application with intentionally attacker-reachable DOM XSS and prototype-pollution flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-slingshot-xss-referral",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "dom-based xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/utils/referralSource.js",
+          "line": 3,
+          "type": "source"
+        },
+        {
+          "file": "src/components/AboutPage.js",
+          "line": 8
+        },
+        {
+          "file": "src/components/AboutPage.js",
+          "line": 14,
+          "type": "sink"
+        }
+      ],
+      "description": "The About page renders a referral source obtained from document location data as HTML through dangerouslySetInnerHTML.",
+      "vulnerabilityImpact": "An attacker can execute JavaScript in the application origin by supplying markup through the referral value.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-slingshot-xss-campaign",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "dom-based xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/utils/campaignMessage.js",
+          "line": 2,
+          "type": "source"
+        },
+        {
+          "file": "src/utils/campaignMessage.js",
+          "line": 3
+        },
+        {
+          "file": "src/components/HomePage.js",
+          "line": 6
+        },
+        {
+          "file": "src/components/HomePage.js",
+          "line": 13,
+          "type": "sink"
+        }
+      ],
+      "description": "The home page places a campaign message from the URL into a rich HTML banner using dangerouslySetInnerHTML.",
+      "vulnerabilityImpact": "An attacker can execute JavaScript in the application origin through a crafted campaign URL.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-slingshot-prototype-pollution-shared",
+      "type": "prototype-pollution",
+      "typeAliases": [
+        "prototype pollution",
+        "prototype pollution via dynamic property"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 2,
+          "type": "source"
+        },
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 3
+        },
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The shared-preferences URL loader uses an attacker-controlled section as a dynamic nested property on a plain object before storing the preference.",
+      "vulnerabilityImpact": "A crafted section such as __proto__ can modify Object.prototype and influence unrelated application objects.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-slingshot-prototype-pollution-display",
+      "type": "prototype-pollution",
+      "typeAliases": [
+        "prototype pollution",
+        "prototype pollution via dynamic property"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 19,
+          "type": "source"
+        },
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 20
+        },
+        {
+          "file": "src/utils/sharedPreferences.js",
+          "line": 26,
+          "type": "sink"
+        }
+      ],
+      "description": "The display-preferences loader uses an attacker-controlled section as a dynamic object property before assigning a display setting.",
+      "vulnerabilityImpact": "A crafted section such as __proto__ can write to Object.prototype and create application-wide polluted properties.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    }
+  ]
+}
