@@ -148,3 +148,5 @@ results/
 
 # APM dependencies
 apm_modules/
+
+.data
