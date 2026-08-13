@@ -1,8 +1,8 @@
 const crypto = require('node:crypto');
-const { exec } = require('child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const cheerio = require('cheerio');
+const dnsDiagnostics = require('../config/dns-diagnostics');
 const { LastFmNode } = require('lastfm');
 const multer = require('multer');
 const { OAuth } = require('oauth');
@@ -1739,19 +1739,14 @@ exports.getGiphy = async (req, res, next) => {
   }
 };
 
-function buildDnsLookupCommand(hostname) {
-  return `getent hosts "${hostname}"`;
-}
-
 /**
  * GET /api/diagnostics/dns
  * Resolve a hostname for an integration diagnostic.
  */
 exports.getDnsDiagnostics = (req, res) => {
   const { hostname } = req.query;
-  const lookupCommand = hostname && buildDnsLookupCommand(String(hostname));
 
-  exec(lookupCommand, (error, stdout, stderr) => {
+  dnsDiagnostics.resolveHostname(hostname, (error, stdout, stderr) => {
     if (error) {
       return res
         .status(500)

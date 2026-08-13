@@ -12,23 +12,27 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1751,
+          "line": 1747,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1752
+          "line": 1749
         },
         {
-          "file": "controllers/api.js",
-          "line": 1754,
+          "file": "config/dns-diagnostics.js",
+          "line": 8
+        },
+        {
+          "file": "config/dns-diagnostics.js",
+          "line": 9,
           "type": "sink"
         }
       ],
-      "description": "The public DNS diagnostics endpoint accepts an expected hostname, embeds it in a quoted getent command, and passes the resulting command to child_process.exec.",
+      "description": "The public DNS diagnostics endpoint passes an expected hostname from the API controller to a separate DNS diagnostic module, which embeds it in a quoted getent command before calling child_process.exec.",
       "vulnerabilityImpact": "An attacker can execute arbitrary shell commands with the privileges of the Node.js process.",
       "codeFlowMultiLine": "yes",
-      "codeFlowCrossFile": "no"
+      "codeFlowCrossFile": "yes"
     },
     {
       "id": "app-project-boilwater-open-redirect-query",
@@ -41,12 +45,12 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1770,
+          "line": 1765,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1772,
+          "line": 1767,
           "type": "sink"
         }
       ],
@@ -67,16 +71,16 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1780,
+          "line": 1775,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1781
+          "line": 1776
         },
         {
           "file": "controllers/api.js",
-          "line": 1783,
+          "line": 1778,
           "type": "sink"
         }
       ],
