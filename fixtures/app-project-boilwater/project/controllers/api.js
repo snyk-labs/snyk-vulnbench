@@ -2,7 +2,9 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const cheerio = require('cheerio');
+const documentDownloads = require('../config/document-downloads');
 const dnsDiagnostics = require('../config/dns-diagnostics');
+const redirectHandler = require('../config/redirect-handler');
 const { LastFmNode } = require('lastfm');
 const multer = require('multer');
 const { OAuth } = require('oauth');
@@ -1764,7 +1766,7 @@ exports.getDnsDiagnostics = (req, res) => {
 exports.getRedirect = (req, res) => {
   const { target } = req.query;
   if (!target) return res.status(400).send('Missing target');
-  return res.redirect(target);
+  return redirectHandler.redirectTo(res, target);
 };
 
 /**
@@ -1773,9 +1775,5 @@ exports.getRedirect = (req, res) => {
  */
 exports.downloadDocument = (req, res, next) => {
   const requestedFile = String(req.query.file || '');
-  const filePath = path.join(__dirname, '..', 'public', 'documents', requestedFile);
-
-  res.download(filePath, (error) => {
-    if (error && !res.headersSent) next(error);
-  });
+  return documentDownloads.download(res, requestedFile, next);
 };

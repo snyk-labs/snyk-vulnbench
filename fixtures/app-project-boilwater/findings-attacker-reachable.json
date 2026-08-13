@@ -12,12 +12,12 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1747,
+          "line": 1749,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1749
+          "line": 1751
         },
         {
           "file": "config/dns-diagnostics.js",
@@ -45,19 +45,23 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1765,
+          "line": 1767,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1767,
+          "line": 1769
+        },
+        {
+          "file": "config/redirect-handler.js",
+          "line": 1,
           "type": "sink"
         }
       ],
-      "description": "The public redirect endpoint sends the attacker-controlled target query parameter directly to Express res.redirect.",
+      "description": "The public redirect endpoint passes the attacker-controlled target query parameter to a separate redirect handler that calls Express res.redirect.",
       "vulnerabilityImpact": "An attacker can make users follow a trusted application URL that redirects them to an arbitrary external destination.",
       "codeFlowMultiLine": "yes",
-      "codeFlowCrossFile": "no"
+      "codeFlowCrossFile": "yes"
     },
     {
       "id": "app-project-boilwater-path-traversal-download",
@@ -71,23 +75,31 @@
       "filesRelated": [
         {
           "file": "controllers/api.js",
-          "line": 1775,
+          "line": 1777,
           "type": "source"
         },
         {
           "file": "controllers/api.js",
-          "line": 1776
+          "line": 1778
         },
         {
-          "file": "controllers/api.js",
-          "line": 1778,
+          "file": "config/document-downloads.js",
+          "line": 3
+        },
+        {
+          "file": "config/document-downloads.js",
+          "line": 4
+        },
+        {
+          "file": "config/document-downloads.js",
+          "line": 6,
           "type": "sink"
         }
       ],
-      "description": "The public document download endpoint joins an attacker-controlled file parameter with a nominal document directory without validating that the result remains inside that directory.",
+      "description": "The public document download endpoint passes an attacker-controlled file parameter to a separate download module that joins it with a nominal document directory without validating containment before res.download.",
       "vulnerabilityImpact": "An attacker can use relative path segments to download arbitrary files readable by the Node.js process.",
       "codeFlowMultiLine": "yes",
-      "codeFlowCrossFile": "no"
+      "codeFlowCrossFile": "yes"
     },
     {
       "id": "app-project-boilwater-open-redirect-referrer",
