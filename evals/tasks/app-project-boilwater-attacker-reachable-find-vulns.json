@@ -1,0 +1,8 @@
+{
+  "id": "app-project-boilwater-attacker-reachable-find-vulns",
+  "name": "App Project Boilwater: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-boilwater",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 35
+}

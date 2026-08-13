@@ -1,4 +1,5 @@
 const crypto = require('node:crypto');
+const { exec } = require('child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const cheerio = require('cheerio');
@@ -1736,4 +1737,50 @@ exports.getGiphy = async (req, res, next) => {
     console.error('GIPHY API Error:', error);
     next(error);
   }
+};
+
+function buildDnsLookupCommand(hostname) {
+  return `getent hosts "${hostname}"`;
+}
+
+/**
+ * GET /api/diagnostics/dns
+ * Resolve a hostname for an integration diagnostic.
+ */
+exports.getDnsDiagnostics = (req, res) => {
+  const { hostname } = req.query;
+  const lookupCommand = hostname && buildDnsLookupCommand(String(hostname));
+
+  exec(lookupCommand, (error, stdout, stderr) => {
+    if (error) {
+      return res
+        .status(500)
+        .type('text/plain')
+        .send(stderr || error.message);
+    }
+    return res.type('text/plain').send(stdout);
+  });
+};
+
+/**
+ * GET /api/redirect
+ * Redirect to a caller-supplied destination.
+ */
+exports.getRedirect = (req, res) => {
+  const { target } = req.query;
+  if (!target) return res.status(400).send('Missing target');
+  return res.redirect(target);
+};
+
+/**
+ * GET /api/documents/download
+ * Download a document from the public document directory.
+ */
+exports.downloadDocument = (req, res, next) => {
+  const requestedFile = String(req.query.file || '');
+  const filePath = path.join(__dirname, '..', 'public', 'documents', requestedFile);
+
+  res.download(filePath, (error) => {
+    if (error && !res.headersSent) next(error);
+  });
 };

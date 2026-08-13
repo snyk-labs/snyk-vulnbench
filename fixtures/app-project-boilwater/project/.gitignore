@@ -22,7 +22,6 @@ public/css/main.css
 
 # API keys and secrets
 .env
-.env.example
 test/.env.test
 
 # Dependency directory

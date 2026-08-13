@@ -1,0 +1,109 @@
+{
+  "description": "Express app-project-boilwater application with intentionally attacker-reachable command execution, redirect, and file path flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-boilwater-command-injection-diagnostics",
+      "type": "command-injection",
+      "typeAliases": [
+        "indirect command injection",
+        "shell injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "controllers/api.js",
+          "line": 1751,
+          "type": "source"
+        },
+        {
+          "file": "controllers/api.js",
+          "line": 1752
+        },
+        {
+          "file": "controllers/api.js",
+          "line": 1754,
+          "type": "sink"
+        }
+      ],
+      "description": "The public DNS diagnostics endpoint accepts an expected hostname, embeds it in a quoted getent command, and passes the resulting command to child_process.exec.",
+      "vulnerabilityImpact": "An attacker can execute arbitrary shell commands with the privileges of the Node.js process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-boilwater-open-redirect-query",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "controllers/api.js",
+          "line": 1770,
+          "type": "source"
+        },
+        {
+          "file": "controllers/api.js",
+          "line": 1772,
+          "type": "sink"
+        }
+      ],
+      "description": "The public redirect endpoint sends the attacker-controlled target query parameter directly to Express res.redirect.",
+      "vulnerabilityImpact": "An attacker can make users follow a trusted application URL that redirects them to an arbitrary external destination.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-boilwater-path-traversal-download",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal",
+        "relative path traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "controllers/api.js",
+          "line": 1780,
+          "type": "source"
+        },
+        {
+          "file": "controllers/api.js",
+          "line": 1781
+        },
+        {
+          "file": "controllers/api.js",
+          "line": 1783,
+          "type": "sink"
+        }
+      ],
+      "description": "The public document download endpoint joins an attacker-controlled file parameter with a nominal document directory without validating that the result remains inside that directory.",
+      "vulnerabilityImpact": "An attacker can use relative path segments to download arbitrary files readable by the Node.js process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-boilwater-open-redirect-referrer",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "controllers/user.js",
+          "line": 649,
+          "type": "sink"
+        }
+      ],
+      "description": "When password-reset validation fails, the application redirects to the attacker-controlled HTTP Referrer header without validating the destination.",
+      "vulnerabilityImpact": "An attacker can cause a user who submits an invalid reset request to be redirected to an arbitrary external destination.",
+      "codeFlowMultiLine": "no",
+      "codeFlowCrossFile": "no"
+    }
+  ]
+}

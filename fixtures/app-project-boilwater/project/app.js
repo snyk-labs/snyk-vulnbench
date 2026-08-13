@@ -292,6 +292,9 @@ app.post('/account/webauthn/remove', passportConfig.isAuthenticated, webauthnCon
  * API examples routes.
  */
 app.get('/api', apiController.getApi);
+app.get('/api/diagnostics/dns', apiController.getDnsDiagnostics);
+app.get('/api/redirect', apiController.getRedirect);
+app.get('/api/documents/download', apiController.downloadDocument);
 app.get('/api/lastfm', apiController.getLastfm);
 app.get('/api/nyt', apiController.getNewYorkTimes);
 app.get('/api/steam', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getSteam);
