@@ -1,0 +1,30 @@
+nav.navbar.navbar-expand-lg.navbar-dark.bg-dark
+  .container
+    a.navbar-brand(href='/')
+      img.d-inline-block.align-text-top(src='/bootstrap-logo.svg', alt='', width='30', height='24')
+      |
+      | Hackathon Starter
+    button.navbar-toggler(type='button', data-bs-toggle='collapse', data-bs-target='#navbarColor01', aria-controls='navbarColor01', aria-expanded='false', aria-label='Toggle navigation')
+      span.navbar-toggler-icon
+    #navbarColor01.collapse.navbar-collapse
+      ul.navbar-nav.me-auto.mb-2.mb-lg-0
+        li.nav-item
+          a.nav-link(class=title === 'Home' ? 'active' : '', href='/') Home
+        li.nav-item
+          a.nav-link(class=title === 'AI Examples' ? 'active' : '', href='/ai') AI Examples
+        li.nav-item
+          a.nav-link(class=title === 'API Examples' ? 'active' : '', href='/api') API Examples
+        li.nav-item
+          a.nav-link(class=title === 'Contact' ? 'active' : '', href='/contact') Contact
+
+      form.d-flex
+        //- aria-pressed is kept in sync with data-bs-theme by /js/theme.js.
+        button.btn.btn-outline-light.me-2(type='button', data-theme-toggle, title='Toggle theme', aria-label='Toggle theme', aria-pressed='false')
+          i.fa-solid.fa-moon.theme-icon-moon(aria-hidden='true')
+          i.fa-solid.fa-sun.theme-icon-sun(aria-hidden='true')
+        if !user
+          a.btn.btn-outline-light.me-2(href='/login') Login
+          a.btn.btn-primary(href='/signup') Create Account
+        else
+          a.btn.btn-primary.me-2(href='/account') My Account
+          a.btn.btn-outline-danger(href='/logout') Sign out

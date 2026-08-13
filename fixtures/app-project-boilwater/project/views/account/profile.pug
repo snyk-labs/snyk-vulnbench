@@ -1,0 +1,280 @@
+extends ../layout
+
+block content
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Profile Information
+
+  form(action='/account/profile', method='POST')
+    input(type='hidden', name='_csrf', value=_csrf)
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='email') Email
+      .col-md-7
+        input#email.form-control(type='email', name='email', value=user.email, autocomplete='email', required)
+      .offset-sm-3.col-md-7.pl-3.mb-2
+        if user.emailVerified
+          .text-success.font-italic
+            | Verified
+        else
+          .text-danger.font-italic
+            | Unverified: &nbsp;
+            a(href='/account/verify') Send verification email
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='name') Name
+      .col-md-7.mt-2
+        input#name.form-control(type='text', name='name', value=user.profile.name, autocomplete='name')
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right Gender
+      .col-sm-6.mt-2
+        .form-check.form-check-inline
+          input.form-check-input(type='radio', checked=user.profile.gender == 'male', name='gender', value='male')
+          label.form-check-label Male
+        .form-check.form-check-inline
+          input.form-check-input(type='radio', checked=user.profile.gender == 'female', name='gender', value='female')
+          label.form-check-label Female
+        .form-check.form-check-inline
+          input.form-check-input(type='radio', checked=user.profile.gender == 'other', name='gender', value='other')
+          label.form-check-label Other
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='location') Location
+      .col-md-7.mb-2
+        input#location.form-control(type='text', name='location', value=user.profile.location, autocomplete='street-address')
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='website') Website
+      .col-md-7.mb-2
+        input#website.form-control(type='text', name='website', value=user.profile.website, autocomplete='url')
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right Profile Picture
+      .col-md-9.mb-2
+        .d-flex.align-items-center.gap-4
+          .text-center
+            img.rounded.border(src=user.profile.picture || user.gravatar(), width='96', height='96', referrerpolicy='no-referrer')
+            if user.profile.pictureSource
+              .small.text-muted.mt-1
+                div Current Picture
+                .small.text-muted From: #{ user.profile.pictureSource.charAt(0).toUpperCase() + user.profile.pictureSource.slice(1) }
+
+          if user.profile.pictures && user.profile.pictures.size > 1
+            .flex-grow-1
+              .d-flex.flex-wrap.gap-3
+                each picture, provider in Object.fromEntries(user.profile.pictures)
+                  label.border.rounded.p-2.text-center(data-picture-tile, class=user.profile.pictureSource === provider ? 'border-primary bg-light' : 'border-secondary', style='cursor: pointer; width: 110px')
+                    input.form-check-input.visually-hidden(type='radio', name='pictureSource', value=provider, checked=user.profile.pictureSource === provider)
+                    img.rounded.mb-1(src=picture, width='64', height='64', referrerpolicy='no-referrer')
+                    .small.text-muted= provider.charAt(0).toUpperCase() + provider.slice(1)
+
+    .form-group.mb-5
+      .offset-sm-3.col-md-7.pl-2
+        button.btn.btn-primary(type='submit')
+          i.fas.fa-pencil.fa-sm.me-2
+          | Update Profile
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Change Password
+
+  form(action='/account/password', method='POST')
+    input(type='hidden', name='_csrf', value=_csrf)
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='password') New Password
+      .col-md-7.mb-2
+        input#password.form-control(type='password', name='password', autocomplete='new-password', minlength='8', required)
+    .form-group.row
+      label.col-md-3.col-form-label.font-weight-bold.text-right(for='confirmPassword') Confirm Password
+      .col-md-7.mb-2
+        input#confirmPassword.form-control(type='password', name='confirmPassword', autocomplete='new-password', minlength='8', required)
+    .form-group.mb-5
+      .offset-sm-3.col-md-7.pl-2
+        button.btn.btn-primary(type='submit')
+          i.fas.fa-lock.fa-sm.me-2
+          | Change Password
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Biometric Login
+  .form-group.mb-5
+    .offset-sm-3.col-md-7.pl-2
+      if user.webauthnCredentials && user.webauthnCredentials.length
+        p.mb-2 Biometric login is enabled for this account.
+        form(action='/account/webauthn/remove', method='POST')
+          input(type='hidden', name='_csrf', value=_csrf)
+          button.btn.btn-outline-danger(type='submit')
+            i.fas.fa-fingerprint.fa-sm.me-2
+            | Remove biometric login
+      else
+        p#biometricUnsupported.text-muted.mb-2(style='display: none')
+          | Biometric login is not supported by this browser or device.
+        form#biometricEnableForm(action='/account/webauthn/register', method='POST', style='display: none')
+          input(type='hidden', name='_csrf', value=_csrf)
+          button.btn.btn-outline-secondary(type='submit')
+            i.fas.fa-fingerprint.fa-sm.me-2
+            | Enable biometric login
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Two-Factor Authentication (2FA)
+  .form-group.mb-5
+    .offset-sm-3.col-md-7.pl-2
+      if user.twoFactorEnabled
+        p.mb-3 Two-factor authentication is enabled for your account.
+        if user.twoFactorMethods && user.twoFactorMethods.length
+          .mb-3
+            p.mb-2.font-weight-bold Active methods:
+            if user.twoFactorMethods.includes('email')
+              .d-flex.justify-content-between.align-items-center.mb-2.p-2.border.rounded
+                .d-flex.align-items-center
+                  i.fas.fa-envelope.me-2
+                  span Email verification codes
+                form(action='/account/2fa/email/remove', method='POST', style='display: inline')
+                  input(type='hidden', name='_csrf', value=_csrf)
+                  button.btn.btn-sm.btn-outline-danger(type='submit') Remove
+            if user.twoFactorMethods.includes('totp')
+              .d-flex.justify-content-between.align-items-center.mb-2.p-2.border.rounded
+                .d-flex.align-items-center
+                  i.fas.fa-mobile-alt.me-2
+                  span Authenticator app
+                form(action='/account/2fa/totp/remove', method='POST', style='display: inline')
+                  input(type='hidden', name='_csrf', value=_csrf)
+                  button.btn.btn-sm.btn-outline-danger(type='submit') Remove
+        .mb-2
+          if !user.emailVerified
+            p.text-muted
+              i.fas.fa-exclamation-triangle.me-1
+              | Verify your email address to add additional 2FA method(s).
+          else
+            if !user.twoFactorMethods || !user.twoFactorMethods.includes('totp')
+              a.btn.btn-outline-secondary(href='/account/2fa/totp/setup')
+                i.fas.fa-mobile-alt.fa-sm.me-2
+                | Add Authenticator App
+            if !user.twoFactorMethods || !user.twoFactorMethods.includes('email')
+              form.ms-2(action='/account/2fa/email/enable', method='POST', style='display: inline')
+                input(type='hidden', name='_csrf', value=_csrf)
+                button.btn.btn-outline-secondary(type='submit')
+                  i.fas.fa-envelope.fa-sm.me-2
+                  | Add 2FA by Email
+      else
+        if !user.password
+          p.mb-2.text-muted You must set a password before enabling 2FA.
+        if !user.emailVerified
+          p.mb-2.text-muted You must verify your email before enabling 2FA.
+        if user.password && user.emailVerified
+          p.mb-3 Add an extra layer of security to your account.
+          .mb-2
+            a.btn.btn-outline-secondary(href='/account/2fa/totp/setup')
+              i.fas.fa-mobile-alt.fa-sm.me-2
+              | Setup Authenticator App
+          .mb-2
+            form(action='/account/2fa/email/enable', method='POST', style='display: inline')
+              input(type='hidden', name='_csrf', value=_csrf)
+              button.btn.btn-outline-secondary(type='submit')
+                i.fas.fa-envelope.fa-sm.me-2
+                | Enable Email 2FA
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Logout Everywhere
+
+  form(action='/account/logout-everywhere', method='POST')
+    input(type='hidden', name='_csrf', value=_csrf)
+    .form-group.mb-5
+      p.offset-sm-3.col-md-7.pl-2 This will log you out of all devices and locations.
+      .offset-sm-3.col-md-7.pl-2
+        button.btn.btn-danger(type='submit')
+          i.fas.fa-sm.me-2.fa-right-from-bracket
+          | Logout everywhere
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Delete Account
+
+  form(action='/account/delete', method='POST', onsubmit='return confirm(\'Are you sure you want to delete your account?\');')
+    .form-group.mb-5
+      p.offset-sm-3.col-md-7.pl-2 You can delete your account, but keep in mind this action is irreversible.
+      input(type='hidden', name='_csrf', value=_csrf)
+      .offset-sm-3.col-md-7.pl-2
+        button.btn.btn-danger(type='submit')
+          i.far.fa-trash-can.fa-sm.me-2
+          | Delete my account
+
+  .pb-2.mt-2.mb-4.border-bottom
+    h3 Linked Accounts
+  .form-group.mb-5
+    .offset-sm-3.col-md-7.pl-2
+      if user.discord
+        p.mb-1: a.text-danger(href='/account/unlink/discord') Unlink your Discord account
+      else
+        p.mb-1: a(href='/auth/discord') Link your Discord account
+    .offset-sm-3.col-md-7.pl-2
+      if user.facebook
+        p.mb-1: a.text-danger(href='/account/unlink/facebook') Unlink your Facebook account
+      else
+        p.mb-1: a(href='/auth/facebook') Link your Facebook account
+    .offset-sm-3.col-md-7.pl-2
+      if user.github
+        p.mb-1: a.text-danger(href='/account/unlink/github') Unlink your GitHub account
+      else
+        p.mb-1: a(href='/auth/github') Link your GitHub account
+    .offset-sm-3.col-md-7.pl-2
+      if user.google
+        p.mb-1: a.text-danger(href='/account/unlink/google') Unlink your Google account
+      else
+        p.mb-1: a(href='/auth/google') Link your Google account
+    .offset-sm-3.col-md-7.pl-2
+      if user.microsoft
+        p.mb-1: a.text-danger(href='/account/unlink/microsoft') Unlink your Microsoft account
+      else
+        p.mb-1: a(href='/auth/microsoft') Link your Microsoft account
+    .offset-sm-3.col-md-7.pl-2
+      if user.linkedin
+        p.mb-1: a.text-danger(href='/account/unlink/linkedin') Unlink your LinkedIn account
+      else
+        p.mb-1: a(href='/auth/linkedin') Link your LinkedIn account
+    .offset-sm-3.col-md-7.pl-2
+      if user.quickbooks
+        p.mb-1: a.text-danger(href='/account/unlink/quickbooks') Unlink your QuickBooks account
+      else
+        p.mb-1: a(href='/auth/quickbooks') Link your QuickBooks account
+    .offset-sm-3.col-md-7.pl-2
+      if user.steam
+        p.mb-1: a.text-danger(href='/account/unlink/steam') Unlink your Steam account
+      else
+        p.mb-1: a(href='/auth/steam') Link your Steam account
+    .offset-sm-3.col-md-7.pl-2
+      if user.trakt
+        p.mb-1: a.text-danger(href='/account/unlink/trakt') Unlink your Trakt account
+      else
+        p.mb-1: a(href='/auth/trakt') Link your Trakt account
+    .offset-sm-3.col-md-7.pl-2
+      if user.tumblr
+        p.mb-1: a.text-danger(href='/account/unlink/tumblr') Unlink your Tumblr account
+      else
+        p.mb-1: a(href='/auth/tumblr') Link your Tumblr account
+    .offset-sm-3.col-md-7.pl-2
+      if user.twitch
+        p.mb-1: a.text-danger(href='/account/unlink/twitch') Unlink your Twitch account
+      else
+        p.mb-1: a(href='/auth/twitch') Link your Twitch account
+    .offset-sm-3.col-md-7.pl-2
+      if user.x
+        p.mb-1: a.text-danger(href='/account/unlink/x') Unlink your X account
+      else
+        p.mb-1: a(href='/auth/x') Link your X account
+
+  script.
+    // Show biometric enrollment only if WebAuthn is supported
+    if (window.PublicKeyCredential) {
+      const enableForm = document.getElementById('biometricEnableForm');
+      if (enableForm) enableForm.style.display = 'block';
+    } else {
+      const unsupported = document.getElementById('biometricUnsupported');
+      if (unsupported) unsupported.style.display = 'block';
+    }
+
+  script.
+    document.addEventListener('click', (e) => {
+      const tile = e.target.closest('[data-picture-tile]');
+      if (!tile) return;
+
+      document.querySelectorAll('[data-picture-tile]').forEach((t) => {
+        t.classList.remove('border-primary', 'bg-light');
+        t.classList.add('border-secondary');
+      });
+
+      tile.classList.remove('border-secondary');
+      tile.classList.add('border-primary', 'bg-light');
+      tile.querySelector('input[type=radio]').checked = true;
+    });

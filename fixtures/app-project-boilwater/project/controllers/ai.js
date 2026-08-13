@@ -1,0 +1,875 @@
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const multer = require('multer');
+const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
+const { MongoDBAtlasVectorSearch, MongoDBAtlasSemanticCache } = require('@langchain/mongodb');
+const { ChatGroq } = require('@langchain/groq');
+const { HumanMessage } = require('@langchain/core/messages');
+const { Document } = require('@langchain/core/documents');
+const { HfInference, InferenceClientProviderApiError } = require('@huggingface/inference');
+const { MongoClient } = require('mongodb');
+const Keyv = require('keyv').default;
+const KeyvMongo = require('@keyv/mongo').default;
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
+
+/**
+ * Load a PDF file and return one Document per page using pdfjs-dist directly.
+ *
+ * Replaces @langchain/community's PDFLoader, which is a thin wrapper around
+ * pdfjs-dist. Pages with no extractable text are skipped, matching PDFLoader's
+ * behavior. The metadata shape matches what RecursiveCharacterTextSplitter and
+ * the rest of the LangChain pipeline expect.
+ */
+async function loadPdfDocuments(filePath) {
+  const data = new Uint8Array(fs.readFileSync(filePath));
+  const pdf = await pdfjsLib.getDocument({
+    data,
+    useWorkerFetch: false,
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
+  const meta = await pdf.getMetadata().catch(() => null);
+  const documents = [];
+  for (let i = 1; i <= pdf.numPages; i += 1) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    if (content.items.length === 0) continue;
+    let lastY;
+    const textItems = [];
+    for (const item of content.items) {
+      if (!('str' in item)) continue;
+      // Preserve line breaks by detecting vertical position changes.
+      // Use an explicit undefined check rather than a falsy check, since
+      // lastY === 0 is a valid PDF coordinate (e.g. text at the very bottom
+      // of a page, or pages with a top-left origin where baselines land near 0).
+      if (lastY === undefined || lastY === item.transform[5]) textItems.push(item.str);
+      else textItems.push(`\n${item.str}`);
+      lastY = item.transform[5];
+    }
+    documents.push(
+      new Document({
+        pageContent: textItems.join(''),
+        metadata: {
+          pdf: {
+            version: pdfjsLib.version,
+            info: meta?.info,
+            metadata: meta?.metadata,
+            totalPages: pdf.numPages,
+          },
+          loc: { pageNumber: i },
+        },
+      }),
+    );
+  }
+  return documents;
+}
+
+/**
+ * HTTP statuses that should never be retried. Mirrors the list used by
+ * @langchain/core's AsyncCaller (400-407, 409). 408 (Request Timeout), 429
+ * (Too Many Requests), and 5xx are all retried.
+ */
+const RETRY_STATUS_NO_RETRY = [400, 401, 402, 403, 404, 405, 406, 407, 409];
+
+/**
+ * Decide whether an error from the HF client should short-circuit retries.
+ * Mirrors the rules in @langchain/core's defaultFailedAttemptHandler
+ */
+function isNonRetryableError(err) {
+  if (typeof err !== 'object' || err === null) return true;
+  if (typeof err.message === 'string' && (err.message.startsWith('Cancel') || err.message.startsWith('AbortError'))) {
+    return true;
+  }
+  if (typeof err.name === 'string' && err.name === 'AbortError') return true;
+  if (err.code === 'ECONNABORTED') return true;
+  if (err?.error?.code === 'insufficient_quota') return true;
+  if (err instanceof InferenceClientProviderApiError) {
+    const status = err.httpResponse?.status;
+    if (typeof status === 'number' && RETRY_STATUS_NO_RETRY.includes(status)) return true;
+  }
+  return false;
+}
+
+/**
+ * Run `fn` with exponential-backoff retries on transient failures. Defaults match
+ * @langchain/core's AsyncCaller
+ */
+async function withRetry(fn, { maxRetries = 6, minTimeoutMs = 1000, factor = 2 } = {}) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (isNonRetryableError(err) || attempt >= maxRetries) throw err;
+      const delay = Math.round(minTimeoutMs * factor ** attempt);
+      const totalTries = maxRetries + 1;
+      const status = err instanceof InferenceClientProviderApiError ? err.httpResponse?.status : null;
+      const statusLabel = status ? `HTTP ${status}` : err.name && err.name !== 'Error' ? err.name : 'transient error';
+      console.warn(`[HuggingFaceEmbeddings] ${statusLabel} from Hugging Face; retrying in ${delay}ms (attempt ${attempt + 2}/${totalTries}).`);
+      await new Promise((r) => setTimeout(r, delay));
+      attempt += 1;
+    }
+  }
+}
+
+/**
+ * Minimal replacement for @langchain/community's HuggingFaceInferenceEmbeddings.
+ *
+ * Returns an object with embedDocuments(texts) and embedQuery(text) that
+ * MongoDBAtlasVectorSearch and our createCachedEmbeddings wrapper consume.
+ * Uses @huggingface/inference directly so we don't need the @langchain/community
+ * package. Behavior matches @langchain/community's implementation.
+ */
+function createHuggingFaceEmbeddings({ apiKey, model, provider }) {
+  const hf = new HfInference(apiKey);
+  const clean = (texts) => texts.map((t) => t.replace(/\n/g, ' '));
+  const callFeatureExtraction = (inputs) => withRetry(() => hf.featureExtraction({ model, inputs, provider }));
+  return {
+    embedQuery: (text) => callFeatureExtraction(clean([text])).then((res) => res[0]),
+    embedDocuments: (texts) => callFeatureExtraction(clean(texts)),
+  };
+}
+
+/**
+ * GET /ai
+ * List of AI examples.
+ */
+exports.getAi = (req, res) => {
+  res.render('ai/index', {
+    title: 'AI Examples',
+  });
+};
+
+/**
+ * Helper function to ensure the vector search index exists for RAG Boilerplate
+ */
+// RAG collection names
+const RAG_CHUNKS = 'rag_chunks';
+const LLM_SEMANTIC_CACHE = 'llm_sem_cache';
+
+// Keyv cache instances
+let docEmbeddingsCache = null;
+let queryEmbeddingsCache = null;
+
+// Initialization status flags
+let ragFolderReady = false;
+let ragCollectionReady = false;
+let vectorIndexConfigured = false;
+
+function prepareRagFolder() {
+  const inputDir = path.join(__dirname, '../rag_input');
+  const ingestedDir = path.join(inputDir, 'ingested');
+  if (!fs.existsSync(inputDir)) {
+    fs.mkdirSync(inputDir, { recursive: true });
+  }
+  if (!fs.existsSync(ingestedDir)) {
+    fs.mkdirSync(ingestedDir, { recursive: true });
+  }
+  ragFolderReady = true;
+}
+
+/*
+ * Helper function to initialize keyv caching for embeddings
+ */
+function initializeEmbeddingCaches(mongoUri) {
+  if (!docEmbeddingsCache) {
+    docEmbeddingsCache = new Keyv({
+      store: new KeyvMongo(mongoUri, { collection: 'doc_emb_cache' }),
+      namespace: 'doc_embeddings',
+    });
+  }
+  if (!queryEmbeddingsCache) {
+    queryEmbeddingsCache = new Keyv({
+      store: new KeyvMongo(mongoUri, { collection: 'query_emb_cache' }),
+      namespace: 'query_embeddings',
+      ttl: 5184000000, // 60 days in milliseconds
+    });
+  }
+}
+
+/*
+ * Helper function to normalize text for consistent cache key generation
+ */
+function normalizeTextForCaching(text) {
+  return text.trim().replace(/\s+/g, ' ');
+}
+
+/*
+ * Helper function to create cache key for a single text string
+ */
+function createCacheKey(text, modelName, prefix) {
+  const normalized = normalizeTextForCaching(text);
+  const hash = crypto.createHash('sha256').update(normalized).digest('hex');
+  return `${prefix}:${modelName}:${hash}`;
+}
+
+/*
+ * Wrapper function to create cached embeddings that properly cache per-document
+ * This matches CacheBackedEmbeddings semantics without using it
+ */
+function createCachedEmbeddings(baseEmbeddings, modelName) {
+  return {
+    embedDocuments: async (documents) => {
+      const results = [];
+      const uncachedDocs = [];
+      const uncachedIndices = [];
+
+      // Precompute cache keys
+      const cacheKeys = documents.map((doc) => createCacheKey(doc, modelName, 'doc'));
+
+      // Fetch all cached embeddings in parallel
+      const cachedResults = await Promise.all(cacheKeys.map((key) => docEmbeddingsCache.get(key)));
+
+      // Separate cached vs uncached documents while preserving order
+      for (let i = 0; i < cachedResults.length; i++) {
+        const cached = cachedResults[i];
+        if (cached) {
+          results[i] = cached;
+        } else {
+          uncachedDocs.push(documents[i]);
+          uncachedIndices.push(i);
+        }
+      }
+
+      // Embed only uncached documents
+      if (uncachedDocs.length > 0) {
+        const newEmbeddings = await baseEmbeddings.embedDocuments(uncachedDocs);
+
+        // Store each new embedding in cache and place in results array
+        for (let i = 0; i < uncachedDocs.length; i++) {
+          const cacheKey = createCacheKey(uncachedDocs[i], modelName, 'doc');
+          const embedding = newEmbeddings[i];
+          await docEmbeddingsCache.set(cacheKey, embedding);
+          results[uncachedIndices[i]] = embedding;
+        }
+      }
+
+      return results;
+    },
+
+    embedQuery: async (query) => {
+      const cacheKey = createCacheKey(query, modelName, 'query');
+      const cached = await queryEmbeddingsCache.get(cacheKey);
+
+      if (cached) {
+        return cached;
+      }
+
+      const embedding = await baseEmbeddings.embedQuery(query);
+      await queryEmbeddingsCache.set(cacheKey, embedding);
+      return embedding;
+    },
+  };
+}
+
+/*
+ * Helper function to create vector search collections in MongoDB Atlas
+ */
+async function createCollectionForVectorSearch(db, collectionName, indexes) {
+  const collections = await db.listCollections({ name: collectionName }).toArray();
+  if (collections.length === 0) {
+    const collection = await db.createCollection(collectionName);
+    console.log(`Collection ${collectionName} created.`);
+    await collection.createSearchIndex({
+      name: 'default',
+      definition: {
+        mappings: {
+          dynamic: true,
+          fields: {
+            embedding: { dimensions: 1024, similarity: 'cosine', type: 'knnVector' },
+          },
+        },
+      },
+    });
+    console.log(`Vector search index added to ${collectionName}.`);
+    await Promise.all(
+      indexes.map(async (index) => {
+        await collection.createIndex(index);
+      }),
+    );
+    return collection;
+  }
+  return db.collection(collectionName);
+}
+
+/**
+ * Initialize the MongoDB collection for RAG
+ */
+async function setupRagCollection(db) {
+  // Setup the vector search collections if they don't exist.
+  // We use fileHash to see if a file with the same hash has already been processed,
+  // to avoid duplicate data in the vector DB.
+  // We use fileName to list the files that have been ingested in the frontend.
+  // llm_string and prompt combo is used to see if we have already processed the same LLM query.
+  const ragCollection = await createCollectionForVectorSearch(db, RAG_CHUNKS, [{ fileHash: 1 }, { fileName: 1 }]); // for the RAG chunks from input documents
+  await createCollectionForVectorSearch(db, LLM_SEMANTIC_CACHE, [{ llm_string: 1, prompt: 1 }]); // for the LLM semantic cache so we can reduce LLM calls and related costs
+
+  ragCollectionReady = true;
+  console.log('Vector Search Collections have been set up.');
+  return ragCollection;
+}
+
+/**
+ * Helper function to update or set a vector index in MongoDB Atlas with a new index definition
+ */
+async function setVectorIndex(collection, indexDefinition) {
+  const existingIndexes = await collection.listSearchIndexes().toArray();
+  const defaultIndex = existingIndexes.find((index) => index.name === 'default');
+  if (!defaultIndex) {
+    await collection.createSearchIndex({ name: 'default', definition: indexDefinition });
+    console.log(`Created vector search index for ${collection.collectionName} with dimensions: ${indexDefinition.mappings.fields.embedding.dimensions}.`);
+  } else if (defaultIndex.latestDefinition?.mappings?.fields?.embedding?.dimensions !== indexDefinition.mappings.fields.embedding.dimensions) {
+    await collection.updateSearchIndex('default', indexDefinition);
+    console.log(`Updated vector search index for ${collection.collectionName} with dimensions: ${indexDefinition.mappings.fields.embedding.dimensions}.`);
+  }
+}
+
+/**
+ * Configure or update the vector index dimensions based on our embedding results
+ * Do this only once. If you change your embedding model to a different one,
+ * you should switch to a new collection, since you need to use the same model that
+ * was used to generate the embeddings when performing queries (similarity search, etc.)
+ */
+async function configureVectorIndex(db) {
+  const collection = db.collection(RAG_CHUNKS);
+  const sampleDoc = await collection.findOne({ embedding: { $exists: true } });
+  if (sampleDoc?.embedding?.length) {
+    const indexDefinition = {
+      mappings: {
+        dynamic: true,
+        fields: {
+          embedding: { dimensions: sampleDoc.embedding.length, similarity: 'cosine', type: 'knnVector' },
+        },
+      },
+    };
+    await setVectorIndex(db.collection(RAG_CHUNKS), indexDefinition);
+    await setVectorIndex(db.collection(LLM_SEMANTIC_CACHE), indexDefinition);
+    vectorIndexConfigured = true;
+  } else {
+    console.error('No embeddings found yet; cannot update vector index.');
+  }
+}
+
+/**
+ * GET /ai/rag
+ * RAG dashboard: show ingested files, allow question submission, and show results.
+ * The page also includes a block diagram for the RAG Boilerplate and its components.
+ */
+exports.getRag = async (req, res) => {
+  if (!ragFolderReady) prepareRagFolder();
+
+  // Get the list all files in the MongoDB vector DB to display in the frontend
+  const client = new MongoClient(process.env.MONGODB_URI);
+  let ingestedFiles = [];
+  try {
+    await client.connect();
+    const db = client.db();
+    const collection = ragCollectionReady ? db.collection(RAG_CHUNKS) : await setupRagCollection(db);
+    ingestedFiles = await collection.distinct('fileName');
+  } catch (err) {
+    console.log(err);
+    ingestedFiles = [];
+  } finally {
+    await client.close();
+  }
+
+  res.render('ai/rag', {
+    title: 'Retrieval-Augmented Generation (RAG) Demo',
+    ingestedFiles,
+    ragResponse: null,
+    llmResponse: null,
+    question: '',
+    maxInputLength: 500,
+  });
+};
+
+/**
+ * POST /ai/rag/ingest
+ * Scan rag_input/, ingest new PDFs, update MongoDB, move files, return status.
+ */
+exports.postRagIngest = async (req, res) => {
+  if (!ragFolderReady) prepareRagFolder();
+  const inputDir = path.join(__dirname, '../rag_input');
+  const ingestedDir = path.join(inputDir, 'ingested');
+
+  // Get the list of PDF files in the input directory
+  const files = fs
+    .readdirSync(inputDir)
+    .filter((f) => f.endsWith('.pdf'))
+    .filter((f) => !f.includes('ingested')); // Exclude anything from the ingested directory
+
+  if (files.length === 0) {
+    req.flash('info', {
+      msg: 'No PDF files found in the input directory. Add files to ./rag_input directory to process.',
+    });
+    return res.redirect('/ai/rag');
+  }
+
+  const skipped = [];
+  const processed = [];
+  const client = new MongoClient(process.env.MONGODB_URI);
+  try {
+    await client.connect();
+    const db = client.db();
+    const collection = ragCollectionReady ? db.collection(RAG_CHUNKS) : await setupRagCollection(db);
+
+    // Initialize keyv caches for embeddings
+    initializeEmbeddingCaches(process.env.MONGODB_URI);
+
+    // Process files sequentially using reduce
+    await files.reduce(async (promise, file) => {
+      // Wait for the previous file to finish processing
+      await promise;
+
+      const filePath = path.join(inputDir, file);
+      const fileBuffer = fs.readFileSync(filePath);
+      const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+      // Check if this file has already been processed to avoid duplicate data in the
+      // vector DB. We check for a matching hash in case the same file was processed
+      // under a different name, etc.
+      const hashCount = await collection.countDocuments({ fileHash: hash });
+      if (hashCount > 0) {
+        console.log(`File ${file} already processed (hash: ${hash}, found ${hashCount} existing chunks).`);
+        skipped.push(file);
+        // Move to ingested even if skipped
+        fs.renameSync(filePath, path.join(ingestedDir, file));
+        return promise;
+      }
+
+      // Process the PDF file
+      try {
+        const docs = await loadPdfDocuments(filePath);
+        // Split the document into chunks
+        // Use RecursiveCharacterTextSplitter to split the documents into smaller chunks
+        // When querying the model later, the vector search finds the most relevant chunks
+        // based on text similarity and sends them to the LLM as context. The chunk size
+        // and overlap can be adjusted for performance.
+        const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
+        const chunks = await splitter.splitDocuments(docs);
+        const chunksWithMetadata = chunks.map((chunk) => ({
+          ...chunk,
+          metadata: {
+            ...chunk.metadata,
+            fileHash: hash,
+            fileName: file,
+          },
+        }));
+
+        // Create embeddings and store them in MongoDB
+        // Use @huggingface/inference via the createHuggingFaceEmbeddings helper
+        // as the hosted embedding model provider. You can swap to a different
+        // provider by replacing createHuggingFaceEmbeddings (e.g. with one backed
+        // by OpenAIEmbeddings or another LangChain embeddings class).
+        // If you change your embedding model, you would need to reprocess all your
+        // files and recreate the vector index if the embedding dimensions are different.
+        const embeddings = createHuggingFaceEmbeddings({
+          apiKey: process.env.HUGGINGFACE_KEY,
+          model: process.env.HUGGINGFACE_EMBEDDING_MODEL,
+          provider: process.env.HUGGINGFACE_PROVIDER,
+        });
+
+        // Wrap embeddings with per-document caching layer
+        const cachedEmbeddings = createCachedEmbeddings(embeddings, process.env.HUGGINGFACE_EMBEDDING_MODEL);
+
+        // Create embeddings and add them to MongoDB
+        await MongoDBAtlasVectorSearch.fromDocuments(chunksWithMetadata, cachedEmbeddings, {
+          collection,
+          indexName: 'default',
+          textKey: 'text',
+          embeddingKey: 'embedding',
+        });
+
+        // If this is the first file processed, resize the vector index to match the output
+        // dimensions of the embedding model. The vector index allows us to perform vector search
+        // in MongoDB. We only need to do this resizing once, so we can skip it for subsequent files.
+        if (!vectorIndexConfigured) {
+          await configureVectorIndex(db);
+        }
+        // Move the file to the ingested directory after processing to avoid reprocessing.
+        fs.renameSync(filePath, path.join(ingestedDir, file));
+        processed.push(file);
+        console.log(`Successfully processed ${file} (hash: ${hash})`);
+      } catch (err) {
+        console.error(`Error processing file ${file}:`, err);
+        throw err;
+      }
+    }, Promise.resolve());
+
+    if (processed.length > 0 && skipped.length > 0) {
+      req.flash('success', {
+        msg: `Successfully ingested ${processed.length} file(s): ${processed.join(', ')}. Skipped ${skipped.length} existing file(s): ${skipped.join(', ')}`,
+      });
+    } else if (processed.length > 0) {
+      req.flash('success', {
+        msg: `Successfully ingested ${processed.length} file(s): ${processed.join(', ')}`,
+      });
+    } else if (skipped.length > 0) {
+      req.flash('info', {
+        msg: `No new files to ingest. ${skipped.length} file(s) have already been processed: ${skipped.join(', ')}`,
+      });
+    }
+  } catch (err) {
+    console.error('Error during ingestion:', err);
+    req.flash('errors', {
+      msg: `Error during ingestion: ${err.message}`,
+    });
+  } finally {
+    await client.close();
+  }
+  res.redirect('/ai/rag');
+};
+
+/**
+ * POST /ai/rag/ask
+ * Accepts a question, runs RAG and non-RAG queries, and returns both responses.
+ */
+exports.postRagAsk = async (req, res) => {
+  const question = (req.body.question || '').slice(0, 500);
+  if (!question.trim()) {
+    req.flash('errors', { msg: 'Please enter a question.' });
+    return res.redirect('/ai/rag');
+  }
+
+  const client = new MongoClient(process.env.MONGODB_URI);
+  try {
+    await client.connect();
+    const db = client.db();
+    const collection = ragCollectionReady ? db.collection(RAG_CHUNKS) : await setupRagCollection(db);
+
+    // Initialize keyv caches for embeddings
+    initializeEmbeddingCaches(process.env.MONGODB_URI);
+
+    const llmSemCacheCollection = db.collection(LLM_SEMANTIC_CACHE);
+
+    // Get list of ingested files for display in the frontend
+    const ingestedFiles = await collection.distinct('fileName');
+    if (ingestedFiles.length === 0) {
+      req.flash('errors', {
+        msg: 'No files have been indexed for RAG. Please upload your relevant PDF files to the ./rag_input directory and ingest them before asking questions.',
+      });
+      return res.redirect('/ai/rag');
+    }
+
+    // Check and configure the vector index to address the potential edge case when
+    // LLM_SEMANTIC_CACHE was recreated prior to the app restart, while RAG_CHUNKS was not.
+    if (!vectorIndexConfigured) {
+      await configureVectorIndex(db);
+    }
+
+    // Check if the vector search index is ready
+    const ragCollectionStatus = (await collection.listSearchIndexes().toArray()).find((index) => index.name === 'default').status;
+    if (ragCollectionStatus !== 'READY') {
+      req.flash('errors', { msg: `RAG search index is not ready - status: ${ragCollectionStatus}. Please try again in a few minutes.` });
+      return res.redirect('/ai/rag');
+    }
+    const llmSemCacheCollectionStatus = (await llmSemCacheCollection.listSearchIndexes().toArray()).find((index) => index.name === 'default').status;
+    if (llmSemCacheCollectionStatus !== 'READY') {
+      req.flash('errors', { msg: `LLM semantic cache search index is not ready - status: ${llmSemCacheCollectionStatus}. Please try again in a few minutes.` });
+      return res.redirect('/ai/rag');
+    }
+
+    // Set up vector store and embeddings
+    // Instantiate the same embeddings helper used during ingestion, so the query
+    // embedding is produced by the same model that produced the stored chunk
+    // embeddings. We do not use the embedding model for the LLM, but we use it for
+    // the vector search. The embeddings helper converts the user's question into
+    // an embedding, which is then passed to MongoDBAtlasVectorSearch. This enables
+    // the system to perform a similarity search against stored document embeddings,
+    // retrieving the most relevant chunks based on meaning rather than exact keywords.
+    const embeddings = createHuggingFaceEmbeddings({
+      apiKey: process.env.HUGGINGFACE_KEY,
+      model: process.env.HUGGINGFACE_EMBEDDING_MODEL,
+      provider: process.env.HUGGINGFACE_PROVIDER,
+    });
+
+    // Wrap embeddings with per-document caching layer
+    const cachedEmbeddings = createCachedEmbeddings(embeddings, process.env.HUGGINGFACE_EMBEDDING_MODEL);
+
+    const vectorStore = new MongoDBAtlasVectorSearch(cachedEmbeddings, {
+      collection,
+      indexName: 'default',
+      textKey: 'text',
+      embeddingKey: 'embedding',
+    });
+
+    const llmSemanticCache = new MongoDBAtlasSemanticCache(
+      llmSemCacheCollection,
+      cachedEmbeddings, // Embedding model should be passed separately
+      { scoreThreshold: 0.99 }, // Optional similarity threshold settings
+    );
+    const relevantDocs = await vectorStore.similaritySearch(question, 8); // Retrieve top 8 relevant chunks
+    const context = relevantDocs.map((doc) => doc.pageContent).join('\n---\n');
+
+    // Set up LLM
+    const llm = new ChatGroq({
+      apiKey: process.env.GROQ_API_KEY,
+      model: process.env.GROQ_MODEL,
+      cache: llmSemanticCache,
+    });
+
+    // RAG prompt
+    const ragPrompt = `You are an assistant. Use the following context to answer the user's question.\n\nContext:\n${context}\n\nQuestion: ${question}\nAnswer:`;
+    // Non-RAG prompt
+    const llmPrompt = `Answer the following question as best as you can:\n${question}\nAnswer:`;
+
+    // Run batch LLM calls
+    const results = await llm.batch([[new HumanMessage(ragPrompt)], [new HumanMessage(llmPrompt)]]);
+
+    // Before parsing the results, check to see if we have a valid response so we don't crash
+    if (!results?.length || results.length < 2) {
+      req.flash('errors', { msg: `Unable to get a valid response from the LLM. Please try again.` });
+      return res.redirect('/ai/rag');
+    }
+    const ragResponse = results[0].content;
+    const llmResponse = results[1].content;
+    res.render('ai/rag', {
+      title: 'Retrieval-Augmented Generation (RAG) Demo',
+      ingestedFiles,
+      ragResponse,
+      llmResponse,
+      question,
+      maxInputLength: 500,
+    });
+  } catch (error) {
+    console.error('RAG Error:', error);
+    req.flash('errors', { msg: `Error: ${error.message}` });
+    res.redirect('/ai/rag');
+  } finally {
+    await client.close();
+  }
+};
+
+/**
+ * Helper functions and constants for LLM API Examples
+ * We are using LLMs to classify text or analyze a picture taken by the user's camera.
+ * Note: Both Classifier and Vision now use Groq API.
+ */
+
+// Shared LLM API caller for Groq
+const callGroqApi = async (apiRequestBody, apiKey) => {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(apiRequestBody),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    console.error('Groq API Error Response:', errData);
+    const errorMessage = errData.error && errData.error.message ? errData.error.message : `API Error: ${response.status}`;
+    throw new Error(errorMessage);
+  }
+  return response.json();
+};
+
+// Vision-specific functions
+const createVisionLLMRequestBody = (dataUrl, model) => ({
+  model,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is in this image?',
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: dataUrl,
+          },
+        },
+      ],
+    },
+  ],
+});
+
+const extractVisionAnalysis = (data) => {
+  if (data.choices && Array.isArray(data.choices) && data.choices.length > 0 && data.choices[0].message && data.choices[0].message.content) {
+    return data.choices[0].message.content;
+  }
+  return 'No vision analysis available';
+};
+
+// Classifier-specific functions
+const createClassifierLLMRequestBody = (inputText, model, systemPrompt) => ({
+  model,
+  messages: [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: inputText },
+  ],
+  temperature: 0,
+  max_tokens: 64,
+});
+
+const extractClassifierResponse = (content) => {
+  let department = null;
+  if (content) {
+    try {
+      // Try to extract JSON from the response
+      const jsonStringMatch = content.match(/{.*}/s);
+      if (jsonStringMatch) {
+        const parsed = JSON.parse(jsonStringMatch[0].replace(/'/g, '"'));
+        ({ department } = parsed);
+      }
+    } catch (err) {
+      console.log('Failed to parse JSON from LLM API response:', err);
+      // fallback: try to extract department manually
+      const match = content.match(/"department"\s*:\s*"([^"]+)"/);
+      if (match) {
+        [, department] = match;
+      }
+    }
+  }
+  return department || 'Unknown';
+};
+
+// System prompt for the classifier
+// This is the system prompt that instructs the LLM on how to classify the customer message
+// into the appropriate department.
+const messageClassifierSystemPrompt = `You are a customer service classifier for an e-commerce platform. Your role is to identify the primary issue described by the customer and return the result in JSON format. Carefully analyze the customer's message and select one of the following departments as the classification result:
+
+Order Tracking and Status
+Returns and Refunds
+Payments and Billing Issues
+Account Management
+Product Inquiries
+Technical Support
+Shipping and Delivery Issues
+Promotions and Discounts
+Marketplace Seller Support
+Feedback and Complaints
+
+Provide the output in this JSON structure:
+
+{
+  "department": "<selected_department>"
+}
+Replace <selected_department> with the name of the most relevant department from the list above. If the inquiry spans multiple categories, choose the department that is most likely to address the customer's issue promptly and effectively.`;
+
+// Image upload middleware for camera uploads
+const createImageUploader = () => {
+  const memoryStorage = multer.memoryStorage();
+  return multer({
+    storage: memoryStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  }).single('image');
+};
+
+exports.imageUploadMiddleware = (req, res, next) => {
+  const uploadToMemory = createImageUploader();
+  uploadToMemory(req, res, (err) => {
+    if (err) {
+      console.error('Upload error:', err);
+      return res.status(500).json({ error: err.message });
+    }
+    next();
+  });
+};
+
+const createImageDataUrl = (file) => {
+  const base64Image = file.buffer.toString('base64');
+  return `data:${file.mimetype};base64,${base64Image}`;
+};
+
+/**
+ * GET /ai/llm-camera
+ * Groq Vision Camera Analysis Example
+ */
+exports.getLLMCamera = (req, res) => {
+  res.render('ai/llm-camera', {
+    title: 'Groq Vision Camera Analysis',
+    groqVisionModel: process.env.GROQ_VISION,
+  });
+};
+
+/**
+ * POST /ai/llm-camera
+ * Analyze image using Groq Vision
+ */
+exports.postLLMCamera = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image provided' });
+  }
+  try {
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const groqVisionModel = process.env.GROQ_VISION;
+    if (!groqApiKey) {
+      return res.status(500).json({ error: 'Groq API key is not set' });
+    }
+    const dataUrl = createImageDataUrl(req.file);
+    const apiRequestBody = createVisionLLMRequestBody(dataUrl, groqVisionModel);
+    // console.log('Making Vision API request to Groq...');
+    const data = await callGroqApi(apiRequestBody, groqApiKey);
+    const analysis = extractVisionAnalysis(data);
+    // console.log('Vision analysis completed:', analysis);
+    res.json({ analysis });
+  } catch (error) {
+    console.error('Error analyzing image:', error);
+    res.status(500).json({ error: `Error analyzing image: ${error.message}` });
+  }
+};
+
+/**
+ * GET /ai/llm-classifier
+ * LLM API Text Classification Example.
+ */
+exports.getLLMClassifier = (req, res) => {
+  res.render('ai/llm-classifier', {
+    title: 'LLM Department Classifier',
+    result: null,
+    llmModel: process.env.GROQ_MODEL,
+    error: null,
+    input: '',
+  });
+};
+
+/**
+ * POST /ai/llm-classifier
+ * LLM API Text Classification Example.
+ * - Classifies customer service inquiries into departments.
+ * - Uses Groq API to classify the input text with the model in GROQ_MODEL.
+ * - The systemPrompt is the instructions from the developer to the model for processing
+ *   the user input.
+ */
+exports.postLLMClassifier = async (req, res) => {
+  const groqApiKey = process.env.GROQ_API_KEY;
+  const groqModel = process.env.GROQ_MODEL;
+  const inputText = (req.body.inputText || '').slice(0, 300);
+  let result = null;
+  let error = null;
+  if (!groqApiKey) {
+    error = 'Groq API key is not set in environment variables.';
+  } else if (!groqModel) {
+    error = 'Groq model is not set in environment variables.';
+  } else if (!inputText.trim()) {
+    error = 'Please enter the customer message to classify.';
+  } else {
+    try {
+      const systemPrompt = messageClassifierSystemPrompt;
+      const apiRequestBody = createClassifierLLMRequestBody(inputText, groqModel, systemPrompt);
+      const data = await callGroqApi(apiRequestBody, groqApiKey);
+      const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+      const department = extractClassifierResponse(content);
+      result = {
+        department,
+        raw: content,
+        systemPrompt,
+      };
+    } catch (err) {
+      console.log('Groq LLM Classifier API Error:', err);
+      error = 'Failed to call Groq API.';
+    }
+  }
+
+  res.render('ai/llm-classifier', {
+    title: 'LLM Department Classifier',
+    result,
+    error,
+    input: inputText,
+  });
+};

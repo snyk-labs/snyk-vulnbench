@@ -1,0 +1,51 @@
+[
+  {
+    "scope": "https://api.groq.com:443",
+    "method": "POST",
+    "path": "/85cb85fde355",
+    "body": {
+      "model": "openai/gpt-oss-120b",
+      "messages": [
+        {
+          "role": "system",
+          "content": "You are a customer service classifier for an e-commerce platform. Your role is to identify the primary issue described by the customer and return the result in JSON format. Carefully analyze the customer's message and select one of the following departments as the classification result:\n\nOrder Tracking and Status\nReturns and Refunds\nPayments and Billing Issues\nAccount Management\nProduct Inquiries\nTechnical Support\nShipping and Delivery Issues\nPromotions and Discounts\nMarketplace Seller Support\nFeedback and Complaints\n\nProvide the output in this JSON structure:\n\n{\n  \"department\": \"<selected_department>\"\n}\nReplace <selected_department> with the name of the most relevant department from the list above. If the inquiry spans multiple categories, choose the department that is most likely to address the customer's issue promptly and effectively."
+        },
+        {
+          "role": "user",
+          "content": "I want a refund"
+        }
+      ],
+      "temperature": 0,
+      "max_tokens": 64
+    },
+    "status": 200,
+    "response": [
+      "1b4803201c8971ac842b17040ce47fd355d5665e1db2f0f12bba6bc5992166ab962c0a5dadc332d777e272aaffcc4f634f5ab3b540ba4cf2300eb334736bdfe1c7d742e7b63b83a894eadf31d4802cfeb45a6e66464559d55e17ac28bd62aa284be66a4dccd45e8a56abda190770116f7bb27f041fc1461b8475ca94c2924831360760fd836258749b035beff74c102f11585fc0ff1d0e56c0530c33813b421e02b21920d0e519dcc32a4902026907bca8d4b7e63e59f5ad01e94e40583d912275d361d501be378a74f21e7ae39a3db88d9c469280d764a14876d757129025df7cead112437ca6c77fc090f6bebe5c846c6ce764c437c9bb0c4f98d7dd66b72ef740380e7ce6a213b020e89ce1c3315ce824c0c4dcf68167dac899f095a6149bdd7ab93944eeccf64092abc906206e1cf79ee824ad64a33bad8f90152884e644ce5b149e27460ca7b54481269c144442783e6212f1834c12d95f2ed5f38eb29135087c89c06078e6e3ca33284dbe01b49be86c292be94d5d225c62b75b6f01f57fd935dbc8c57495db5bb5bf357c792aedd2a8dd6d559deb0bc2be696a2041923b49ca3f036556e26168760069c5ba59162b511e"
+    ],
+    "rawHeaders": {
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "a1eec3f1eceadf1f-SEA",
+      "connection": "keep-alive",
+      "content-encoding": "br",
+      "content-type": "application/json",
+      "date": "Wed, 22 Jul 2026 01:45:21 GMT",
+      "server": "cloudflare",
+      "set-cookie": "REDACTED",
+      "strict-transport-security": "max-age=15552000",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "via": "1.1 google",
+      "x-groq-region": "dls",
+      "x-ratelimit-limit-requests": "1000",
+      "x-ratelimit-limit-tokens": "8000",
+      "x-ratelimit-remaining-requests": "996",
+      "x-ratelimit-remaining-tokens": "7721",
+      "x-ratelimit-reset-requests": "5m45.6s",
+      "x-ratelimit-reset-tokens": "2.092s",
+      "x-request-id": "req_01ky3qzcsze0mvb7m64rzncwdx"
+    },
+    "responseIsBinary": false
+  }
+]
