@@ -1,0 +1,206 @@
+{
+  "description": "Nuxt Blanq application with intentionally attacker-reachable DOM XSS and prototype-pollution flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-blanq-xss-tooltip",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "dom-based xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/components/SharedPathTooltip.vue",
+          "line": 9,
+          "type": "source"
+        },
+        {
+          "file": "app/components/SharedPathTooltip.vue",
+          "line": 11
+        },
+        {
+          "file": "app/components/SharedPathTooltip.vue",
+          "line": 24,
+          "type": "sink"
+        }
+      ],
+      "description": "The landing-page workspace preview derives tooltip content from a URL name parameter and renders it as HTML inside a tooltip.",
+      "vulnerabilityImpact": "An attacker can execute JavaScript in the Blanq origin through a crafted workspace-preview URL.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-blanq-xss-campaign",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "dom-based xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/composables/useCampaignMessage.ts",
+          "line": 11,
+          "type": "source"
+        },
+        {
+          "file": "app/composables/useCampaignMessage.ts",
+          "line": 12
+        },
+        {
+          "file": "app/composables/useCampaignMessage.ts",
+          "line": 16,
+          "type": "sink"
+        }
+      ],
+      "description": "The public landing-page campaign helper reads a URL value and writes it directly into a campaign banner with innerHTML.",
+      "vulnerabilityImpact": "An attacker can execute JavaScript in the Blanq origin through a crafted campaign URL.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-blanq-xss-referral",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "dom-based xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/composables/useReferralSource.ts",
+          "line": 12,
+          "type": "source"
+        },
+        {
+          "file": "app/composables/useReferralSource.ts",
+          "line": 16,
+          "type": "sink"
+        }
+      ],
+      "description": "The public registration referral helper combines document location data with a URL fallback and writes the result into the referral banner with innerHTML.",
+      "vulnerabilityImpact": "An attacker can execute JavaScript in the Blanq origin through a crafted referral URL.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-blanq-prototype-pollution-preferences",
+      "type": "prototype-pollution",
+      "typeAliases": [
+        "prototype pollution",
+        "prototype pollution via dynamic property"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 6,
+          "type": "source"
+        },
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 7
+        },
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 14,
+          "type": "sink"
+        }
+      ],
+      "description": "The public landing layout parses shared-preference URL state and uses an attacker-controlled section as a dynamic nested property on a plain object.",
+      "vulnerabilityImpact": "A crafted section such as __proto__ can modify Object.prototype and influence unrelated application objects.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-blanq-prototype-pollution-display",
+      "type": "prototype-pollution",
+      "typeAliases": [
+        "prototype pollution",
+        "prototype pollution via dynamic property"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 6,
+          "type": "source"
+        },
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 7
+        },
+        {
+          "file": "app/composables/useSharedPreferences.ts",
+          "line": 22,
+          "type": "sink"
+        }
+      ],
+      "description": "The public landing layout uses the same attacker-controlled section to select a display-preference object before assigning a display setting.",
+      "vulnerabilityImpact": "A crafted section such as __proto__ can write to Object.prototype and create application-wide polluted properties.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-blanq-redos-email-policy",
+      "type": "redos",
+      "typeAliases": [
+        "redos",
+        "regular expression denial of service",
+        "polynomial regular expression"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "server/api/auth/email-policy.get.js",
+          "line": 5,
+          "type": "source"
+        },
+        {
+          "file": "server/api/auth/email-policy.get.js",
+          "line": 6
+        },
+        {
+          "file": "server/api/auth/email-policy.get.js",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The registration email-policy API applies a nested-quantifier regular expression to attacker-controlled email input.",
+      "vulnerabilityImpact": "A crafted near-match can trigger catastrophic backtracking and consume server CPU, delaying or denying service to other users.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "yes"
+    },
+    {
+      "id": "app-project-blanq-ssrf-logo-preview",
+      "type": "ssrf",
+      "typeAliases": [
+        "ssrf",
+        "server-side request forgery"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "server/api/integrations/logo-preview.get.js",
+          "line": 5,
+          "type": "source"
+        },
+        {
+          "file": "server/api/integrations/logo-preview.get.js",
+          "line": 15,
+          "type": "sink"
+        }
+      ],
+      "description": "The public logo-preview API fetches the caller-supplied URL from the server without an allowlist or private-network protection.",
+      "vulnerabilityImpact": "An attacker can make the server issue requests to internal services or cloud metadata endpoints and return a response preview.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "yes"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1740406651451,
+      "tag": "0000_futuristic_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1740407796457,
+      "tag": "0001_fantastic_magik",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1740539411358,
+      "tag": "0002_exotic_magneto",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1740716923026,
+      "tag": "0003_smiling_aqueduct",
+      "breakpoints": true
+    }
+  ]
+}
