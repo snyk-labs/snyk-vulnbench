@@ -55,7 +55,7 @@ export function mapRuleId(ruleId: string): VulnType {
   if (/deserializ/.test(id)) return "insecure-deserialization";
   if (/idor|insecuredirectobject/.test(id)) return "idor";
   if (/massassignment|autobinding/.test(id)) return "mass-assignment";
-  if (/templateinjection|serversidetemplateinjection/.test(id)) return "template-injection";
+  if (/ssti|templateinjection|serversidetemplateinjection/.test(id)) return "template-injection";
   // Snyk Code: javascript/DisablePoweredBy (X-Powered-By fingerprinting) — not covered by "x-powered-by" substring alone
   if (/informationexposure|infoleak|sensitivedata|x-powered-by|disablepoweredby|enablepoweredby/.test(id))
     return "information-exposure";

@@ -1,0 +1,164 @@
+{
+  "description": "NestJS and Angular SaaS starter with intentionally attacker-reachable server and cross-service vulnerability flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-saas-starter-lite-open-redirect-continue",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 65,
+          "type": "source"
+        },
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 66,
+          "type": "sink"
+        }
+      ],
+      "description": "The auth continuation endpoint redirects to an attacker-controlled next URL after a login or invitation flow.",
+      "vulnerabilityImpact": "An attacker can make users follow a trusted SaaS URL that redirects to an arbitrary external destination.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-saas-starter-lite-ssti-invite-preview",
+      "type": "template-injection",
+      "typeAliases": [
+        "ssti",
+        "server-side template injection"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 59,
+          "type": "source"
+        },
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 60,
+          "type": "sink"
+        }
+      ],
+      "description": "The invite-preview endpoint compiles a caller-supplied Dot template instead of treating the invitation text as data.",
+      "vulnerabilityImpact": "An attacker can execute template expressions in the Nest process and access values exposed to the template context.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-saas-starter-lite-xss-invite-response",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 54,
+          "type": "source"
+        },
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 55,
+          "type": "sink"
+        }
+      ],
+      "description": "The Nest invite-message endpoint interpolates an attacker-controlled name into a string response that is served to the Angular client.",
+      "vulnerabilityImpact": "An attacker can inject markup into an invitation preview response and execute script when it is rendered as trusted HTML.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-saas-starter-lite-xss-angular-render",
+      "type": "xss",
+      "typeAliases": [
+        "dom xss",
+        "cross-site scripting"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/auth/auth.controller.ts",
+          "line": 54,
+          "type": "source"
+        },
+        {
+          "file": "apps/web/src/app/pages/auth/register/register.ts",
+          "line": 143
+        },
+        {
+          "file": "apps/web/src/app/pages/auth/register/register.ts",
+          "line": 148,
+          "type": "sink"
+        }
+      ],
+      "description": "The Angular registration page fetches the invite-message response and marks it trusted with DomSanitizer.bypassSecurityTrustHtml before binding it to innerHTML.",
+      "vulnerabilityImpact": "An attacker can carry crafted invitation markup from the Nest API into the Angular registration origin and execute script.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-lite-command-injection-export",
+      "type": "command-injection",
+      "typeAliases": [
+        "command injection",
+        "shell injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/users/users.controller.ts",
+          "line": 81,
+          "type": "source"
+        },
+        {
+          "file": "apps/api/src/users/users.service.ts",
+          "line": 36
+        },
+        {
+          "file": "apps/api/src/users/users.service.ts",
+          "line": 39,
+          "type": "sink"
+        }
+      ],
+      "description": "The admin user-export endpoint passes the requested export format into a shell command launched by the users service.",
+      "vulnerabilityImpact": "An authenticated administrator-shaped attacker can execute arbitrary shell commands with the API process privileges.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-lite-sql-injection-export-search",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sql injection",
+        "sqli"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "apps/api/src/users/users.controller.ts",
+          "line": 90,
+          "type": "source"
+        },
+        {
+          "file": "apps/api/src/users/users.service.ts",
+          "line": 55,
+          "type": "sink"
+        }
+      ],
+      "description": "The admin export search interpolates the search parameter into a raw TypeORM SQL query.",
+      "vulnerabilityImpact": "An attacker with access to the export search can alter the query and read or manipulate database data.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    }
+  ]
+}
