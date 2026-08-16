@@ -1,0 +1,43 @@
+server:
+  host: ${SERVER_HOST:0.0.0.0}
+  port: ${SERVER_PORT:4290}
+
+database:
+  uri: ${MONGODB_URI}
+  name: ${DATABASE_NAME}
+
+frontend:
+  url: ${FRONTEND_URL}
+  static_dir: ${FRONTEND_STATIC_DIR:/app/static}
+
+jwt:
+  access_secret: ${JWT_ACCESS_SECRET}
+  refresh_secret: ${JWT_REFRESH_SECRET}
+  access_ttl_minutes: 60
+  refresh_ttl_days: 30
+
+oauth:
+  google_client_id: ${GOOGLE_CLIENT_ID}
+  google_client_secret: ${GOOGLE_CLIENT_SECRET}
+  google_redirect_url: ${GOOGLE_REDIRECT_URL}
+
+email:
+  resend_api_key: ${RESEND_API_KEY}
+  from_email: ${FROM_EMAIL}
+  from_name: ${FROM_NAME}
+
+app:
+  name: ${APP_NAME}
+
+stripe:
+  secret_key: ${STRIPE_SECRET_KEY}
+  publishable_key: ${STRIPE_PUBLISHABLE_KEY}
+  webhook_secret: ${STRIPE_WEBHOOK_SECRET}
+
+webhooks:
+  encryption_key: ${WEBHOOK_ENCRYPTION_KEY}
+
+datadog:
+  api_key: ${DATADOG_API_KEY}
+  site: ${DATADOG_SITE:us5.datadoghq.com}
+  hostname: ${DATADOG_HOSTNAME}

@@ -1,0 +1,49 @@
+version: 2
+
+project_name: lastsaas
+
+before:
+  hooks:
+    - cd backend && go mod tidy
+
+builds:
+  - id: lastsaas
+    dir: backend
+    main: ./cmd/lastsaas
+    binary: lastsaas
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: lastsaas
+    formats:
+      - tar.gz
+    ids:
+      - lastsaas
+    name_template: "lastsaas_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: jonradoff
+    name: lastsaas
+  draft: false
+  prerelease: auto

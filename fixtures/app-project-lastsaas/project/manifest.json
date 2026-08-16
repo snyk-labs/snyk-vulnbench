@@ -1,0 +1,82 @@
+{
+  "manifest_version": "0.3",
+  "name": "lastsaas",
+  "display_name": "LastSaaS Admin",
+  "version": "1.0.0",
+  "description": "Read-only admin MCP server for LastSaaS — 26 tools for monitoring dashboards, users, tenants, financials, logs, health, and system configuration.",
+  "long_description": "LastSaaS is a complete, open-source SaaS platform foundation with multi-tenant auth, Stripe billing, white-label branding, API keys, webhooks, and a full admin interface. The MCP server provides read-only access to all admin data: query dashboards, search users and tenants, analyze financial metrics (revenue, ARR, DAU, MAU), search system logs, monitor health across nodes, audit API keys and webhooks, and inspect plans and configuration — all authenticated via a root-tenant API key over the LastSaaS HTTP API.",
+  "author": {
+    "name": "Jon Radoff",
+    "url": "https://metavert.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonradoff/lastsaas.git"
+  },
+  "homepage": "https://metavert.io/lastsaas",
+  "documentation": "https://github.com/jonradoff/lastsaas/blob/master/README.md",
+  "support": "https://github.com/jonradoff/lastsaas/issues",
+  "server": {
+    "type": "binary",
+    "entry_point": "bin/lastsaas",
+    "mcp_config": {
+      "command": "${__dirname}/bin/lastsaas",
+      "args": ["mcp"],
+      "env": {
+        "LASTSAAS_URL": "${user_config.server_url}",
+        "LASTSAAS_API_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "get_about", "description": "Get system version and environment info" },
+    { "name": "dashboard_stats", "description": "Get admin dashboard summary with user/tenant counts and health status" },
+    { "name": "list_tenants", "description": "List tenants with pagination, search, and filtering" },
+    { "name": "get_tenant", "description": "Get detailed tenant info including plan, billing, credits, and members" },
+    { "name": "list_users", "description": "List users with pagination, search, and status filtering" },
+    { "name": "get_user", "description": "Get detailed user info with auth methods, MFA status, and memberships" },
+    { "name": "list_transactions", "description": "List financial transactions with pagination and filtering" },
+    { "name": "get_financial_metrics", "description": "Get time-series financial metrics (revenue, ARR, DAU, MAU)" },
+    { "name": "search_logs", "description": "Search system logs with severity, category, and date filters" },
+    { "name": "get_log_severity_counts", "description": "Get log counts grouped by severity level" },
+    { "name": "get_system_health", "description": "Get current CPU, memory, disk, HTTP, and MongoDB stats" },
+    { "name": "get_health_metrics", "description": "Get time-series health data for charting" },
+    { "name": "list_nodes", "description": "List server nodes with status and version info" },
+    { "name": "get_integrations", "description": "Get third-party integration health status" },
+    { "name": "list_config", "description": "List all runtime configuration variables" },
+    { "name": "get_config", "description": "Get a single configuration variable by name" },
+    { "name": "list_plans", "description": "List subscription plans with pricing and entitlements" },
+    { "name": "get_plan", "description": "Get detailed plan info with pricing, seats, and entitlements" },
+    { "name": "list_entitlement_keys", "description": "List all entitlement keys with types and descriptions" },
+    { "name": "list_credit_bundles", "description": "List credit bundles with pricing and status" },
+    { "name": "list_announcements", "description": "List published and draft announcements" },
+    { "name": "list_promotions", "description": "List Stripe promotion codes with coupon details" },
+    { "name": "list_api_keys", "description": "List API keys with metadata (previews only, full keys never exposed)" },
+    { "name": "list_root_members", "description": "List admin team members and pending invitations" },
+    { "name": "list_webhooks", "description": "List outbound webhook configurations" },
+    { "name": "list_webhook_event_types", "description": "List available webhook event types by category" },
+    { "name": "get_webhook", "description": "Get webhook detail with delivery history" }
+  ],
+  "keywords": ["saas", "admin", "multi-tenant", "billing", "stripe", "monitoring", "health", "dashboard", "mcp", "ai-native", "go", "open-source"],
+  "license": "MIT",
+  "privacy_policies": ["https://www.metavert.io/lastsaas-privacy-policy"],
+  "compatibility": {
+    "platforms": ["darwin", "linux"]
+  },
+  "user_config": {
+    "server_url": {
+      "type": "string",
+      "title": "LastSaaS Server URL",
+      "description": "The URL of your LastSaaS instance (e.g., https://your-app.fly.dev or http://localhost:4290)",
+      "required": true,
+      "default": "http://localhost:4290"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Root-tenant API key with admin authority. Create one in Admin → API Keys.",
+      "sensitive": true,
+      "required": true
+    }
+  }
+}

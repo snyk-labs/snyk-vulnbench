@@ -1,0 +1,19 @@
+server:
+  host: ${SERVER_HOST:localhost}
+  port: ${SERVER_PORT:3099}
+
+database:
+  uri: ${MONGODB_URI}
+  name: ${DATABASE_NAME:lastsaas-test}
+
+frontend:
+  url: ${FRONTEND_URL:http://localhost:5173}
+
+jwt:
+  access_secret: ${JWT_ACCESS_SECRET:test-access-secret-minimum16chars}
+  refresh_secret: ${JWT_REFRESH_SECRET:test-refresh-secret-minimum16chars}
+  access_ttl_minutes: 15
+  refresh_ttl_days: 7
+
+app:
+  name: ${APP_NAME:LastSaaS-Test}
