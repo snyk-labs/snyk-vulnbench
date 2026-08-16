@@ -8,6 +8,7 @@ import IntegrationsPanel from './health/IntegrationsPanel';
 import CurrentStatusPanel from './health/CurrentStatusPanel';
 import TimeRangeSelector from './health/TimeRangeSelector';
 import MetricsCharts from './health/MetricsCharts';
+import DNSDiagnosticPanel from './health/DNSDiagnosticPanel';
 
 export default function HealthPage() {
   const [nodes, setNodes] = useState<SystemNode[]>([]);
@@ -90,6 +91,7 @@ export default function HealthPage() {
       <div className="space-y-6">
         <NodeCards nodes={nodes} />
         <IntegrationsPanel integrations={integrations} />
+        <DNSDiagnosticPanel />
         <CurrentStatusPanel metrics={currentMetrics} />
         <TimeRangeSelector
           timeRange={timeRange}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { LogIn, Github, Mail, KeyRound, Fingerprint } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBranding } from '../../contexts/BrandingContext';
@@ -24,8 +24,12 @@ function MicrosoftIcon({ className }: { className?: string }) {
   );
 }
 
+function finishLoginRedirect() {
+  const returnTo = new URLSearchParams(window.location.search).get('returnTo') || '/dashboard';
+  window.location.href = returnTo;
+}
+
 export default function LoginPage() {
-  const navigate = useNavigate();
   const { login, mfaPending, completeMfaChallenge, clearMfaPending } = useAuth();
   const { branding } = useBranding();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -44,7 +48,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate('/dashboard');
+      finishLoginRedirect();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Invalid email or password');
@@ -60,7 +64,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await completeMfaChallenge(mfaPending.mfaToken, mfaCode);
-      navigate('/dashboard');
+      finishLoginRedirect();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Invalid verification code');
@@ -94,7 +98,7 @@ export default function LoginPage() {
       const data = await authApi.passkeyLoginFinish(credential);
       localStorage.setItem('lastsaas_access_token', data.accessToken);
       localStorage.setItem('lastsaas_refresh_token', data.refreshToken);
-      navigate('/dashboard');
+      finishLoginRedirect();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
         || (err as Error)?.message || 'Passkey authentication failed';

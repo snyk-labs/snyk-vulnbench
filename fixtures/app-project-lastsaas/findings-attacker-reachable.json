@@ -1,0 +1,180 @@
+{
+  "_note": "V2 ground truth combines authenticated Snyk Code SARIF flows with manually curated stored API-to-React XSS and cross-file DNS diagnostic flows that Snyk does not currently emit.",
+  "description": "Go and React SaaS application with attacker-controlled branding, authentication, health diagnostic, and media migration flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-lastsaas-xss-custom-page-1",
+      "type": "xss",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 554,
+          "type": "source"
+        },
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 573
+        },
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 193
+        },
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 202
+        },
+        {
+          "file": "frontend/src/api/client.ts",
+          "line": 443
+        },
+        {
+          "file": "frontend/src/pages/public/CustomPage.tsx",
+          "line": 16
+        },
+        {
+          "file": "frontend/src/pages/public/CustomPage.tsx",
+          "line": 17
+        },
+        {
+          "file": "frontend/src/pages/public/CustomPage.tsx",
+          "line": 65,
+          "type": "sink"
+        }
+      ],
+      "description": "Owner-controlled htmlBody is persisted by the branding API, returned by the public custom-page API, and rendered through React dangerouslySetInnerHTML without the original DOMPurify sanitizer.",
+      "vulnerabilityImpact": "A tenant owner or administrator who can create a custom page can execute JavaScript in browsers that visit the published page.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "yes"
+    },
+    {
+      "id": "app-project-lastsaas-open-redirect-login-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "frontend/src/pages/auth/LoginPage.tsx",
+          "line": 28,
+          "type": "source"
+        },
+        {
+          "file": "frontend/src/pages/auth/LoginPage.tsx",
+          "line": 29,
+          "type": "sink"
+        }
+      ],
+      "description": "The login continuation parameter flows from the document location directly to window.location.href after authentication (Snyk: javascript/OR).",
+      "vulnerabilityImpact": "A crafted login link can redirect a user to an attacker-selected external site after sign-in.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-lastsaas-ssrf-remote-logo-1",
+      "type": "ssrf",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 154,
+          "type": "source"
+        },
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 160
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 18
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 19,
+          "type": "sink"
+        }
+      ],
+      "description": "The owner-only branding preview passes a request URL to an outbound HTTP client (Snyk: go/Ssrf).",
+      "vulnerabilityImpact": "An authenticated administrator can make the server fetch attacker-selected local or internal URLs.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-lastsaas-command-injection-dns-1",
+      "type": "command-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/internal/api/handlers/health_diagnostics.go",
+          "line": 11,
+          "type": "source"
+        },
+        {
+          "file": "backend/internal/api/handlers/health_diagnostics.go",
+          "line": 17
+        },
+        {
+          "file": "backend/internal/health/diagnostics.go",
+          "line": 9
+        },
+        {
+          "file": "backend/internal/health/diagnostics.go",
+          "line": 10
+        },
+        {
+          "file": "backend/internal/health/diagnostics.go",
+          "line": 11,
+          "type": "sink"
+        }
+      ],
+      "description": "The authenticated Admin → Health DNS diagnostic passes a request hostname from the handler into a shell command in the health domain helper. Snyk does not currently emit the cross-file flow.",
+      "vulnerabilityImpact": "Any root-tenant user with read-only admin access can execute additional shell commands in the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-lastsaas-path-traversal-media-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 171,
+          "type": "source"
+        },
+        {
+          "file": "backend/internal/api/handlers/branding.go",
+          "line": 177
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 41
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 42
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 42
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 42
+        },
+        {
+          "file": "backend/internal/api/handlers/branding_assets.go",
+          "line": 43,
+          "type": "sink"
+        }
+      ],
+      "description": "The branding media migration download joins a request-controlled name to the media directory and reads the result (Snyk: go/PT).",
+      "vulnerabilityImpact": "An authenticated administrator can use relative path segments to read files outside the branding directory.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

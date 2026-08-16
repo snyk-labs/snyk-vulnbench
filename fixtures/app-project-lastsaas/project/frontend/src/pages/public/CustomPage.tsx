@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import DOMPurify from 'dompurify';
 import { brandingApi } from '../../api/client';
 import type { CustomPage as CustomPageType } from '../../types';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -63,7 +62,7 @@ export default function CustomPage() {
   return (
     <div
       className="min-h-screen bg-dark-950"
-      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.htmlBody) }}
+      dangerouslySetInnerHTML={{ __html: page.htmlBody }}
     />
   );
 }

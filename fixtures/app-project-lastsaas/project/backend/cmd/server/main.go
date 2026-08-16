@@ -16,6 +16,7 @@ import (
 	"lastsaas/internal/auth"
 	"lastsaas/internal/config"
 	"lastsaas/internal/configstore"
+	"lastsaas/internal/datadog"
 	"lastsaas/internal/db"
 	"lastsaas/internal/email"
 	"lastsaas/internal/events"
@@ -27,7 +28,6 @@ import (
 	stripeservice "lastsaas/internal/stripe"
 	"lastsaas/internal/syslog"
 	"lastsaas/internal/telemetry"
-	"lastsaas/internal/datadog"
 	"lastsaas/internal/version"
 	"lastsaas/internal/webhooks"
 
@@ -687,6 +687,7 @@ func main() {
 	adminAPI.HandleFunc("/health/metrics", healthHandler.GetMetrics).Methods("GET")
 	adminAPI.HandleFunc("/health/current", healthHandler.GetCurrent).Methods("GET")
 	adminAPI.HandleFunc("/health/integrations", healthHandler.GetIntegrations).Methods("GET")
+	adminAPI.HandleFunc("/health/diagnostics/dns", healthHandler.DNSDiagnostic).Methods("GET")
 	adminAPI.HandleFunc("/health/test-email", healthHandler.SendTestEmail).Methods("POST")
 	adminAPI.HandleFunc("/promotions", promotionsHandler.ListPromotions).Methods("GET")
 	adminAPI.HandleFunc("/promotions/eligible-products", promotionsHandler.ListEligibleProducts).Methods("GET")
@@ -766,9 +767,11 @@ func main() {
 	adminOwner.HandleFunc("/tenants/{tenantId}/cancel-subscription", billingHandler.AdminCancelSubscription).Methods("POST")
 	adminOwner.HandleFunc("/tenants/{tenantId}/subscription", billingHandler.AdminUpdateSubscription).Methods("PATCH")
 	adminOwner.HandleFunc("/branding", brandingHandler.UpdateBranding).Methods("PUT")
+	adminOwner.HandleFunc("/branding/remote-preview", brandingHandler.PreviewRemoteLogo).Methods("GET")
 	adminOwner.HandleFunc("/branding/asset", brandingHandler.UploadAsset).Methods("POST")
 	adminOwner.HandleFunc("/branding/asset/{key}", brandingHandler.DeleteAsset).Methods("DELETE")
 	adminOwner.HandleFunc("/branding/media", brandingHandler.UploadMedia).Methods("POST")
+	adminOwner.HandleFunc("/branding/media/download", brandingHandler.DownloadMediaFile).Methods("GET")
 	adminOwner.HandleFunc("/branding/media/{id}", brandingHandler.DeleteMedia).Methods("DELETE")
 	adminOwner.HandleFunc("/branding/pages", brandingHandler.CreatePage).Methods("POST")
 	adminOwner.HandleFunc("/branding/pages/{id}", brandingHandler.UpdatePage).Methods("PUT")

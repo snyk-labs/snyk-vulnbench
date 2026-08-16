@@ -1,0 +1,8 @@
+{
+  "id": "app-project-lastsaas-attacker-reachable-find-vulns",
+  "name": "App LastSaaS: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-lastsaas",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 35
+}

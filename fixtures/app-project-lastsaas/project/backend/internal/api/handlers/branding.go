@@ -148,6 +148,43 @@ func (h *BrandingHandler) ServeMedia(w http.ResponseWriter, r *http.Request) {
 	w.Write(asset.Data)
 }
 
+// PreviewRemoteLogo fetches an image URL so administrators can inspect branding
+// before saving it to the tenant configuration.
+func (h *BrandingHandler) PreviewRemoteLogo(w http.ResponseWriter, r *http.Request) {
+	rawURL := r.URL.Query().Get("url")
+	if rawURL == "" {
+		respondWithError(w, http.StatusBadRequest, "Logo URL is required")
+		return
+	}
+
+	preview, err := fetchRemoteBrandAsset(rawURL)
+	if err != nil {
+		respondWithError(w, http.StatusBadGateway, "Failed to fetch logo preview")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, preview)
+}
+
+// DownloadMediaFile serves a file from the branding workspace for administrators
+// migrating assets from an older file-backed installation.
+func (h *BrandingHandler) DownloadMediaFile(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		respondWithError(w, http.StatusBadRequest, "Media name is required")
+		return
+	}
+
+	data, err := readBrandingMediaFile(name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
 // GetPublicPage returns a published custom page by slug.
 func (h *BrandingHandler) GetPublicPage(w http.ResponseWriter, r *http.Request) {
 	slug := mux.Vars(r)["slug"]
@@ -199,8 +236,8 @@ func (h *BrandingHandler) UpdateBranding(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Enforce size limits on HTML/CSS fields
-	const maxHTMLSize = 512 * 1024  // 512KB
-	const maxCSSSize = 128 * 1024   // 128KB
+	const maxHTMLSize = 512 * 1024 // 512KB
+	const maxCSSSize = 128 * 1024  // 128KB
 	if len(req.LandingHTML) > maxHTMLSize {
 		respondWithError(w, http.StatusBadRequest, "Landing HTML exceeds 512KB limit")
 		return
