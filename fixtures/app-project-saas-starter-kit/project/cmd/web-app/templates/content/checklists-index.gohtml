@@ -1,0 +1,44 @@
+{{define "title"}}Checklists{{end}}
+{{define "content"}}
+
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/checklists">Checklists</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Index</li>
+        </ol>
+    </nav>
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+
+        <h1 class="h3 mb-0 text-gray-800">Checklists</h1>
+        {{ if HasRole $._Ctx "admin" }}
+            <a href="{{ .urlChecklistsCreate }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-folder-plus fa-sm text-white-50 mr-1"></i>Create Checklist</a>
+        {{ end }}
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <form method="post">
+                <div class="card shadow">
+                    <div class="table-responsive dataTable_card">
+                        {{ template "partials/datatable/html" . }}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+{{end}}
+{{define "style"}}
+    {{ template "partials/datatable/style" . }}
+{{ end }}
+{{define "js"}}
+    {{ template "partials/datatable/js" . }}
+
+    <script>
+        $(document).ready(function(){
+            //$("#dataTable_filter").hide();
+        });
+    </script>
+
+{{end}}

@@ -1,0 +1,17 @@
+{{ define "partials/buildinfo" }}
+    <p id="buildinfo" style="{{if eq ._Service.ENV "prod"}}display: none;{{end}}">
+        {{if ne ._Service.BuildInfo.CiCommitTag ""}}
+            Tag: {{ ._Service.BuildInfo.CiCommitRefName }}@{{ ._Service.BuildInfo.CiCommitSha }}<br/>
+        {{else}}
+            Branch: {{ ._Service.BuildInfo.CiCommitRefName }}@{{ ._Service.BuildInfo.CiCommitSha }}<br/>
+        {{end}}
+        {{if ne ._Service.ENV "prod"}}
+            {{if ne ._Service.BuildInfo.CiJobId ""}}
+                Job: <a href="{{ ._Service.BuildInfo.CiJobUrl }}" target="_blank">{{ ._Service.BuildInfo.CiJobId }}</a>
+            {{end}}
+            {{if ne ._Service.BuildInfo.CiPipelineId ""}}
+                Pipeline: <a href="{{ ._Service.BuildInfo.CiPipelineUrl }}" target="_blank">{{ ._Service.BuildInfo.CiPipelineId }}</a>
+            {{end}}
+        {{end}}
+    </p>
+{{end}}

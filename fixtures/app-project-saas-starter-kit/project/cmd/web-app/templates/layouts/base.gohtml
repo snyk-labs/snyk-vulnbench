@@ -1,0 +1,159 @@
+{{ define "base" }}
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <title>
+            {{block "title" .}}{{end}} - SaaS Web App
+        </title>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="Web app delivering Software-as-a-Service available anytime, anywhere, on any device.">
+        <meta name="author" content="Geeks Accelerator">
+
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ SiteAssetUrl "/images/saas-stater-kit-icon-200x200.png" }}">
+
+        <!-- ============================================================== -->
+        <!-- Custom fonts for this template                                 -->
+        <!-- ============================================================== -->
+        <script src="https://kit.fontawesome.com/670ea91c67.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+        <!-- ============================================================== -->
+        <!-- Base styles for Start Bootstrap template SB Admin 2            -->
+        <!-- ============================================================== -->
+        <link href="{{ SiteAssetUrl "/assets/css/sb-admin-2.css" }}" rel="stylesheet">
+
+        <!-- ============================================================== -->
+        <!-- Custom styles for this service applied to all pages            -->
+        <!-- ============================================================== -->
+        <link href="{{ SiteAssetUrl "/assets/css/custom.css" }}" rel="stylesheet">
+
+        <!-- ============================================================== -->
+        <!-- Page specific CSS                                              -->
+        <!-- ============================================================== -->
+        {{block "style" .}} {{end}}
+    </head>
+    <body id="page-top">
+
+        {{ template "partials/app-wrapper" . }}
+
+        <!-- ============================================================== -->
+        <!--  Logout Modal                                                  -->
+        <!-- ============================================================== -->
+        {{ if HasAuth $._Ctx }}
+        <div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="logoutModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="logoutModalLabel">Ready to Leave?</h5>
+                        <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">Select "Logout" below if you are ready to end your current session.</div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                        <a class="btn btn-primary" href="/user/logout">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{ end }}
+
+        <!-- ============================================================== -->
+        <!-- Javascript Bootstrap core JavaScript                           -->
+        <!-- ============================================================== -->
+        <script src="{{ SiteAssetUrl "/assets/vendor/jquery/jquery.min.js" }}"></script>
+        <script src="{{ SiteAssetUrl "/assets/vendor/bootstrap/js/bootstrap.bundle.min.js" }}"></script>
+
+        <!-- ============================================================== -->
+        <!-- Core plugin JavaScript                                         -->
+        <!-- ============================================================== -->
+        <script src="{{ SiteAssetUrl "/assets/vendor/jquery-easing/jquery.easing.min.js" }}"></script>
+
+        <!-- ============================================================== -->
+        <!-- Javascript for Start Bootstrap template SB Admin 2             -->
+        <!-- ============================================================== -->
+        <script src="{{ SiteAssetUrl "/assets/js/sb-admin-2.js" }}"></script>
+
+        <!-- ============================================================== -->
+        <!-- Custom Javascript for this service applied to all pages        -->
+        <!-- ============================================================== -->
+        <script src="{{ SiteAssetUrl "/assets/js/custom.js" }}"></script>
+
+        <!-- ============================================================== -->
+        <!-- Page specific Javascript                                       -->
+        <!-- ============================================================== -->
+        {{block "js" .}} {{end}}
+    </body>
+</html>
+{{end}}
+{{ define "invalid-feedback" }}
+    <div class="invalid-feedback" style="{{ if ValidationErrorHasField .validationErrors .fieldName }}display: block;{{ end }}" data-field="{{ .fieldName }}">
+        {{ if ValidationErrorHasField .validationErrors .fieldName }}
+            {{ range $verr := (ValidationFieldErrors .validationErrors .fieldName) }}{{ $verr.Display }}<br/>{{ end }}
+        {{ else }}
+            {{ range $verr := (ValidationFieldErrors .validationDefaults .fieldName) }}{{ $verr.Display }}<br/>{{ end }}
+        {{ end }}
+    </div>
+{{ end }}
+{{ define "app-flashes" }}
+    {{ if .flashes }}
+        {{ range $f := .flashes }}
+            <div class="alert alert-{{ $f.Type }}" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"> <span aria-hidden="true">×</span> </button>
+                {{ if $f.Title }}<h3>{{ $f.Title }}</h3>{{end}}
+                {{ if $f.Text }}<p>{{ $f.Text }}</p>{{end}}
+                {{ if $f.Items }}
+                    <ul>
+                        {{ range $i := $f.Items }}
+                            <li>{{ $i }}</li>
+                        {{end}}
+                    </ul>
+                {{ end }}
+                {{ if $f.Details }}
+                    <p><small>{{ $f.Details }}</small></p>
+                {{ end }}
+            </div>
+        {{ end }}
+    {{ end }}
+    {{ if .error }}
+        {{ $errMsg := (ErrorMessage $._Ctx .error) }}
+        {{ $errDetails := (ErrorDetails $._Ctx .error) }}
+        {{ if or ($errMsg) ($errDetails) }}
+            <div class="alert alert-danger" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"> <span aria-hidden="true">×</span> </button> {{ if $errMsg }}<h3>{{ $errMsg }}</h3> {{end}}
+                {{ if HasField .error "Fields" }}
+                    <ul>
+                        {{ range $i := .error.Fields }}
+                            <li>{{ if $i.Display }}{{ $i.Display }}{{ else }}{{ $i.Error }}{{ end }}</li>
+                        {{end}}
+                    </ul>
+                {{ end }}
+
+                {{ if $errDetails }}
+                    <p><small>{{ $errDetails }}</small></p>
+                {{ end }}
+            </div>
+        {{ end }}
+    {{ end }}
+{{ end }}
+{{ define "validation-error" }}
+    {{ if .validationErrors }}
+        {{ $errMsg := (ErrorMessage $._Ctx .validationErrors) }}
+        {{ if $errMsg }}
+            <div class="alert alert-danger validation-error" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"> <span aria-hidden="true">×</span> </button> {{ if $errMsg }}<h3>{{ $errMsg }}</h3> {{end}}
+                {{ if .validationErrors.Fields }}
+                    <ul>
+                        {{ range $i := .validationErrors.Fields }}
+                            <li data-form-field="{{ $i.FormField }}">{{ if $i.Display }}{{ $i.Display }}{{ else }}{{ $i.Error }}{{ end }}</li>
+                        {{end}}
+                    </ul>
+                {{ end }}
+            </div>
+        {{ end }}
+    {{ end }}
+{{ end }}

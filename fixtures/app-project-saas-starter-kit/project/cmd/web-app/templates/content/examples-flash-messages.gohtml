@@ -1,0 +1,27 @@
+{{define "title"}}Example - Flash Messages{{end}}
+{{define "style"}}
+
+{{end}}
+{{define "content"}}
+    <h3 class="mt-5">Inline Validation Example</h3>
+    <p>Any field error that is not displayed inline will still be displayed as apart of the the validation at the top of the page.</p>
+    <form class="user" method="post" novalidate>
+        <div class="form-group">
+            <input type="email" class="form-control form-control-user {{ ValidationFieldClass $.validationErrors "Email" }}" name="Email" value="{{ $.form.Email }}" placeholder="Enter Email Address...">
+            {{template "invalid-feedback" dict "validationDefaults" $.validationDefaults "validationErrors" $.validationErrors "fieldName" "Email" }}
+        </div>
+
+        <button class="btn btn-purple btn-user ">
+            Submit Form
+        </button>
+
+        <!-- hidden_field is not included in the form to show how inline validation errors
+        are removed from list of validation issues in the flash message. When submitting an
+        invalid email address, the flash message includes the validation issues for hidden_field
+        but does not include in for email. Instead the email validation issue is displayed inline -->
+        <hr>
+    </form>
+{{end}}
+{{define "js"}}
+
+{{end}}

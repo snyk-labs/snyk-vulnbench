@@ -1,0 +1,143 @@
+# https://docs.docker.com/compose/compose-file
+# docker-compose up
+# docker-compose stop
+# docker-compose down
+version: '3.7'
+
+networks:
+  main:
+
+services:
+  postgres:
+    image: postgres:11-alpine
+    expose:
+      - "5433"
+    ports:
+      - "5433:5432"
+    networks:
+      main:
+        aliases:
+          - postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgres
+      - POSTGRES_DB=shared
+
+  redis:
+    image: redis:latest
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+    networks:
+      main:
+        aliases:
+          - redis
+    entrypoint: redis-server --appendonly yes
+
+  datadog:
+    image: example-checklist/datadog:latest
+    build:
+      context: build/docker/datadog-agent
+      dockerfile: Dockerfile
+    ports:
+      - 8125:8125 # metrics
+      - 8126:8126 # tracing
+    networks:
+      main:
+        aliases:
+          - datadog
+    env_file:
+      - configs/.env_docker_compose
+    environment:
+      - DD_LOGS_ENABLED=true
+      - DD_APM_ENABLED=true
+      - DD_RECEIVER_PORT=8126
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_TAGS=source:docker env:dev
+      - DD_DOGSTATSD_ORIGIN_DETECTION=true
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_EXPVAR=service_name=web-app env=dev url=http://web-app:4000/debug/vars|service_name=web-api env=dev url=http://web-api:4001/debug/vars
+  web-app:
+    image: example-checklist/web-app:latest
+    build:
+      context: .
+      target: dev
+      dockerfile: cmd/web-app/Dockerfile
+      args:
+        name: 'web-app'
+    volumes:
+      - ./:/go/src/gitlab.com/geeks-accelerator/oss/saas-starter-kit
+    ports:
+      - 3000:3000 # WEB APP
+      - 4000:4000 # DEBUG API
+    networks:
+      main:
+        aliases:
+          - web-app
+    depends_on:
+      - postgres
+      - redis
+      - datadog
+      - web-api
+    env_file:
+      - configs/.env_docker_compose
+    environment:
+      - WEB_APP_HTTP_HOST=:3000
+      - WEB_APP_APP_BASE_URL=http://localhost:3000
+      - WEB_APP_APP_DEBUG_HOST=:4000
+      - WEB_APP_REDIS_HOST=redis:6379
+      - WEB_APP_DB_HOST=postgres:5432
+      - WEB_APP_DB_USER=postgres
+      - WEB_APP_DB_PASS=postgres
+      - WEB_APP_DB_DATABASE=shared
+      - WEB_APP_DB_DISABLE_TLS=true
+      - WEB_API_BASE_URL=http://localhost:3001
+      - USE_NETWORK_ALIAS=1
+      - DD_TRACE_AGENT_HOSTNAME=datadog
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_SERVICE_NAME=web-app
+      - DD_ENV=dev
+      # - GODEBUG=gctrace=1
+
+  web-api:
+    image: example-checklist/web-api:latest
+    build:
+      context: .
+      target: dev
+      dockerfile: cmd/web-api/Dockerfile
+      args:
+        name: 'web-api'
+    volumes:
+      - ./:/go/src/gitlab.com/geeks-accelerator/oss/saas-starter-kit
+    ports:
+      - 3001:3001 # WEB API
+      - 4001:4001 # DEBUG API
+    networks:
+      main:
+        aliases:
+          - web-api
+    depends_on:
+      - postgres
+      - redis
+      - datadog
+    env_file:
+      - configs/.env_docker_compose
+    environment:
+      - WEB_API_HTTP_HOST=:3001
+      - WEB_API_APP_BASE_URL=http://localhost:3001
+      - WEB_API_APP_DEBUG_HOST=:4001
+      - WEB_API_REDIS_HOST=redis:6379
+      - WEB_API_DB_HOST=postgres:5432
+      - WEB_API_DB_USER=postgres
+      - WEB_API_DB_PASS=postgres
+      - WEB_API_DB_DATABASE=shared
+      - WEB_API_DB_DISABLE_TLS=true
+      - WEB_APP_BASE_URL=http://localhost:3000
+      - USE_NETWORK_ALIAS=1
+      - DD_TRACE_AGENT_HOSTNAME=datadog
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_SERVICE_NAME=web-app
+      - DD_ENV=dev
+      # - GODEBUG=gctrace=1

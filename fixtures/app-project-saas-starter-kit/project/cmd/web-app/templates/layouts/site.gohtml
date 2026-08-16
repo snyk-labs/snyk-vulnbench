@@ -1,0 +1,127 @@
+{{ define "base" }}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <title>
+            {{block "title" .}}{{end}} Web App
+        </title>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="{{block "description" .}}{{end}} ">
+        <meta name="author" content="Geeks Accelerator">
+
+        <link rel="icon" type="image/png" sizes="16x16" href="{{ SiteAssetUrl "/images/saas-stater-kit-icon-200x200.png" }}">
+
+        <!-- ============================================================== -->
+        <!-- Custom fonts for this template                                 -->
+        <!-- ============================================================== -->
+        <script src="https://kit.fontawesome.com/670ea91c67.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+
+        <link rel=stylesheet href=https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css integrity=sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm crossorigin=anonymous>
+
+        <!-- ============================================================== -->
+        <!-- Base styles for Start Bootstrap template SB Admin 2            -->
+        <!-- ============================================================== -->
+        {{ if eq $._Service.ENV "dev" }}
+            <link href="{{ SiteAssetUrl "/assets/css/sb-admin-2.css" }}" rel="stylesheet">
+        {{ else }}
+            <link href="{{ SiteAssetUrl "/assets/css/sb-admin-2.min.css" }}" rel="stylesheet">
+        {{ end }}
+
+        <!-- ============================================================== -->
+        <!-- Custom styles for this service applied to all pages            -->
+        <!-- ============================================================== -->
+        <link href="{{ SiteAssetUrl "/assets/css/custom.css" }}" id="theme" rel="stylesheet">
+
+        <!-- ============================================================== -->
+        <!-- Page specific CSS                                              -->
+        <!-- ============================================================== -->
+        {{block "style" .}} {{end}}
+    </head>
+    <body id="page-top">
+
+
+    <!-- ============================================================== -->
+    <!-- Topbar                                                         -->
+    <!-- ============================================================== -->
+    {{ template "partials/site-topbar" . }}
+    <!-- End of Topbar -->
+
+        <!-- ============================================================== -->
+        <!-- Page Wrapper                                                   -->
+        <!-- ============================================================== -->
+        <div id="wrapper" class="website">
+
+            <!-- ============================================================== -->
+            <!-- Content Wrapper                                                -->
+            <!-- ============================================================== -->
+            <div id="content-wrapper" class="d-flex flex-column bg-white">
+
+                <!-- ============================================================== -->
+                <!-- Main Content                                                   -->
+                <!-- ============================================================== -->
+                <div id="content">
+
+
+
+                    <!-- ============================================================== -->
+                    <!-- Page Content                                                   -->
+                    <!-- ============================================================== -->
+
+
+                        {{ template "content" . }}
+
+                    <!-- End Page Content  -->
+
+                </div>
+                <!-- End of Main Content -->
+
+                <!-- ============================================================== -->
+                <!-- Footer                                                         -->
+                <!-- ============================================================== -->
+                {{ template "partials/site-footer" . }}
+                <!-- End of Footer -->
+
+            </div>
+            <!-- End of Content Wrapper -->
+
+        </div>
+        <!-- End of Page Wrapper -->
+
+        <!-- Scroll to Top Button-->
+        <a class="scroll-to-top rounded" href="#page-top">
+            <i class="fas fa-angle-up"></i>
+        </a>
+
+
+    <!-- ============================================================== -->
+    <!-- Javascript Bootstrap core JavaScript                           -->
+    <!-- ============================================================== -->
+    <script src="{{ SiteAssetUrl "/assets/vendor/jquery/jquery.min.js" }}"></script>
+    <script src="{{ SiteAssetUrl "/assets/vendor/bootstrap/js/bootstrap.bundle.min.js" }}"></script>
+
+    <!-- ============================================================== -->
+    <!-- Core plugin JavaScript                                         -->
+    <!-- ============================================================== -->
+    <script src="{{ SiteAssetUrl "/assets/vendor/jquery-easing/jquery.easing.min.js" }}"></script>
+
+    <!-- ============================================================== -->
+    <!-- Javascript for Start Bootstrap template SB Admin 2             -->
+    <!-- ============================================================== -->
+    {{ if eq $._Service.ENV "dev" }}
+    <script src="{{ SiteAssetUrl "/assets/js/sb-admin-2.js" }}"></script>
+    {{ else }}
+    <script src="{{ SiteAssetUrl "/assets/js/sb-admin-2.min.js" }}"></script>
+    {{ end }}
+
+    <!-- ============================================================== -->
+    <!-- Page specific Javascript                                       -->
+    <!-- ============================================================== -->
+    {{block "js" .}} {{end}}
+    </body>
+    </html>
+{{end}}
