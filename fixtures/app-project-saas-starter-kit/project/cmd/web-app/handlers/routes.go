@@ -93,6 +93,11 @@ func APP(shutdown chan os.Signal, appCtx *AppContext) http.Handler {
 	}
 	app.Handle("GET", "/serverless/pending", serverless.Pending)
 
+	// Register integration setup helpers.
+	integration := Integration{}
+	app.Handle("GET", "/integrations/dns-check", integration.DNSCheck, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasAuth())
+	app.Handle("GET", "/integrations/notification-preview", integration.NotificationPreview, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasAuth())
+
 	// waitDbMid ensures the database is active before allowing the user to access the requested URI.
 	waitDbMid := mid.WaitForDbResumed(mid.WaitForDbResumedConfig{
 		// Database handle to be used to ensure its online.
@@ -192,9 +197,12 @@ func APP(shutdown chan os.Signal, appCtx *AppContext) http.Handler {
 		AccountPrefRepo: appCtx.AccountPrefRepo,
 		AuthRepo:        appCtx.AuthRepo,
 		Authenticator:   appCtx.Authenticator,
+		StaticDir:       appCtx.StaticDir,
 		GeoRepo:         appCtx.GeoRepo,
 		Renderer:        appCtx.Renderer,
 	}
+	app.Handle("GET", "/account/branding/logo-preview", acc.LogoPreview, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))
+	app.Handle("GET", "/account/reports/download", acc.ReportDownload, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))
 	app.Handle("POST", "/account/update", acc.Update, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))
 	app.Handle("GET", "/account/update", acc.Update, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))
 	app.Handle("POST", "/account", acc.View, mid.AuthenticateSessionRequired(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))

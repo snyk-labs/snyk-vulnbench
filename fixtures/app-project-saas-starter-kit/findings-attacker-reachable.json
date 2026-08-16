@@ -1,0 +1,213 @@
+{
+  "description": "Go SaaS starter with intentionally attacker-reachable integration and checklist-search flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-saas-starter-kit-command-injection-dns-check",
+      "type": "command-injection",
+      "typeAliases": [
+        "command injection",
+        "shell injection"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "cmd/web-app/handlers/integrations.go",
+          "line": 19,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/integrations.go",
+          "line": 20
+        },
+        {
+          "file": "cmd/web-app/handlers/integration_diagnostics.go",
+          "line": 9
+        },
+        {
+          "file": "cmd/web-app/handlers/integration_diagnostics.go",
+          "line": 10
+        },
+        {
+          "file": "cmd/web-app/handlers/integration_diagnostics.go",
+          "line": 11,
+          "type": "sink"
+        }
+      ],
+      "description": "The integration DNS check places a customer-supplied hostname inside a shell command.",
+      "vulnerabilityImpact": "An authenticated user can execute commands with the web application's process privileges.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-kit-open-redirect-login-return-to",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "cmd/web-app/handlers/login_redirect.go",
+          "line": 8,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/user.go",
+          "line": 105
+        },
+        {
+          "file": "cmd/web-app/handlers/user.go",
+          "line": 108,
+          "type": "sink"
+        }
+      ],
+      "description": "The login flow restores a request-selected return-to URL after authenticating the user.",
+      "vulnerabilityImpact": "An attacker can use a trusted login link to send a user to an arbitrary external destination.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-kit-path-traversal-account-report-download",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "cmd/web-app/handlers/account.go",
+          "line": 79,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/account.go",
+          "line": 80
+        },
+        {
+          "file": "cmd/web-app/handlers/account_reports.go",
+          "line": 8
+        },
+        {
+          "file": "cmd/web-app/handlers/account_reports.go",
+          "line": 9
+        },
+        {
+          "file": "cmd/web-app/handlers/account_reports.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The authenticated account report download joins an attacker-controlled report name to the static exports directory without enforcing containment.",
+      "vulnerabilityImpact": "An authenticated user can read files outside the intended report directory.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-kit-sqli-checklist-search",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sql injection",
+        "sqli"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "cmd/web-api/handlers/checklist.go",
+          "line": 367,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-api/handlers/checklist.go",
+          "line": 373,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-api/handlers/checklist.go",
+          "line": 374
+        },
+        {
+          "file": "cmd/web-api/handlers/checklist.go",
+          "line": 375
+        },
+        {
+          "file": "cmd/web-api/handlers/checklist.go",
+          "line": 379,
+          "type": "sink"
+        }
+      ],
+      "description": "The integration-facing checklist search interpolates the query parameter into a raw SQL statement.",
+      "vulnerabilityImpact": "An authenticated API user can alter the checklist query and access records outside the intended search.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-saas-starter-kit-ssrf-account-logo-preview",
+      "type": "ssrf",
+      "typeAliases": [
+        "server-side request forgery",
+        "ssrf"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "cmd/web-app/handlers/account.go",
+          "line": 63,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/account.go",
+          "line": 64,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/account.go",
+          "line": 65
+        },
+        {
+          "file": "cmd/web-app/handlers/account_assets.go",
+          "line": 9
+        },
+        {
+          "file": "cmd/web-app/handlers/account_assets.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The account branding preview fetches a request-selected logo URL from the web server before an administrator saves account settings.",
+      "vulnerabilityImpact": "An authenticated administrator can make the application issue requests to internal or otherwise restricted services.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes"
+    },
+    {
+      "id": "app-project-saas-starter-kit-ssti-notification-preview",
+      "type": "template-injection",
+      "typeAliases": [
+        "ssti",
+        "server-side template injection"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "cmd/web-app/handlers/integrations.go",
+          "line": 38,
+          "type": "source"
+        },
+        {
+          "file": "cmd/web-app/handlers/integrations.go",
+          "line": 39
+        },
+        {
+          "file": "cmd/web-app/handlers/integrations.go",
+          "line": 40,
+          "type": "sink"
+        }
+      ],
+      "description": "The notification preview parses caller-supplied text as an HTML template instead of treating it as notification data.",
+      "vulnerabilityImpact": "An authenticated user can evaluate template directives in the web process and alter generated notification content.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no"
+    }
+  ]
+}

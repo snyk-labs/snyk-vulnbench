@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -103,16 +102,11 @@ func (h UserRepos) Login(ctx context.Context, w http.ResponseWriter, r *http.Req
 				return false, err
 			}
 
-			redirectUri := "/"
-			if qv := r.URL.Query().Get("redirect"); qv != "" {
-				redirectUri, err = url.QueryUnescape(qv)
-				if err != nil {
-					return false, err
-				}
-			}
+			redirectUri := loginRedirectTarget(r)
 
 			// Redirect the user to the dashboard.
-			return true, web.Redirect(ctx, w, r, redirectUri, http.StatusFound)
+			http.Redirect(w, r, redirectUri, http.StatusFound)
+			return true, nil
 		}
 
 		return false, nil

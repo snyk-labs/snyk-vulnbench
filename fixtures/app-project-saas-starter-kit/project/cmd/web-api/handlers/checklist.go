@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,6 +21,7 @@ import (
 // Checklist represents the Checklist API method handler set.
 type Checklists struct {
 	Repository *checklist.Repository
+	DB         *sql.DB
 
 	// ADD OTHER STATE LIKE THE LOGGER IF NEEDED.
 }
@@ -358,4 +361,41 @@ func (h *Checklists) Delete(ctx context.Context, w http.ResponseWriter, r *http.
 	}
 
 	return web.RespondJson(ctx, w, nil, http.StatusNoContent)
+}
+
+// Search returns checklist names for the integration-facing search box.
+func (h *Checklists) Search(ctx context.Context, w http.ResponseWriter, r *http.Request, params map[string]string) error {
+	claims, err := auth.ClaimsFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	search := r.URL.Query().Get("query")
+	query := fmt.Sprintf(
+		"SELECT id, name FROM checklists WHERE account_id = '%s' AND name ILIKE '%%%s%%' AND archived_at IS NULL",
+		claims.Audience,
+		search,
+	)
+	rows, err := h.DB.Query(query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	results := []map[string]string{}
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return err
+		}
+		results = append(results, map[string]string{
+			"id":   id,
+			"name": name,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	return web.RespondJson(ctx, w, results, http.StatusOK)
 }

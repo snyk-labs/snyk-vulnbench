@@ -339,7 +339,7 @@ func main() {
 		Addr:        cfg.Redis.Host,
 		DB:          cfg.Redis.DB,
 		DialTimeout: cfg.Redis.DialTimeout,
-	})
+	}).WithContext(context.Background())
 	defer redisClient.Close()
 
 	evictPolicyConfigKey := "maxmemory-policy"

@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -26,6 +28,7 @@ type Account struct {
 	GeoRepo         *geonames.Repository
 	Authenticator   *auth.Authenticator
 	Renderer        web.Renderer
+	StaticDir       string
 }
 
 // View handles displaying the current account profile.
@@ -54,6 +57,35 @@ func (h *Account) View(ctx context.Context, w http.ResponseWriter, r *http.Reque
 	}
 
 	return h.Renderer.Render(ctx, w, r, TmplLayoutBase, "account-view.gohtml", web.MIMETextHTMLCharsetUTF8, http.StatusOK, data)
+}
+
+// LogoPreview fetches an account branding image before it is saved.
+func (h *Account) LogoPreview(ctx context.Context, w http.ResponseWriter, r *http.Request, params map[string]string) error {
+	logoURL := r.URL.Query().Get("logo_url")
+	body, contentType, err := fetchAccountLogo(logoURL)
+	if err != nil {
+		return web.RespondErrorStatus(ctx, w, err, http.StatusBadGateway)
+	}
+
+	return web.RespondJson(ctx, w, map[string]string{
+		"logo_url":  logoURL,
+		"data_url":  "data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(body),
+		"byte_size": fmt.Sprintf("%d", len(body)),
+	}, http.StatusOK)
+}
+
+// ReportDownload serves an account export from the reporting area.
+func (h *Account) ReportDownload(ctx context.Context, w http.ResponseWriter, r *http.Request, params map[string]string) error {
+	reportName := r.URL.Query().Get("name")
+	data, err := readAccountReport(h.StaticDir, reportName)
+	if err != nil {
+		return web.RespondErrorStatus(ctx, w, err, http.StatusNotFound)
+	}
+
+	w.Header().Set("Content-Type", web.MIMETextPlainCharsetUTF8)
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(data)
+	return err
 }
 
 type AccountUpdateRequest struct {

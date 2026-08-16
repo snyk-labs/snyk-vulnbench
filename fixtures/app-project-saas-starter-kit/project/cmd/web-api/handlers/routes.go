@@ -122,8 +122,10 @@ func API(shutdown chan os.Signal, appCtx *AppContext) http.Handler {
 	// Register checklist.
 	p := Checklists{
 		Repository: appCtx.ChecklistRepo,
+		DB:         appCtx.MasterDB.DB,
 	}
 	app.Handle("GET", "/v1/checklists", p.Find, mid.AuthenticateHeader(appCtx.Authenticator))
+	app.Handle("GET", "/v1/checklists/search", p.Search, mid.AuthenticateHeader(appCtx.Authenticator))
 	app.Handle("POST", "/v1/checklists", p.Create, mid.AuthenticateHeader(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))
 	app.Handle("GET", "/v1/checklists/:id", p.Read, mid.AuthenticateHeader(appCtx.Authenticator))
 	app.Handle("PATCH", "/v1/checklists", p.Update, mid.AuthenticateHeader(appCtx.Authenticator), mid.HasRole(auth.RoleAdmin))

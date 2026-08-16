@@ -24,12 +24,17 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
     "app-project-vinyl-marketplace",
     "attacker-reachable",
   ) as AttackerReachableVulnerability[];
+  const saasStarterKit = loadVulns(
+    "app-project-saas-starter-kit",
+    "attacker-reachable",
+  ) as AttackerReachableVulnerability[];
 
   assert.equal(halloween.length, 3);
   assert.equal(keystonebank.length, 4);
   assert.equal(sassyreg.length, 2);
   assert.equal(coffeeshop.length, 5);
   assert.equal(vinylMarketplace.length, 7);
+  assert.equal(saasStarterKit.length, 6);
   assert.deepEqual(
     { file: halloween[0].file, line: halloween[0].line },
     {
@@ -57,10 +62,10 @@ test("task loading defaults V1 and opts attacker-reachable tasks into V2", () =>
   );
 
   assert.equal(v1?.groundTruth, "v1");
-  assert.equal(v2Tasks.length, 5);
+  assert.equal(v2Tasks.length, 10);
   assert.ok(v2Tasks.every((task) => task.groundTruth === "attacker-reachable"));
   assert.deepEqual(
     v2Tasks.map((task) => task.knownVulns.length).sort((a, b) => a - b),
-    [2, 3, 4, 5, 7],
+    [2, 3, 4, 4, 4, 5, 6, 6, 7, 7],
   );
 });
