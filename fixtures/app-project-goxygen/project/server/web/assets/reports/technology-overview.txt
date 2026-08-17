@@ -1,0 +1,4 @@
+Technology overview
+===================
+
+This local report is used by the technology catalog download feature.

@@ -1,0 +1,191 @@
+{
+  "_note": "Ground truth is curated from the generated Vue/Postgres application, the local exploit checks in POC.md, and the Snyk Code flow emitted for the fixture.",
+  "description": "Goxygen-generated Go and Vue application with attacker-controlled workspace navigation, diagnostics, branding, reports, and browser preference flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-goxygen-command-injection-diagnostics-1",
+      "type": "command-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "server/web/diagnostics_handler.go",
+          "line": 6,
+          "type": "source"
+        },
+        {
+          "file": "server/web/diagnostics_handler.go",
+          "line": 7,
+          "type": "source"
+        },
+        {
+          "file": "server/web/diagnostics.go",
+          "line": 8
+        },
+        {
+          "file": "server/web/diagnostics.go",
+          "line": 9
+        },
+        {
+          "file": "server/web/diagnostics.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace hostname diagnostic passes a request-controlled hostname through a shell command assembled by the diagnostics helper (Snyk: go/CommandInjection).",
+      "vulnerabilityImpact": "A caller can execute additional shell commands in the Go server process through the hostname diagnostic.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-goxygen-open-redirect-continue-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "server/web/navigation.go",
+          "line": 6,
+          "type": "source"
+        },
+        {
+          "file": "server/web/navigation.go",
+          "line": 10
+        },
+        {
+          "file": "server/web/navigation_redirect.go",
+          "line": 5
+        },
+        {
+          "file": "server/web/navigation_redirect.go",
+          "line": 6,
+          "type": "sink"
+        }
+      ],
+      "description": "The post-action continuation handler forwards the request-controlled next destination to a redirect helper (Snyk: go/OR).",
+      "vulnerabilityImpact": "A crafted continuation link can send a user from the application to an attacker-selected external site.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-goxygen-path-traversal-reports-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "server/web/reports.go",
+          "line": 8,
+          "type": "source"
+        },
+        {
+          "file": "server/web/reports.go",
+          "line": 9
+        },
+        {
+          "file": "server/web/report_files.go",
+          "line": 8
+        },
+        {
+          "file": "server/web/report_files.go",
+          "line": 9
+        },
+        {
+          "file": "server/web/report_files.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The technology report download joins a request-controlled report name to the report directory before reading it (Snyk: go/PT).",
+      "vulnerabilityImpact": "A caller can use relative path segments to read files outside the intended report directory.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-goxygen-ssrf-branding-preview-1",
+      "type": "ssrf",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "server/web/branding.go",
+          "line": 8,
+          "type": "source"
+        },
+        {
+          "file": "server/web/branding.go",
+          "line": 9
+        },
+        {
+          "file": "server/web/branding_assets.go",
+          "line": 8
+        },
+        {
+          "file": "server/web/branding_assets.go",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace branding preview sends a request-controlled logo URL to the server-side HTTP client (Snyk: go/Ssrf).",
+      "vulnerabilityImpact": "A caller can make the Go server request loopback or other internal HTTP resources and return their contents.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-goxygen-xss-referral-banner-1",
+      "type": "xss",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "webapp/src/App.vue",
+          "line": 8,
+          "type": "source"
+        },
+        {
+          "file": "webapp/src/App.vue",
+          "line": 10
+        },
+        {
+          "file": "webapp/src/App.vue",
+          "line": 48,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace referral banner derives its message from the document URL and renders it with Vue v-html (Snyk: javascript/DOMXSS).",
+      "vulnerabilityImpact": "A crafted workspace link can execute script in a browser that opens the application.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-goxygen-prototype-pollution-preferences-1",
+      "type": "prototype-pollution",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "webapp/src/workspacePreferences.js",
+          "line": 2,
+          "type": "source"
+        },
+        {
+          "file": "webapp/src/workspacePreferences.js",
+          "line": 3
+        },
+        {
+          "file": "webapp/src/workspacePreferences.js",
+          "line": 12
+        },
+        {
+          "file": "webapp/src/workspacePreferences.js",
+          "line": 14,
+          "type": "sink"
+        }
+      ],
+      "description": "URL-restored workspace preferences use an attacker-controlled section and key in a nested write (Snyk: javascript/PrototypePollution). The polluted renderMarkup property is then consumed by the branding preview flow.",
+      "vulnerabilityImpact": "A crafted shared branding-preview link can add a property to Object.prototype, cause the app to fetch attacker-selected branding content, and make the Vue welcome banner render that response as HTML, enabling script execution in the victim's browser.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}
