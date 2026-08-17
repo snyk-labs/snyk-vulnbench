@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-goxygen",
+  "name": "Goxygen Generated Application",
+  "kind": "web-app",
+  "languages": ["go", "javascript"],
+  "frameworks": ["vue"],
+  "runtimes": [
+    {
+      "name": "go",
+      "version": "1.22"
+    },
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["postgresql"],
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

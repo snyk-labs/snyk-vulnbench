@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-halloween",
+  "name": "Express TypeScript Boilerplate",
+  "kind": "web-app",
+  "languages": ["typescript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": ">=24"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "source": {
+    "repository": "https://github.com/edwinhern/express-typescript-2024"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-boilwater",
+  "name": "Hackathon Starter",
+  "kind": "web-app",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["mongodb"],
+  "source": {
+    "repository": "https://github.com/sahat/hackathon-starter.git"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

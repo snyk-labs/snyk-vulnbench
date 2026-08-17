@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "llm-project-blackmirror",
+  "name": "Blackmirror LLM Express App",
+  "kind": "llm-integration",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "provenance": {
+    "origin": "synthetic",
+    "seeded": true
+  }
+}

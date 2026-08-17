@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-vinyl-marketplace",
+  "name": "Vinyl Marketplace",
+  "kind": "web-app",
+  "languages": ["java", "javascript"],
+  "frameworks": ["spring-boot"],
+  "runtimes": [
+    {
+      "name": "java",
+      "version": "21"
+    }
+  ],
+  "datastores": ["h2"],
+  "provenance": {
+    "origin": "benchmark-created",
+    "seeded": true
+  }
+}

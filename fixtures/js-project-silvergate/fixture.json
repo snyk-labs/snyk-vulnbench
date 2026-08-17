@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "js-project-silvergate",
+  "name": "Silvergate Workspace Handoff Service",
+  "kind": "api-service",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": ">=18"
+    }
+  ],
+  "datastores": [],
+  "provenance": {
+    "origin": "synthetic",
+    "seeded": true
+  }
+}

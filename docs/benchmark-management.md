@@ -48,18 +48,21 @@ fixtures/
   js-project-tigerteam/
     project/                 ← agent's working directory
       app.js
+    fixture.json             ← project metadata and provenance
     findings.json            ← ground-truth answer key (outside agent's cwd)
   app-project-halloween/
     project/                 ← application source
+    fixture.json             ← project metadata and provenance
     findings.json            ← VulnBench 1.0 answer key
     findings-attacker-reachable.json ← VulnBench 2.0 answer key
   your-new-fixture/
     project/                 ← agent's working directory
       ...
+    fixture.json             ← project metadata and provenance
     findings.json            ← ground-truth answer key
 ```
 
-**Adding a new task = create a fixture directory** (with `project/` source code + a ground-truth file) **+ a task descriptor**. VulnBench 1.0 uses `findings.json`; attacker-reachable VulnBench 2.0 tasks use `findings-attacker-reachable.json`. Adding a new run config = edit one JSON array.
+**Adding a new task = create a fixture directory** (with `project/` source code, `fixture.json`, and a ground-truth file) **+ a task descriptor**. VulnBench 1.0 uses `findings.json`; attacker-reachable VulnBench 2.0 tasks use `findings-attacker-reachable.json`. Adding a new run config = edit one JSON array.
 
 ---
 
@@ -77,7 +80,36 @@ fixtures/
     findings.json                ← ground-truth answer key (see Step 2)
 ```
 
-The `project/` subdirectory can contain any number of source files in any structure. The agent will receive `project/` as its working directory and will explore it freely. The `findings.json` file sits outside `project/` so the agent cannot read it.
+The `project/` subdirectory can contain any number of source files in any structure. The agent will receive `project/` as its working directory and will explore it freely. The `fixture.json` and findings files sit outside `project/` so the agent cannot read benchmark metadata or answer keys.
+
+### Fixture metadata manifest
+
+Create `fixtures/<your-fixture>/fixture.json` beside the ground-truth file. This manifest is the source of truth for project-level metadata and is loaded automatically by `src/evals/loader.ts`.
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "ruby-project-garnet",
+  "name": "Garnet Ruby Service",
+  "kind": "api-service",
+  "languages": ["ruby"],
+  "frameworks": ["sinatra"],
+  "runtimes": [{ "name": "ruby", "version": "3.3" }],
+  "datastores": ["postgresql"],
+  "source": {
+    "repository": "https://github.com/example/garnet",
+    "baseCommit": "abc123"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true,
+    "seedCommit": "def456"
+  },
+  "todos": []
+}
+```
+
+Use controlled, lowercase values in `languages`, `frameworks`, and `datastores` so results can be sliced consistently. Only record facts that can be verified from the fixture; use `todos` for unknown repository, revision, runtime, or seeding information, and omit it once all questions are resolved. Keep project metadata here, vulnerability metadata in `findings*.json`, and task behavior in `evals/tasks/*.json`.
 
 **Guidelines for writing fixtures:**
 

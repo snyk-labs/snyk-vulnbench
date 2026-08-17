@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-slingshot",
+  "name": "React Slingshot",
+  "kind": "web-app",
+  "languages": ["javascript"],
+  "frameworks": ["react", "redux", "webpack"],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": ">=8"
+    }
+  ],
+  "datastores": [],
+  "source": {
+    "repository": "https://github.com/coryhouse/react-slingshot"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -105,6 +105,9 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
       : scoreFindVulns(findingsOutput(agentFindings), task);
     return {
       ...result,
+      fixtureId: result.fixtureId ?? task.fixtureId,
+      fixtureMetadata: result.fixtureMetadata ?? task.fixtureMetadata,
+      fixtureMetadataHash: result.fixtureMetadataHash ?? task.fixtureMetadataHash,
       score: findVulnsScore(details),
       details,
     };

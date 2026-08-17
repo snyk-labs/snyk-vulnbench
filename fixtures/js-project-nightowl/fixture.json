@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "js-project-nightowl",
+  "name": "NightOwl Todo App",
+  "kind": "web-app",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "provenance": {
+    "origin": "synthetic",
+    "seeded": true
+  }
+}

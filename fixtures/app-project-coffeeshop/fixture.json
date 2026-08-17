@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-coffeeshop",
+  "name": "Coffee Shop",
+  "kind": "web-app",
+  "languages": ["java", "html", "javascript"],
+  "frameworks": ["spring-boot", "thymeleaf", "spring-security"],
+  "runtimes": [
+    {
+      "name": "java",
+      "version": "17"
+    }
+  ],
+  "datastores": ["h2"],
+  "provenance": {
+    "origin": "benchmark-created",
+    "seeded": true
+  }
+}

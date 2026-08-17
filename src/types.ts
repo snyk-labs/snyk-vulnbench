@@ -28,6 +28,35 @@ export type Severity = "critical" | "high" | "medium" | "low";
 
 export type GroundTruthKind = "v1" | "attacker-reachable";
 
+export type FixtureOrigin = "real-repository" | "benchmark-created" | "synthetic" | "unknown";
+
+export interface FixtureRuntime {
+  name: string;
+  version?: string;
+}
+
+export interface FixtureMetadata {
+  schemaVersion: number;
+  id: string;
+  name: string;
+  kind: string;
+  languages: string[];
+  frameworks: string[];
+  runtimes: FixtureRuntime[];
+  datastores: string[];
+  source?: {
+    repository?: string;
+    baseCommit?: string;
+  };
+  provenance: {
+    origin: FixtureOrigin;
+    seeded?: boolean;
+    seedCommit?: string;
+  };
+  /** Unresolved metadata questions; omit once the manifest is complete. */
+  todos?: string[];
+}
+
 export interface FileLocation {
   file: string;
   line: number;
@@ -167,8 +196,14 @@ export interface EvalTask {
   id: string;
   name: string;
   category: EvalCategory;
-  /** Path to fixture directory (relative to project root) */
+  /** Absolute path to the fixture's agent working directory. */
   fixture: string;
+  /** Stable fixture directory identifier. */
+  fixtureId: string;
+  /** Project-level metadata loaded from fixtures/<fixtureId>/fixture.json. */
+  fixtureMetadata: FixtureMetadata;
+  /** SHA-256 hash of the fixture manifest used for this task. */
+  fixtureMetadataHash: string;
   /** System prompt to inject */
   systemPrompt?: string;
   /** Main prompt sent to agent */
@@ -432,6 +467,9 @@ export interface FixVulnsDetails {
 export interface EvalResult {
   taskId: string;
   taskName: string;
+  fixtureId: string;
+  fixtureMetadata: FixtureMetadata;
+  fixtureMetadataHash: string;
   runConfigId: string;
   runConfigName: string;
   /** Ground-truth schema used to score this run. */
@@ -457,6 +495,9 @@ export interface EvalResult {
 export interface AggregatedTaskResult {
   taskId: string;
   taskName: string;
+  fixtureId: string;
+  fixtureMetadata: FixtureMetadata;
+  fixtureMetadataHash: string;
   runConfigId: string;
   runConfigName: string;
   runConfigType: "model" | "command";

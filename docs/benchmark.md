@@ -270,16 +270,18 @@ flowchart LR
 
 **Location:** `fixtures/`
 
-A fixture is a self-contained directory containing source code and its ground-truth metadata. It is the "exam question" — the thing we're testing the agent against.
+A fixture is a self-contained directory containing source code, project metadata, and ground truth. It is the "exam question" — the thing we're testing the agent against.
 
 ```
 fixtures/
   js-project-tigerteam/
     project/                  ← Agent's working directory (source code)
       app.js                  ← The code under test
+    fixture.json              ← Project metadata and provenance
     findings.json             ← Ground truth: exactly which vulns exist and where
   app-project-halloween/
     project/                  ← Full application source
+    fixture.json              ← Project metadata and provenance
     findings.json             ← VulnBench 1.0 answer key
     findings-attacker-reachable.json  ← VulnBench 2.0 answer key
   python-project-cobalt/
@@ -307,7 +309,13 @@ The `findings.json` file is the VulnBench 1.0 **answer key**. It describes every
 
 The `id` field is critical — the scorer uses these IDs to track which vulnerabilities were found vs. missed, and which were fixed vs. still present. VulnBench 2.0 tasks instead opt into `findings-attacker-reachable.json`, whose entries use a `filesRelated` array to describe the source-to-sink flow. The loader defaults to `findings.json`, so existing tasks retain their original behavior.
 
-**Why the answer key is outside the agent's working directory:** The agent's `cwd` is set to `fixtures/<name>/project/` — only files inside `project/` are visible to the agent. Both ground-truth files sit in the fixture root (one level up from `project/`), and `denyRead` blocks the agent from reading the parent directory. Without a fixed, known-good ground truth hidden from the agent, you cannot objectively score it.
+### `fixture.json` — Project Metadata
+
+Each fixture also contains a `fixture.json` manifest at the fixture root. It records project-level dimensions such as the stable fixture ID, application kind, languages, frameworks, runtimes, datastores, source repository, and provenance. The loader validates the manifest and attaches it to every matching `EvalTask`.
+
+Project metadata is deliberately separate from `findings*.json`: findings describe vulnerability ground truth and code flows, while the manifest describes the application being tested. Unknown provenance or runtime details should remain in the manifest's `todos` array rather than being guessed; omit `todos` when no questions remain.
+
+The manifest and answer keys remain outside the agent's working directory. The agent's `cwd` is set to `fixtures/<name>/project/`, and `denyRead` blocks the parent directory so neither project metadata nor ground truth can leak into the evaluation.
 
 ---
 
@@ -322,7 +330,10 @@ interface EvalTask {
   id: string;            // unique identifier, used in CLI filtering
   name: string;          // human-readable name for output
   category: EvalCategory; // points to EVAL_CATEGORIES.FIND_VULNS or .FIX_VULNS
-  fixture: string;       // path to the fixture directory
+  fixture: string;       // absolute path to the agent's project/ directory
+  fixtureId: string;     // stable fixture directory identifier
+  fixtureMetadata: FixtureMetadata; // loaded from fixture.json
+  fixtureMetadataHash: string; // SHA-256 of fixture.json
   systemPrompt?: string; // instructions injected before the task starts
   prompt: string;        // the main instruction sent to the agent
   knownVulns: Vulnerability[]; // loaded automatically from the fixture's vulns.json
@@ -1539,6 +1550,8 @@ Reading across a row (same task, different configs) tells you which model/tool c
 
 Each JSONL file contains three row types distinguished by `_type`. Raw run results come first, followed by task aggregates and config aggregates.
 
+Raw run rows and task-aggregate rows include `fixtureId`, the loaded `fixtureMetadata` snapshot, and `fixtureMetadataHash`. Config aggregates intentionally do not include one fixture's metadata because they combine multiple fixtures; use the task-level rows or raw runs for technology and provenance slicing.
+
 **Run row** (`_type: "run"`) — one per execution:
 
 ```json
@@ -1546,6 +1559,20 @@ Each JSONL file contains three row types distinguished by `_type`. Raw run resul
   "_type": "run",
   "taskId": "js-project-tigerteam-find-vulns",
   "taskName": "JS App: Find Vulnerabilities 1",
+  "fixtureId": "js-project-tigerteam",
+  "fixtureMetadataHash": "sha256-of-fixture-json",
+  "fixtureMetadata": {
+    "schemaVersion": 1,
+    "id": "js-project-tigerteam",
+    "name": "Tigerteam Express Service",
+    "kind": "api-service",
+    "languages": ["javascript"],
+    "frameworks": ["express"],
+    "runtimes": [{ "name": "node" }],
+    "datastores": ["unknown sql database"],
+    "provenance": { "origin": "unknown" },
+    "todos": ["Confirm source provenance"]
+  },
   "runConfigId": "sonnet-4-6",
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",

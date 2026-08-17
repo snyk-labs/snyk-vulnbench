@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-blanq",
+  "name": "Blanq Nuxt Hub Starter",
+  "kind": "web-app",
+  "languages": ["typescript"],
+  "frameworks": ["nuxt", "vue", "drizzle"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": [],
+  "source": {
+    "repository": "https://github.com/Eckhardt-D/blanq"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

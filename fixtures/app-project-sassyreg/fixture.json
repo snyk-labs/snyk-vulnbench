@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-sassyreg",
+  "name": "Sassy Registry",
+  "kind": "web-app",
+  "languages": ["javascript"],
+  "frameworks": ["react"],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": "14"
+    }
+  ],
+  "datastores": ["json file"],
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "python-project-cobalt",
+  "name": "Cobalt Flask Service",
+  "kind": "api-service",
+  "languages": ["python"],
+  "frameworks": ["flask"],
+  "runtimes": [
+    {
+      "name": "python"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "provenance": {
+    "origin": "unknown"
+  },
+  "todos": [
+    "Confirm the source repository and base revision, if any.",
+    "Confirm the Python version used for evaluation.",
+    "Confirm whether the intentionally vulnerable code was seeded or inherited."
+  ]
+}

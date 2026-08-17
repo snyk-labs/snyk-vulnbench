@@ -5,6 +5,7 @@ import type {
   BenchmarkMetrics,
   EvalResult,
   FindVulnsDetails,
+  FixtureMetadata,
   GroundTruthKind,
 } from "../src/types.js";
 
@@ -20,6 +21,19 @@ const emptyMetrics: BenchmarkMetrics = {
   toolCalls: [],
   toolStats: {},
   filesScanned: [],
+};
+
+const fixtureMetadata: FixtureMetadata = {
+  schemaVersion: 1,
+  id: "test-fixture",
+  name: "Test Fixture",
+  kind: "api-service",
+  languages: ["javascript"],
+  frameworks: ["express"],
+  runtimes: [{ name: "node" }],
+  datastores: [],
+  provenance: { origin: "synthetic" },
+  todos: [],
 };
 
 function run(
@@ -41,6 +55,9 @@ function run(
   return {
     taskId,
     taskName: taskId,
+    fixtureId: fixtureMetadata.id,
+    fixtureMetadata,
+    fixtureMetadataHash: "test-metadata-hash",
     runConfigId: "test-config",
     runConfigName: "Test config",
     groundTruth,
@@ -73,6 +90,8 @@ test("aggregates retain task ground truth and config generation breakdowns", () 
       ["v2-task", "attacker-reachable"],
     ],
   );
+  assert.equal(taskAggregates[0].fixtureId, "test-fixture");
+  assert.equal(taskAggregates[0].fixtureMetadataHash, "test-metadata-hash");
 
   const config = configAggregates[0];
   assert.deepEqual(config.groundTruths, ["v1", "attacker-reachable"]);

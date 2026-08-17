@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-keystonebank",
+  "name": "KeystoneBank FinServ App",
+  "kind": "web-app",
+  "languages": ["typescript"],
+  "frameworks": ["express", "vue"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

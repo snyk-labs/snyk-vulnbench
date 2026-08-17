@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "fs";
+import { createHash } from "node:crypto";
 import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -10,6 +11,7 @@ import type {
   EvalCategoryId,
   EvalTask,
   FileLocation,
+  FixtureMetadata,
   GroundTruthKind,
   ModelRunConfig,
   RunConfig,
@@ -40,6 +42,126 @@ interface TaskJson {
   /** Override the category's default user prompt */
   prompt?: string;
   maxTurns?: number;
+}
+
+export function loadFixtureMetadata(
+  fixtureName: string,
+): { metadata: FixtureMetadata; metadataHash: string } {
+  const metadataPath = join(FIXTURES_DIR, fixtureName, "fixture.json");
+  let manifestText: string;
+  let raw: unknown;
+  try {
+    manifestText = readFileSync(metadataPath, "utf-8");
+    raw = JSON.parse(manifestText);
+  } catch (err) {
+    throw new Error(`Failed to read fixture.json for fixture "${fixtureName}" at ${metadataPath}: ${err}`);
+  }
+
+  const metadata = validateFixtureMetadata(fixtureName, raw);
+  const metadataHash = createHash("sha256").update(manifestText).digest("hex");
+  return { metadata, metadataHash };
+}
+
+export function validateFixtureMetadata(fixtureName: string, raw: unknown): FixtureMetadata {
+  if (!isRecord(raw)) {
+    throw invalidFixtureMetadata(fixtureName, "must be a JSON object");
+  }
+
+  const schemaVersion = requireFixtureNumber(raw.schemaVersion, fixtureName, "schemaVersion");
+  const id = requireFixtureString(raw.id, fixtureName, "id");
+  if (id !== fixtureName) {
+    throw invalidFixtureMetadata(
+      fixtureName,
+      `id must match the fixture directory name "${fixtureName}", got "${id}"`,
+    );
+  }
+  requireFixtureString(raw.name, fixtureName, "name");
+  requireFixtureString(raw.kind, fixtureName, "kind");
+  requireFixtureStringArray(raw.languages, fixtureName, "languages");
+  requireFixtureStringArray(raw.frameworks, fixtureName, "frameworks");
+  requireFixtureRuntimes(raw.runtimes, fixtureName);
+  requireFixtureStringArray(raw.datastores, fixtureName, "datastores");
+
+  if (raw.source !== undefined) {
+    requireFixtureRecord(raw.source, fixtureName, "source");
+    requireOptionalFixtureString(raw.source.repository, fixtureName, "source.repository");
+    requireOptionalFixtureString(raw.source.baseCommit, fixtureName, "source.baseCommit");
+  }
+
+  requireFixtureRecord(raw.provenance, fixtureName, "provenance");
+  const origin = requireFixtureString(raw.provenance.origin, fixtureName, "provenance.origin");
+  if (!new Set(["real-repository", "benchmark-created", "synthetic", "unknown"]).has(origin)) {
+    throw invalidFixtureMetadata(fixtureName, `provenance.origin has unsupported value "${origin}"`);
+  }
+  if (raw.provenance.seeded !== undefined && typeof raw.provenance.seeded !== "boolean") {
+    throw invalidFixtureMetadata(fixtureName, "provenance.seeded must be a boolean when present");
+  }
+  requireOptionalFixtureString(raw.provenance.seedCommit, fixtureName, "provenance.seedCommit");
+  if (raw.todos !== undefined) {
+    requireFixtureStringArray(raw.todos, fixtureName, "todos");
+  }
+
+  return {
+    ...raw,
+    schemaVersion,
+    id,
+  } as FixtureMetadata;
+}
+
+function requireFixtureString(value: unknown, fixtureName: string, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw invalidFixtureMetadata(fixtureName, `${field} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requireOptionalFixtureString(value: unknown, fixtureName: string, field: string): void {
+  if (value !== undefined) {
+    requireFixtureString(value, fixtureName, field);
+  }
+}
+
+function requireFixtureNumber(value: unknown, fixtureName: string, field: string): number {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw invalidFixtureMetadata(fixtureName, `${field} must be a positive integer`);
+  }
+  return value;
+}
+
+function requireFixtureStringArray(value: unknown, fixtureName: string, field: string): void {
+  if (
+    !Array.isArray(value)
+    || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)
+  ) {
+    throw invalidFixtureMetadata(fixtureName, `${field} must be an array of non-empty strings`);
+  }
+}
+
+function requireFixtureRuntimes(value: unknown, fixtureName: string): void {
+  if (
+    !Array.isArray(value)
+    || value.some((runtime) =>
+      !isRecord(runtime)
+      || typeof runtime.name !== "string"
+      || runtime.name.trim().length === 0
+      || (runtime.version !== undefined && typeof runtime.version !== "string")
+    )
+  ) {
+    throw invalidFixtureMetadata(
+      fixtureName,
+      "runtimes must be an array of objects with non-empty name and optional string version",
+    );
+  }
+}
+
+function requireFixtureRecord(value: unknown, fixtureName: string, field: string): asserts value is Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw invalidFixtureMetadata(fixtureName, `${field} must be an object`);
+  }
+}
+
+function invalidFixtureMetadata(fixtureName: string, detail: string): Error {
+  return new Error(`fixture.json for fixture "${fixtureName}" ${detail}`);
 }
 
 export function loadVulns(
@@ -453,6 +575,7 @@ export function loadEvalTasks(): EvalTask[] {
 
     const category = resolveCategory(categoryId);
     const knownVulns = loadVulns(fixture, groundTruth);
+    const { metadata: fixtureMetadata, metadataHash: fixtureMetadataHash } = loadFixtureMetadata(fixture);
     const fixturePath = resolve(FIXTURES_DIR, fixture, "project");
 
     return {
@@ -460,6 +583,9 @@ export function loadEvalTasks(): EvalTask[] {
       name,
       category,
       fixture: fixturePath,
+      fixtureId: fixture,
+      fixtureMetadata,
+      fixtureMetadataHash,
       systemPrompt: systemPrompt ?? category.defaultSystemPrompt,
       prompt: prompt ?? category.defaultPrompt,
       groundTruth,

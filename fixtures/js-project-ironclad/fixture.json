@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "js-project-ironclad",
+  "name": "Ironclad Express Database Service",
+  "kind": "api-service",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["postgresql"],
+  "provenance": {
+    "origin": "unknown"
+  },
+  "todos": [
+    "Confirm the source repository and base revision, if any.",
+    "Confirm whether the intentionally vulnerable code was seeded or inherited."
+  ]
+}

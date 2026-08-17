@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-saas-starter-kit",
+  "name": "Geeks Accelerator SaaS Starter Kit",
+  "kind": "web-app",
+  "languages": ["go"],
+  "frameworks": [],
+  "runtimes": [
+    {
+      "name": "go",
+      "version": "1.13"
+    }
+  ],
+  "datastores": ["postgresql", "redis"],
+  "source": {
+    "repository": "https://gitlab.com/geeks-accelerator/oss/saas-starter-kit"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

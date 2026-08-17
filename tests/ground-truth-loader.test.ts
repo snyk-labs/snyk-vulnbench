@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadEvalTasks, loadVulns } from "../src/evals/loader.js";
+import {
+  loadEvalTasks,
+  loadFixtureMetadata,
+  loadVulns,
+  validateFixtureMetadata,
+} from "../src/evals/loader.js";
 import type { AttackerReachableVulnerability } from "../src/types.js";
 
 test("loads and normalizes all curated attacker-reachable ground truth", () => {
@@ -62,10 +67,38 @@ test("task loading defaults V1 and opts attacker-reachable tasks into V2", () =>
   );
 
   assert.equal(v1?.groundTruth, "v1");
-  assert.equal(v2Tasks.length, 10);
+  assert.equal(v2Tasks.length, 12);
   assert.ok(v2Tasks.every((task) => task.groundTruth === "attacker-reachable"));
   assert.deepEqual(
     v2Tasks.map((task) => task.knownVulns.length).sort((a, b) => a - b),
-    [2, 3, 4, 4, 4, 5, 6, 6, 7, 7],
+    [2, 3, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7],
+  );
+});
+
+test("loads and validates project-level fixture metadata", () => {
+  const { metadata, metadataHash } = loadFixtureMetadata("app-project-goxygen");
+  assert.equal(metadata.id, "app-project-goxygen");
+  assert.deepEqual(metadata.languages, ["go", "javascript"]);
+  assert.equal(metadata.datastores[0], "postgresql");
+  assert.match(metadataHash, /^[0-9a-f]{64}$/);
+
+  const task = loadEvalTasks().find((entry) =>
+    entry.id === "app-project-goxygen-attacker-reachable-find-vulns"
+  );
+  assert.equal(task?.fixtureId, "app-project-goxygen");
+  assert.equal(task?.fixtureMetadataHash, metadataHash);
+  assert.deepEqual(task?.fixtureMetadata, metadata);
+});
+
+test("rejects invalid fixture metadata", () => {
+  const valid = loadFixtureMetadata("app-project-goxygen").metadata;
+
+  assert.throws(
+    () => validateFixtureMetadata("app-project-goxygen", { ...valid, id: "wrong-id" }),
+    /id must match the fixture directory name/,
+  );
+  assert.throws(
+    () => validateFixtureMetadata("app-project-goxygen", { ...valid, languages: [""] }),
+    /languages must be an array of non-empty strings/,
   );
 });

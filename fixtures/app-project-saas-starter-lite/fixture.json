@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-saas-starter-lite",
+  "name": "SaaS Starter Lite",
+  "kind": "web-app",
+  "languages": ["typescript"],
+  "frameworks": ["nestjs", "angular"],
+  "runtimes": [
+    {
+      "name": "node",
+      "version": ">=22"
+    }
+  ],
+  "datastores": ["postgresql"],
+  "source": {
+    "repository": "https://github.com/cloudrix-saas/saas-starter-lite.git"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -86,7 +86,22 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
 
   // Shared fields across all return sites (repetition/totalRepetitions set by caller)
-  const base = { taskId: task.id, taskName: task.name, runConfigId: config.id, runConfigName: config.name, groundTruth: task.groundTruth, runConfigType, effort, thinking, timestamp, repetition: 1, totalRepetitions: 1 };
+  const base = {
+    taskId: task.id,
+    taskName: task.name,
+    fixtureId: task.fixtureId,
+    fixtureMetadata: task.fixtureMetadata,
+    fixtureMetadataHash: task.fixtureMetadataHash,
+    runConfigId: config.id,
+    runConfigName: config.name,
+    groundTruth: task.groundTruth,
+    runConfigType,
+    effort,
+    thinking,
+    timestamp,
+    repetition: 1,
+    totalRepetitions: 1,
+  };
 
   // Command configs (SAST tools) only produce findings — they can't fix code
   if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {

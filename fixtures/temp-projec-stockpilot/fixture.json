@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "temp-projec-stockpilot",
+  "name": "StockPilot Admin",
+  "kind": "web-app",
+  "languages": ["javascript"],
+  "frameworks": ["express"],
+  "runtimes": [
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": [],
+  "provenance": {
+    "origin": "author"
+  }
+}

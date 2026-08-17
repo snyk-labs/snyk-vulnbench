@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-lastsaas",
+  "name": "LastSaaS",
+  "kind": "web-app",
+  "languages": ["go", "typescript"],
+  "frameworks": ["gorilla-mux", "react"],
+  "runtimes": [
+    {
+      "name": "go",
+      "version": "1.25"
+    },
+    {
+      "name": "node"
+    }
+  ],
+  "datastores": ["mongodb"],
+  "source": {
+    "repository": "https://github.com/jonradoff/lastsaas"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

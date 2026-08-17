@@ -78,6 +78,9 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
     aggregated.push({
       taskId: first.taskId,
       taskName: first.taskName,
+      fixtureId: first.fixtureId,
+      fixtureMetadata: first.fixtureMetadata,
+      fixtureMetadataHash: first.fixtureMetadataHash,
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
       runConfigType: first.runConfigType,
