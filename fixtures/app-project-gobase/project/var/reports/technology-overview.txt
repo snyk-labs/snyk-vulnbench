@@ -1,0 +1,4 @@
+Technology overview
+===================
+
+This report summarizes the workspace's enabled integrations.

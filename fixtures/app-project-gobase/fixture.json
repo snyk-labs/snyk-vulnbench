@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-gobase",
+  "name": "GoBase Web API Skeleton",
+  "kind": "api-service",
+  "languages": ["go"],
+  "frameworks": ["gin"],
+  "runtimes": [
+    {
+      "name": "go",
+      "version": "1.18.1"
+    }
+  ],
+  "datastores": [],
+  "source": {
+    "repository": "https://github.com/wajox/gobase",
+    "baseCommit": "7fde5c427e888264da52415d5381bb4464834f34"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -1,0 +1,189 @@
+{
+  "_note": "Ground truth is curated from the seeded workspace API flows, local exploit checks in POC.md, and the Snyk Code SARIF emitted for the fixture.",
+  "description": "GoBase workspace API with attacker-reachable diagnostics, navigation, report, branding, and notification-preview flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-gobase-command-injection-diagnostics-1",
+      "type": "command-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 35,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 36,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 37
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/diagnostics.go",
+          "line": 8
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/diagnostics.go",
+          "line": 9
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/diagnostics.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace hostname diagnostic places a request-controlled hostname into a shell command assembled by the diagnostic helper (Snyk: go/CommandInjection).",
+      "vulnerabilityImpact": "A caller can execute additional shell commands in the Go server process through the hostname diagnostic.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-gobase-open-redirect-continue-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 24,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 25,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 30
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/navigation.go",
+          "line": 7
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/navigation.go",
+          "line": 8,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace continuation endpoint forwards a request-controlled next destination to a redirect helper (Snyk: go/OR).",
+      "vulnerabilityImpact": "A crafted continuation link can send a user from the application to an attacker-selected external site.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-gobase-path-traversal-reports-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 47,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 48,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 49
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/reports.go",
+          "line": 10
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/reports.go",
+          "line": 11
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/reports.go",
+          "line": 12,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace report download joins a request-controlled report name to the report directory before reading it (Snyk: go/PT).",
+      "vulnerabilityImpact": "A caller can use relative path segments to read files outside the intended report directory.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-gobase-ssrf-branding-preview-1",
+      "type": "ssrf",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 60,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 61,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 62
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/branding.go",
+          "line": 8
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/branding.go",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace branding preview sends a request-controlled logo URL to the server-side HTTP client (Snyk: go/Ssrf).",
+      "vulnerabilityImpact": "A caller can make the Go server request loopback or other internal HTTP resources and return their contents.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-gobase-template-injection-preview-1",
+      "type": "template-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 73,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 74,
+          "type": "source"
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/controller.go",
+          "line": 75
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/templates.go",
+          "line": 8
+        },
+        {
+          "file": "internal/gateways/web/controllers/apiv1/workspace/templates.go",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The workspace notification preview parses request-controlled text as a Go template before rendering it (Snyk: go/Ssti).",
+      "vulnerabilityImpact": "A caller can evaluate template directives in the server process and access data exposed to the template.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

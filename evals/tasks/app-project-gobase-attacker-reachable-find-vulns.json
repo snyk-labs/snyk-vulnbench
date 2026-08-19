@@ -1,0 +1,8 @@
+{
+  "id": "app-project-gobase-attacker-reachable-find-vulns",
+  "name": "App GoBase: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-gobase",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 35
+}
