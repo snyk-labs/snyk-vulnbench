@@ -1,11 +1,11 @@
 ---
 name: benchmark-add-new-fixture
-description: Adds a new vulnerable-code fixture to the Coding Agent Security Benchmark (snyk-vulnbench): ground-truth JSON, eval tasks, Snyk Code SARIF capture, mapRuleId updates, optional new VulnTypes, and verification. Use when adding or onboarding a new directory under fixtures/, wiring benchmark metadata, aligning Snyk ruleId to VulnType, or phrases like "add a new benchmark fixture", "register this app as a vuln fixture", "ground truth for fixtures/foo", "map new Snyk rules", "create eval task for my vulnerable repo". Use even if the user only says "benchmark this codebase" or "add this project as an eval" in this repo. Do NOT use for generic security audits outside this benchmark layout, for publishing benchmark reports (use benchmark-report-writer), or for running a full benchmark matrix without adding fixture files.
+description: Adds a complete vulnerable-code fixture to the Coding Agent Security Benchmark (snyk-vulnbench): fixture.json project metadata, ground-truth JSON, eval tasks, Snyk Code SARIF capture, mapRuleId updates, optional new VulnTypes, and verification. Use when adding or onboarding a new directory under fixtures/, wiring fixture metadata, aligning Snyk ruleId to VulnType, or phrases like "add a new benchmark fixture", "register this app as a vuln fixture", "ground truth for fixtures/foo", "map new Snyk rules", "create eval task for my vulnerable repo". Use even if the user only says "benchmark this codebase" or "add this project as an eval" in this repo. Do NOT use for generic security audits outside this benchmark layout, for publishing benchmark reports (use benchmark-report-writer), or for running a full benchmark matrix without adding fixture files.
 license: MIT
 compatibility: Repository snyk-vulnbench (pnpm, TypeScript). Requires Snyk CLI authenticated for `snyk code test` when capturing SARIF. Write access under fixtures/, evals/tasks/, src/parsers/snyk-code.ts, src/types.ts, src/scorer.ts, and docs/benchmark-management.md as needed.
 metadata:
   author: snyk-vulnbench
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Benchmark Add New Fixture
@@ -17,20 +17,26 @@ Drive a new benchmark fixture from an empty or existing `fixtures/<name>/` tree 
 **Principles (read before executing):**
 
 - VulnBench 1.0 ground truth lives in **`fixtures/<fixture-name>/findings.json`**. VulnBench 2.0 attacker-reachable ground truth lives in **`findings-attacker-reachable.json`** and is selected by task metadata (`"groundTruth": "attacker-reachable"`). Both stay outside `project/`, where the sandbox prevents the agent from reading them. See `docs/benchmark-management.md` and `docs/benchmark.md`.
+- Every fixture root also contains **`fixture.json`**, outside `project/`. It is the project-level metadata and provenance manifest; keep vulnerability types, code flows, payloads, and answer-key details in the findings files instead.
 - Find-vulns scoring matches findings to known vulns **by `VulnType` only**, in a **greedy order**: iterate parsed findings in array order; each finding consumes the **first unmatched** ground-truth row with the same `type`. Therefore **`vulnerabilities[]` order should mirror `snyk code test` `results[]` order** whenever multiple rows share a type (e.g. two `hardcoded-credentials`, two `other` or two of any same type).
 - Snyk maps SARIF **`results[].ruleId`** (e.g. `javascript/TooPermissiveCorsHeader`) to benchmark `type` via **`mapRuleId()`** in **`src/parsers/snyk-code.ts`**. Driver metadata in **`runs[0].tool.driver.rules`** (`id`, `name`, `shortDescription.text`, `properties.cwe`) names the vulnerability class — use it to pick or add `VulnType` strings and regex patterns.
 
 Read **`docs/benchmark-management.md`** (Adding a New Eval Task, Ground-Truth JSON, Updating When You Add a New Vulnerability Type, Maintaining Snyk Code ruleId mappings) and **`docs/benchmark.md`** (Command configs and Snyk Code, How Vuln Type Matching Works) before editing if you are unsure of field shapes or scoring behavior.
 
+Read **`references/fixture-metadata.md`** before creating or updating a
+fixture manifest. It defines the required `fixture.json` fields, provenance
+semantics, and the rule for resolving or omitting `todos`.
+
 ---
 
-### Step 1: Prepare — fixture identity and paths
+### Step 1: Prepare — fixture identity, metadata, and paths
 
 1. Confirm the fixture directory name **`<fixture-name>`** (e.g. `app-project-keystonebank`) and ground-truth generation: V1 (`findings.json`) or attacker-reachable V2 (`findings-attacker-reachable.json`). It must match the **`evals/tasks/*.json`** `fixture` field.
 2. Confirm source code lives under **`fixtures/<fixture-name>/project/`** and that no ground-truth secrets are only in prose you will not encode in JSON.
-3. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*/findings.json` files.
+3. Create or update **`fixtures/<fixture-name>/fixture.json`** before authoring ground truth. Record verified project identity, languages, frameworks, runtimes, datastores, source repository, base revision, and provenance; do not guess unknown values.
+4. List globally unique **`id`** prefixes for each vulnerability row (e.g. `app1-…`) so they do not collide with other `fixtures/*/findings.json` files.
 
-**Done when:** `<fixture-name>` is fixed and you know the repo root (benchmark project root).
+**Done when:** `<fixture-name>` is fixed, `project/` is the only agent scan root, and a valid root-level `fixture.json` exists.
 
 ---
 
@@ -89,7 +95,7 @@ For VulnBench 2.0, author `findings-attacker-reachable.json` instead. Use `files
 
 ### Step 6: Verify end-to-end
 
-1. **Loader:** `pnpm run benchmark -- --dry-run` must list the new tasks (if the repo’s full task set currently fails loading, fix unrelated missing `fixtures/*/findings.json` first, or temporarily validate by importing `loadEvalTasks` in a small `tsx` script).
+1. **Loader:** `pnpm run benchmark -- --dry-run` must list the new tasks and validate `fixture.json` plus its ID against the fixture directory (if the repo’s full task set currently fails loading, fix unrelated missing fixture metadata/ground truth first, or temporarily validate by importing `loadEvalTasks` in a small `tsx` script).
 2. **Snyk parity:** Pipe the SARIF file through the same path as the harness: `parseSnykCodeOutput` → build synthetic `FINDINGS_JSON` (see **`src/command-runner.ts`**) → **`scoreFindVulns`** with `knownVulns` loaded from your new JSON. Expect **recall 1.0** and **no false negatives** when ordering and types align.
 3. Optionally run **`pnpm run benchmark -- --task <fixture-name>-find-vulns --config snyk-code`** if CLI auth is available.
 
@@ -102,6 +108,7 @@ For VulnBench 2.0, author `findings-attacker-reachable.json` instead. Use `files
 | Artifact | Path |
 |----------|------|
 | Source code | `fixtures/<fixture-name>/project/` |
+| Fixture metadata | `fixtures/<fixture-name>/fixture.json` |
 | Ground truth | `fixtures/<fixture-name>/findings.json` |
 | Find task | `evals/tasks/<fixture-name>-find-vulns.json` |
 | Fix task | `evals/tasks/<fixture-name>-fix-vulns.json` |
@@ -119,12 +126,13 @@ For VulnBench 2.0, author `findings-attacker-reachable.json` instead. Use `files
 **Actions:**
 
 1. Set `<fixture-name>` to `payment-api`; confirm `fixtures/payment-api/findings.json` is missing and create the plan.
-2. Run `snyk code test "fixtures/payment-api/project/" --include-ignores --json --json-file-output="/tmp/snyk-payment-api-$RANDOM.json"`.
-3. List `results[]` order and each `ruleId` + uri + line; check `driver.rules` for CWE / short names.
-4. Update `mapRuleId` for any new `ruleId` strings; add `VulnType` + scorer aliases + docs table row only if the class is new to the benchmark.
-5. Write `fixtures/payment-api/findings.json` with `vulnerabilities` ordered like SARIF `results`.
-6. Add `evals/tasks/payment-api-find-vulns.json` and `payment-api-fix-vulns.json`.
-7. Verify with `parseSnykCodeOutput` + `scoreFindVulns` (or full dry-run).
+2. Create `fixtures/payment-api/fixture.json` with verified project metadata and provenance.
+3. Run `snyk code test "fixtures/payment-api/project/" --include-ignores --json --json-file-output="/tmp/snyk-payment-api-$RANDOM.json"`.
+4. List `results[]` order and each `ruleId` + uri + line; check `driver.rules` for CWE / short names.
+5. Update `mapRuleId` for any new `ruleId` strings; add `VulnType` + scorer aliases + docs table row only if the class is new to the benchmark.
+6. Write `fixtures/payment-api/findings.json` with `vulnerabilities` ordered like SARIF `results`.
+7. Add `evals/tasks/payment-api-find-vulns.json` and `payment-api-fix-vulns.json`.
+8. Verify with `parseSnykCodeOutput` + `scoreFindVulns` (or full dry-run).
 
 **Result:** New fixture is registered, Snyk-aligned, and ready for matrix runs.
 
@@ -179,11 +187,14 @@ For VulnBench 2.0, author `findings-attacker-reachable.json` instead. Use `files
 
 ## Troubleshooting
 
-**Error:** `Failed to read findings.json for fixture "foo"` when running the benchmark.
+**Error:** `Failed to read fixture.json` or `Failed to read findings.json` for fixture `"foo"`.
 
-**Cause:** Missing or misnamed **`fixtures/foo/findings.json`**, or task `fixture` field does not match directory name.
+**Cause:** A required root-level manifest/ground-truth file is missing or
+misnamed, or the task `fixture` field does not match the directory name.
 
-**Solution:** Ensure **`fixtures/<fixture-name>/findings.json`** exists inside the fixture directory, and task JSON `fixture` equals the directory basename exactly.
+**Solution:** Ensure **`fixtures/<fixture-name>/fixture.json`** and the selected
+findings file exist beside `project/`, the manifest `id` equals the directory
+basename, and task JSON `fixture` matches it exactly. Rerun `--dry-run`.
 
 ---
 
