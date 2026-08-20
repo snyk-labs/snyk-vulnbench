@@ -10,8 +10,7 @@
   <a href="https://snyk.io/blog/snyk-vulnbench-js-1-0-llm-security-review-repeatability/"><img src="https://img.shields.io/badge/Announcement-Snyk_Blog-4C4A73?style=for-the-badge&logo=snyk&logoColor=white" alt="Read the Snyk blog post"></a>
 </p>
 
-<!-- Replace this temporary image with the published VulnBench visual when it is available. -->
-<img src="https://placehold.co/1200x420/0B1220/7DD3FC?text=Snyk+VulnBench" alt="Snyk VulnBench visual placeholder" width="100%">
+<img width="1200" height="730" src="https://github.com/user-attachments/assets/bf4c66fe-139e-4601-9b61-699968808e34" alt="Snyk VulnBench" />
 
 </div>
 
