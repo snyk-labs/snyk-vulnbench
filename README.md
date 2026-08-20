@@ -56,6 +56,17 @@ It currently supports:
 | `attacker-reachable-find-vulns` | Whether reported source-to-sink flows match curated attacker-reachable findings. |
 | `fix-vulns` | Whether an agent remediates documented vulnerabilities. |
 
+### Benchmark output
+
+The VulnBench benchmark harness reports results data as pretty standard output as well as JSONL files:
+
+<img width="807" height="259" alt="SCR-20260820-nnaz" src="https://github.com/user-attachments/assets/f12e1bcf-6a63-4f4e-8281-5f1b18da1eb9" />
+
+Additionally, there's built-in skills in the benchmark harness (in this repo) that generate visual charts through HTML files:
+
+<img width="924" height="509" alt="SCR-20260820-nncj" src="https://github.com/user-attachments/assets/33f1470e-437e-40f3-90c9-fe38a8b90b2b" />
+
+
 ## Quick start
 
 Requires Node.js 24+ and [pnpm](https://pnpm.io/).
