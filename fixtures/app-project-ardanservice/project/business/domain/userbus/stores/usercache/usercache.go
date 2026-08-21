@@ -1,0 +1,169 @@
+// Package usercache contains user related CRUD functionality with caching.
+package usercache
+
+import (
+	"context"
+	"net/mail"
+	"time"
+
+	"github.com/ardanlabs/service/business/domain/userbus"
+	"github.com/ardanlabs/service/business/sdk/order"
+	"github.com/ardanlabs/service/business/sdk/page"
+	"github.com/ardanlabs/service/business/sdk/sqldb"
+	"github.com/ardanlabs/service/foundation/logger"
+	"github.com/google/uuid"
+	"github.com/viccon/sturdyc"
+)
+
+// Store manages the set of APIs for user data and caching.
+type Store struct {
+	log    *logger.Logger
+	storer userbus.Storer
+	cache  *sturdyc.Client[userbus.User]
+	inTran bool
+}
+
+// NewStore constructs the api for data and caching access.
+func NewStore(log *logger.Logger, storer userbus.Storer, ttl time.Duration) *Store {
+	const capacity = 10000
+	const numShards = 10
+	const evictionPercentage = 10
+
+	return &Store{
+		log:    log,
+		storer: storer,
+		cache:  sturdyc.New[userbus.User](capacity, numShards, ttl, evictionPercentage),
+	}
+}
+
+// NewWithTx constructs a new Store value replacing the sqlx DB
+// value with a sqlx DB value that is currently inside a transaction.
+func (s *Store) NewWithTx(tx sqldb.CommitRollbacker) (userbus.Storer, error) {
+	txStorer, err := s.storer.NewWithTx(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	store := Store{
+		log:    s.log,
+		storer: txStorer,
+		cache:  s.cache,
+		inTran: true,
+	}
+
+	return &store, nil
+}
+
+// Create inserts a new user into the database.
+func (s *Store) Create(ctx context.Context, usr userbus.User) error {
+	if err := s.storer.Create(ctx, usr); err != nil {
+		return err
+	}
+
+	s.writeOrInvalidate(usr)
+
+	return nil
+}
+
+// Update replaces a user document in the database.
+func (s *Store) Update(ctx context.Context, usr userbus.User) error {
+	if err := s.storer.Update(ctx, usr); err != nil {
+		return err
+	}
+
+	s.writeOrInvalidate(usr)
+
+	return nil
+}
+
+// Delete removes a user from the database.
+func (s *Store) Delete(ctx context.Context, usr userbus.User) error {
+	if err := s.storer.Delete(ctx, usr); err != nil {
+		return err
+	}
+
+	s.deleteCache(usr)
+
+	return nil
+}
+
+// Query retrieves a list of existing users from the database.
+func (s *Store) Query(ctx context.Context, filter userbus.QueryFilter, orderBy order.By, page page.Page) ([]userbus.User, error) {
+	return s.storer.Query(ctx, filter, orderBy, page)
+}
+
+// Count returns the total number of cards in the DB.
+func (s *Store) Count(ctx context.Context, filter userbus.QueryFilter) (int, error) {
+	return s.storer.Count(ctx, filter)
+}
+
+// QueryByID gets the specified user from the database.
+func (s *Store) QueryByID(ctx context.Context, userID uuid.UUID) (userbus.User, error) {
+	if !s.inTran {
+		if cachedUsr, ok := s.readCache(userID.String()); ok {
+			return cachedUsr, nil
+		}
+	}
+
+	usr, err := s.storer.QueryByID(ctx, userID)
+	if err != nil {
+		return userbus.User{}, err
+	}
+
+	s.writeOrInvalidate(usr)
+
+	return usr, nil
+}
+
+// QueryByEmail gets the specified user from the database by email.
+func (s *Store) QueryByEmail(ctx context.Context, email mail.Address) (userbus.User, error) {
+	if !s.inTran {
+		if cachedUsr, ok := s.readCache(email.Address); ok {
+			return cachedUsr, nil
+		}
+	}
+
+	usr, err := s.storer.QueryByEmail(ctx, email)
+	if err != nil {
+		return userbus.User{}, err
+	}
+
+	s.writeOrInvalidate(usr)
+
+	return usr, nil
+}
+
+// readCache performs a safe search in the cache for the specified key.
+func (s *Store) readCache(key string) (userbus.User, bool) {
+	usr, exists := s.cache.Get(key)
+	if !exists {
+		return userbus.User{}, false
+	}
+
+	return usr, true
+}
+
+// writeOrInvalidate populates the cache outside a transaction, but only
+// invalidates the entry while inside one. A transactional write is not yet
+// committed and may be rolled back, which would leave the cache holding a row
+// that no longer exists in the database.
+func (s *Store) writeOrInvalidate(bus userbus.User) {
+	if s.inTran {
+		s.deleteCache(bus)
+		return
+	}
+
+	s.writeCache(bus)
+}
+
+// writeCache performs a safe write to the cache for the specified userbus.
+func (s *Store) writeCache(bus userbus.User) {
+	s.cache.Set(bus.ID.String(), bus)
+	s.cache.Set(bus.Email.Address, bus)
+}
+
+// deleteCache performs a safe removal from the cache for the specified userbus.
+func (s *Store) deleteCache(bus userbus.User) {
+	s.cache.Delete(bus.ID.String())
+	s.cache.Delete(bus.Email.Address)
+}
