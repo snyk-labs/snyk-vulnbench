@@ -1,0 +1,176 @@
+{
+  "_note": "Ground truth is curated from the seeded ad-hoc search endpoints and the report/search-preview HTML views, cross-referenced with the Snyk Code SARIF emitted for the fixture and the runtime POCs in POC.md.",
+  "description": "perfmon Go performance-monitor API with seeded attacker-reachable SQL injection in the product/attribute/jobs search endpoints and reflected XSS in the product report and search-preview HTML surfaces.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-go-sample-sql-injection-product-search-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "delivery/http/api.go",
+          "line": 32,
+          "type": "source"
+        },
+        {
+          "file": "delivery/http/api.go",
+          "line": 33
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 16
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 17
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 22
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 23,
+          "type": "sink"
+        }
+      ],
+      "description": "The product-picker type-ahead search endpoint at GET /products/search reads the `q` query parameter and passes it into a fmt.Sprintf-built SQL LIKE query that is executed with database/sql (Snyk: go/Sqli).",
+      "vulnerabilityImpact": "An attacker can smuggle SQL through the LIKE pattern to bypass the product filter, enumerate rows from any table reachable by the postgres user, or trigger errors that leak schema information.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-go-sample-sql-injection-attribute-search-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "delivery/http/api.go",
+          "line": 50,
+          "type": "source"
+        },
+        {
+          "file": "delivery/http/api.go",
+          "line": 51
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 45
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 46
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 51
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 52,
+          "type": "sink"
+        }
+      ],
+      "description": "The attribute-picker search endpoint at GET /attributes/search reads the `q` query parameter and passes it into a fmt.Sprintf-built SQL LIKE query that is executed with database/sql (Snyk: go/Sqli).",
+      "vulnerabilityImpact": "An attacker can smuggle SQL through the LIKE pattern to enumerate arbitrary attribute rows, join across tables, or elicit error messages that leak schema information.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-go-sample-sql-injection-jobs-list-orderby-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "delivery/http/api.go",
+          "line": 78,
+          "type": "source"
+        },
+        {
+          "file": "delivery/http/api.go",
+          "line": 79
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 74
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 78
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 84
+        },
+        {
+          "file": "delivery/http/search.go",
+          "line": 85,
+          "type": "sink"
+        }
+      ],
+      "description": "The sortable recent-jobs listing at GET /jobs/list reads the `sort` query parameter and interpolates it as an ORDER BY expression through fmt.Sprintf, so the whole ORDER BY clause is attacker-controlled (Snyk: go/Sqli).",
+      "vulnerabilityImpact": "An attacker can substitute a subquery or CASE expression into ORDER BY to perform boolean-blind exfiltration of arbitrary rows accessible to the postgres user, or trigger errors that reveal schema details.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-go-sample-xss-product-report-1",
+      "type": "xss",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "delivery/http/report.go",
+          "line": 24,
+          "type": "source"
+        },
+        {
+          "file": "delivery/http/report.go",
+          "line": 25
+        },
+        {
+          "file": "delivery/http/report.go",
+          "line": 27
+        },
+        {
+          "file": "delivery/http/report.go",
+          "line": 28,
+          "type": "sink"
+        }
+      ],
+      "description": "The product status report page at GET /report reads the `product` and `note` query parameters, concatenates them into an HTML document body via a same-package renderer, and streams the result with a text/html Content-Type using w.Write (Snyk: go/XSS).",
+      "vulnerabilityImpact": "An attacker who lures an authenticated operator to a crafted /report URL can execute arbitrary JavaScript in the operator's origin, hijacking any session-scoped credentials the perfmon UI carries.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-go-sample-xss-search-preview-1",
+      "type": "xss",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "delivery/http/report.go",
+          "line": 36,
+          "type": "source"
+        },
+        {
+          "file": "delivery/http/report.go",
+          "line": 38
+        },
+        {
+          "file": "delivery/http/report.go",
+          "line": 39,
+          "type": "sink"
+        }
+      ],
+      "description": "The dashboard search-as-you-type widget at GET /search-preview reads the `q` query parameter, concatenates it into an HTML fragment via a same-package renderer, and writes the fragment to the response with a text/html Content-Type (Snyk: go/XSS).",
+      "vulnerabilityImpact": "An attacker who lures an authenticated operator to a crafted /search-preview URL can execute arbitrary JavaScript in the operator's origin, hijacking any session-scoped credentials the perfmon UI carries.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

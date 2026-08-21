@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-go-sample",
+  "name": "perfmon Go Sample Performance Monitor",
+  "kind": "api-service",
+  "languages": ["go"],
+  "frameworks": ["httprouter"],
+  "runtimes": [
+    {
+      "name": "go",
+      "version": "1.11"
+    }
+  ],
+  "datastores": ["postgresql"],
+  "source": {
+    "repository": "https://github.com/zitryss/go-sample",
+    "baseCommit": "889bbede3cb92dcbfbcdc3764467ca91bac2eb87"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

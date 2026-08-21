@@ -1,0 +1,8 @@
+{
+  "id": "app-project-go-sample-attacker-reachable-find-vulns",
+  "name": "perfmon Go Sample: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-go-sample",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 35
+}
