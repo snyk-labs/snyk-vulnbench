@@ -1,0 +1,252 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Flask Bones web application with eight attacker-reachable request-handling vulnerabilities, including single-file and cross-file source-to-sink flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-flask-bones-open-redirect-login-1",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "app/auth/views.py",
+          "line": 36,
+          "type": "source"
+        },
+        {
+          "file": "app/auth/views.py",
+          "line": 36,
+          "type": "sink"
+        }
+      ],
+      "description": "The login route redirects to the unvalidated `next` query parameter with no allowlist or same-origin check. Pre-existing in the unmodified upstream app, not a planted change.",
+      "vulnerabilityImpact": "Allows an attacker to craft a same-origin-looking login link that redirects the victim to an attacker-controlled phishing page after a successful login.",
+      "codeFlowMultiLine": "no",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-flask-bones-open-redirect-verify-1",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "app/auth/views.py",
+          "line": 120,
+          "type": "source"
+        },
+        {
+          "file": "app/auth/views.py",
+          "line": 120,
+          "type": "sink"
+        }
+      ],
+      "description": "The email-verification route extends the same unvalidated-redirect pattern used by /login, redirecting to the unvalidated `next` query parameter after marking the account active.",
+      "vulnerabilityImpact": "Allows an attacker to obtain their own valid verification token (via a throwaway registration) and send a victim a same-origin-looking verification link that redirects off-domain to a phishing page.",
+      "codeFlowMultiLine": "no",
+      "codeFlowCrossFile": "no"
+    },
+    {
+      "id": "app-project-flask-bones-command-injection-diagnostics-1",
+      "type": "command-injection",
+      "typeAliases": [
+        "shell injection",
+        "os command injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 61,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 62
+        },
+        {
+          "file": "app/utils.py",
+          "line": 16
+        },
+        {
+          "file": "app/utils.py",
+          "line": 18,
+          "type": "sink"
+        }
+      ],
+      "description": "The nominally admin connectivity-diagnostic feature is protected only by login_required and passes the `host` form field to a helper that concatenates it directly into a `ping` shell command with shell=True, with no escaping or validation.",
+      "vulnerabilityImpact": "Allows an authenticated user to break out of the intended command via shell metacharacters and execute arbitrary OS commands with the privileges of the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-command-injection-investigate-1",
+      "type": "command-injection",
+      "typeAliases": [
+        "shell injection",
+        "os command injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 71,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 72
+        },
+        {
+          "file": "app/utils.py",
+          "line": 21
+        },
+        {
+          "file": "app/utils.py",
+          "line": 23,
+          "type": "sink"
+        }
+      ],
+      "description": "The nominally admin abuse-investigation route is protected only by login_required and passes a request-controlled `host` form field (defaulting to the investigated user's stored IP) to a helper that concatenates it directly into a `host` shell command with shell=True.",
+      "vulnerabilityImpact": "Allows an authenticated user to break out of the intended command via shell metacharacters and execute arbitrary OS commands with the privileges of the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-insecure-deserialization-list-prefs-1",
+      "type": "insecure-deserialization",
+      "typeAliases": [
+        "unsafe deserialization",
+        "pickle deserialization"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 22,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 25,
+          "type": "sink"
+        }
+      ],
+      "description": "The user-list view restores a \"remember my last sort/filter view\" preference by base64-decoding and unpickling the client-supplied `list_prefs` cookie, with no integrity check (e.g. a signed serializer) before deserializing.",
+      "vulnerabilityImpact": "Allows an attacker who can set an arbitrary cookie value (their own browser, or any way of getting a crafted cookie into a victim's browser) to achieve remote code execution the moment the malicious pickle payload is deserialized.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-insecure-deserialization-register-draft-1",
+      "type": "insecure-deserialization",
+      "typeAliases": [
+        "unsafe deserialization",
+        "pickle deserialization"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "app/auth/views.py",
+          "line": 65,
+          "type": "source"
+        },
+        {
+          "file": "app/auth/views.py",
+          "line": 67,
+          "type": "sink"
+        }
+      ],
+      "description": "The registration route restores an in-progress \"finish this later\" draft by base64-decoding and unpickling the unauthenticated `draft` query parameter, with no integrity check. Unlike the app's own registration-token flow (which is itsdangerous-signed), this draft value is not signed.",
+      "vulnerabilityImpact": "Allows an unauthenticated attacker to achieve remote code execution by sending any user (or hitting the endpoint directly, since it needs no account or session) a crafted `draft` value.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-path-traversal-export-1",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 81,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 82
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 6
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 8
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The self-service activity-export route joins a request-controlled `name` query parameter onto the reports directory with no containment check before opening it, allowing `../` sequences to escape the intended per-user folder.",
+      "vulnerabilityImpact": "Allows an authenticated user to read arbitrary files on the server outside the reports folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-path-traversal-export-admin-1",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 91,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 92
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 13
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 15
+        },
+        {
+          "file": "app/user/reports.py",
+          "line": 16,
+          "type": "sink"
+        }
+      ],
+      "description": "The nominally admin-facing export route is protected only by login_required and has the same unguarded `name` parameter join as the self-service export, reached through a second independent route.",
+      "vulnerabilityImpact": "Allows an authenticated user (any logged-in user, since this route only checks @login_required, not an admin flag) to read arbitrary files on the server outside the reports folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-flask-bones",
+  "name": "Flask Bones",
+  "kind": "web-app",
+  "languages": ["python", "javascript"],
+  "frameworks": ["flask"],
+  "runtimes": [
+    {
+      "name": "python",
+      "version": "3.6.3"
+    }
+  ],
+  "datastores": ["postgresql", "redis", "memcached"],
+  "source": {
+    "repository": "https://github.com/cburmeister/flask-bones"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

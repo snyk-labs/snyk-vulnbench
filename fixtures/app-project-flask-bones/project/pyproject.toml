@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "webapp"
+version = "1.0.0"
+description = "A Flask application using blueprints and extensions."
+requires-python = ">=3.6"
+
+[tool.setuptools.packages.find]
+include = ["app*"]

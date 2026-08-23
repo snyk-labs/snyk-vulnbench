@@ -1,0 +1,33 @@
+version: "3"
+services:
+  app:
+    build: .
+    command: python -m flask run --host 0.0.0.0 --port 5000
+    environment:
+      - FLASK_APP=serve.py
+      - FLASK_ENV=development
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/var/www/webapp
+  worker:
+    build: .
+    command: python -m flask rq worker
+    environment:
+      - FLASK_APP=serve.py
+    volumes:
+      - .:/var/www/webapp
+  mail:
+    image: "mailhog/mailhog"
+    ports:
+      - "8025:8025"
+  memcached:
+    image: "memcached:alpine"
+  postgres:
+    image: "postgres:11-alpine"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+  redis:
+    image: "redis:alpine"

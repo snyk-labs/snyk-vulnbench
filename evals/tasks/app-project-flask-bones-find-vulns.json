@@ -1,0 +1,7 @@
+{
+  "id": "app-project-flask-bones-find-vulns",
+  "name": "App Python Flask Bones: Find Vulnerabilities",
+  "category": "app-find-vulns",
+  "fixture": "app-project-flask-bones",
+  "maxTurns": 40
+}

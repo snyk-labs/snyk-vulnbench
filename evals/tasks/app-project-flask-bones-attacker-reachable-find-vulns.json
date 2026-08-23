@@ -1,0 +1,8 @@
+{
+  "id": "app-project-flask-bones-attacker-reachable-find-vulns",
+  "name": "App Python Flask Bones: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-flask-bones",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}

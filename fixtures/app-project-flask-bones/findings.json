@@ -1,0 +1,102 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Flask Bones web application with 12 Snyk Code findings spanning command injection, unsafe deserialization, hardcoded credentials, open redirects, path traversal, and insecure cookie attributes.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-flask-bones-command-injection-diagnostics-1",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "app/user/views.py",
+      "line": 62,
+      "description": "The diagnostics form passes an untrusted host to a shell command through subprocess.check_output (Snyk: python/CommandInjection, CWE-78)."
+    },
+    {
+      "id": "app-project-flask-bones-command-injection-investigate-1",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "app/user/views.py",
+      "line": 72,
+      "description": "The abuse-investigation form passes an untrusted host to a shell command through subprocess.check_output (Snyk: python/CommandInjection, CWE-78)."
+    },
+    {
+      "id": "app-project-flask-bones-insecure-deserialization-register-draft-1",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "app/auth/views.py",
+      "line": 67,
+      "description": "An unauthenticated draft query parameter is base64-decoded and passed to pickle.loads (Snyk: python/Deserialization, CWE-502)."
+    },
+    {
+      "id": "app-project-flask-bones-insecure-deserialization-list-prefs-1",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "app/user/views.py",
+      "line": 25,
+      "description": "A client-controlled list preferences cookie is base64-decoded and passed to pickle.loads (Snyk: python/Deserialization, CWE-502)."
+    },
+    {
+      "id": "app-project-flask-bones-hardcoded-credentials-seed-admin-1",
+      "type": "hardcoded-credentials",
+      "severity": "medium",
+      "file": "app/commands.py",
+      "line": 26,
+      "description": "The database seed command creates an administrator with a hardcoded password (Snyk: python/NoHardcodedPasswords, CWE-798/CWE-259)."
+    },
+    {
+      "id": "app-project-flask-bones-hardcoded-credentials-test-admin-1",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests.py",
+      "line": 11,
+      "description": "The test suite embeds the administrator password in source code (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "app-project-flask-bones-open-redirect-login-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app/auth/views.py",
+      "line": 36,
+      "description": "The login route redirects to an unvalidated next query parameter (Snyk: python/OR, CWE-601)."
+    },
+    {
+      "id": "app-project-flask-bones-open-redirect-verify-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "app/auth/views.py",
+      "line": 120,
+      "description": "The email-verification route redirects to an unvalidated next query parameter (Snyk: python/OR, CWE-601)."
+    },
+    {
+      "id": "app-project-flask-bones-path-traversal-export-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "app/user/views.py",
+      "line": 82,
+      "description": "The self-service report export passes an untrusted filename to a file open operation without a containment check (Snyk: python/PT, CWE-23)."
+    },
+    {
+      "id": "app-project-flask-bones-path-traversal-export-admin-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "app/user/views.py",
+      "line": 92,
+      "description": "The user report export passes an untrusted filename to a file open operation without a containment check (Snyk: python/PT, CWE-23)."
+    },
+    {
+      "id": "app-project-flask-bones-information-exposure-cookie-httponly-1",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "app/user/views.py",
+      "line": 49,
+      "description": "The list preferences cookie is set without the HttpOnly attribute (Snyk: python/WebCookieMissesCallToSetHttpOnly, CWE-1004)."
+    },
+    {
+      "id": "app-project-flask-bones-information-exposure-cookie-secure-1",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "app/user/views.py",
+      "line": 49,
+      "description": "The list preferences cookie is set without the Secure attribute (Snyk: python/WebCookieMissesCallToSetSecure, CWE-614)."
+    }
+  ]
+}
