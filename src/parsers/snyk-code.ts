@@ -45,8 +45,9 @@ export function mapRuleId(ruleId: string): VulnType {
   // Snyk: javascript/HTTPSourceWithUncheckedType — HTTP-derived values used without type/safety checks
   if (/impropertype|typevalidation|uncheckedtype|withuncheckedtype/.test(id))
     return "improper-type-validation";
-  // Snyk: javascript/WebCookieSecureDisabledExplicitly — id contains "cookiesecure" → matches cookie.*secure
-  if (/cookie.*secure|sensitivecookie|insecurecookie/.test(id)) return "information-exposure";
+  // Snyk: *WebCookieMissesCallToSetHttpOnly / *SetSecure and JavaScript cookie-security rules
+  if (/cookie.*(?:httponly|secure)|sensitivecookie|insecurecookie/.test(id))
+    return "information-exposure";
   // Snyk: javascript/HardcodedNonCryptoSecret (abbreviated) vs HardcodedNonCryptographicSecret / NonCryptographicSecret
   if (/hardcodednoncryptographic|hardcodednoncryptosecret|noncryptographicsecret/.test(id))
     return "hardcoded-credentials";

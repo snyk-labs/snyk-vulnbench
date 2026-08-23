@@ -1,6 +1,6 @@
 {
   "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
-  "description": "Flask Bones web application with eight attacker-reachable request-handling vulnerabilities, including single-file and cross-file source-to-sink flows.",
+  "description": "Flask Bones web application with ten attacker-reachable request-handling vulnerabilities, including single-file and cross-file source-to-sink flows.",
   "vulnerabilities": [
     {
       "id": "app-project-flask-bones-open-redirect-login-1",
@@ -11,11 +11,6 @@
       ],
       "severity": "medium",
       "filesRelated": [
-        {
-          "file": "app/auth/views.py",
-          "line": 36,
-          "type": "source"
-        },
         {
           "file": "app/auth/views.py",
           "line": 36,
@@ -36,11 +31,6 @@
       ],
       "severity": "medium",
       "filesRelated": [
-        {
-          "file": "app/auth/views.py",
-          "line": 120,
-          "type": "source"
-        },
         {
           "file": "app/auth/views.py",
           "line": 120,
@@ -246,6 +236,73 @@
       "vulnerabilityImpact": "Allows an authenticated user (any logged-in user, since this route only checks @login_required, not an admin flag) to read arbitrary files on the server outside the reports folder.",
       "codeFlowMultiLine": "yes",
       "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-mass-assignment-user-edit-1",
+      "type": "mass-assignment",
+      "typeAliases": [
+        "mass assignment",
+        "broken access control"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 96,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 99,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 100
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 102,
+          "type": "sink"
+        }
+      ],
+      "description": "The edit route accepts an attacker-selected user ID and binds the submitted EditUserForm fields, including `is_admin` and `active`, onto that user through `form.populate_obj` without an ownership or administrator authorization check.",
+      "vulnerabilityImpact": "Allows any authenticated user to promote their own account or alter another user's username, email, activation state, and administrator flag.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-flask-bones-idor-user-delete-1",
+      "type": "idor",
+      "typeAliases": [
+        "insecure direct object reference",
+        "missing access control",
+        "broken access control"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/user/views.py",
+          "line": 111,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 114,
+          "type": "source"
+        },
+        {
+          "file": "app/user/views.py",
+          "line": 115,
+          "type": "sink"
+        }
+      ],
+      "description": "The delete route accepts an attacker-controlled numeric user ID, retrieves that user, and deletes it after checking only that the requester is authenticated; it performs no ownership or administrator authorization check.",
+      "vulnerabilityImpact": "Allows any authenticated user to delete arbitrary user accounts by supplying their predictable numeric IDs.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
       "codeFlowCrossService": "no"
     }
   ]

@@ -372,6 +372,7 @@ Aggregate JSONL rows preserve the generation context: each `task-aggregate` has 
 
 The curated V2 files currently live in:
 
+- `fixtures/app-project-flask-bones/findings-attacker-reachable.json`
 - `fixtures/app-project-coffeeshop/findings-attacker-reachable.json`
 - `fixtures/app-project-halloween/findings-attacker-reachable.json`
 - `fixtures/app-project-keystonebank/findings-attacker-reachable.json`
