@@ -1,0 +1,7 @@
+{
+  "id": "app-project-conduit-fix-vulns",
+  "name": "App Conduit (Flask/Python): Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-conduit",
+  "maxTurns": 40
+}

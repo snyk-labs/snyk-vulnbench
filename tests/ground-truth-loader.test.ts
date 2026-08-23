@@ -33,6 +33,10 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
     "app-project-saas-starter-kit",
     "attacker-reachable",
   ) as AttackerReachableVulnerability[];
+  const conduit = loadVulns(
+    "app-project-conduit",
+    "attacker-reachable",
+  ) as AttackerReachableVulnerability[];
 
   assert.equal(halloween.length, 3);
   assert.equal(keystonebank.length, 4);
@@ -40,6 +44,7 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
   assert.equal(coffeeshop.length, 5);
   assert.equal(vinylMarketplace.length, 7);
   assert.equal(saasStarterKit.length, 6);
+  assert.equal(conduit.length, 6);
   assert.deepEqual(
     { file: halloween[0].file, line: halloween[0].line },
     {
@@ -57,6 +62,8 @@ test("loads and normalizes all curated attacker-reachable ground truth", () => {
   assert.equal(coffeeshop[0].filesRelated.at(-1)?.type, "sink");
   assert.equal(vinylMarketplace[0].filesRelated[0].type, "source");
   assert.equal(vinylMarketplace[0].filesRelated.at(-1)?.type, "sink");
+  assert.equal(conduit[0].filesRelated[0].type, "source");
+  assert.equal(conduit[0].filesRelated.at(-1)?.type, "sink");
 });
 
 test("task loading defaults V1 and opts attacker-reachable tasks into V2", () => {
@@ -67,11 +74,11 @@ test("task loading defaults V1 and opts attacker-reachable tasks into V2", () =>
   );
 
   assert.equal(v1?.groundTruth, "v1");
-  assert.equal(v2Tasks.length, 12);
+  assert.equal(v2Tasks.length, 14);
   assert.ok(v2Tasks.every((task) => task.groundTruth === "attacker-reachable"));
   assert.deepEqual(
     v2Tasks.map((task) => task.knownVulns.length).sort((a, b) => a - b),
-    [2, 3, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7],
+    [2, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6, 7, 7],
   );
 });
 

@@ -1,0 +1,182 @@
+{
+  "_note": "This VulnBench 1.0 answer key is seeded from Snyk Code SARIF output. Keep rows in the same order as runs[0].results so duplicate types are paired deterministically; see docs/benchmark-management.md#maintaining-snyk-code-ruleid-mappings.",
+  "description": "Snyk Code 2026-08-23 baseline for the Conduit Flask API. It contains every SARIF result emitted for this project, including test-fixture findings, and is intentionally distinct from the curated attacker-reachable V2 answer key.",
+  "vulnerabilities": [
+    {
+      "id": "conduit-v1-command-injection-pdf-export",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 208,
+      "description": "Article PDF export input reaches a shell command (Snyk: python/CommandInjection, CWE-78)."
+    },
+    {
+      "id": "conduit-v1-insecure-deserialization-draft-resume",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 229,
+      "description": "The draft-resume handler deserializes an untrusted value (Snyk: python/Deserialization, CWE-502)."
+    },
+    {
+      "id": "conduit-v1-xss-articles-unfavorite",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 115,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the article unfavorite response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-comments-list",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 147,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the article comments response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-comments-create",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 160,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the comment creation response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-profile-read",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/profile/views.py",
+      "line": 21,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the profile read response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-profile-follow",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/profile/views.py",
+      "line": 33,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the profile follow response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-profile-unfollow",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/profile/views.py",
+      "line": 45,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the profile unfollow response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-user-register",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/user/views.py",
+      "line": 28,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the user registration response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-password-requirements",
+      "type": "other",
+      "severity": "low",
+      "file": "conduit/user/views.py",
+      "line": 63,
+      "description": "Password updates have no configured password-strength requirements (Snyk: python/DjangoUnvalidatedPassword, CWE-521)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-conftest",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/conftest.py",
+      "line": 57,
+      "description": "A test fixture contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-articles-1",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_articles.py",
+      "line": 12,
+      "description": "An article test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-articles-2",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_articles.py",
+      "line": 35,
+      "description": "An article test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-articles-3",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_articles.py",
+      "line": 62,
+      "description": "An article test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-articles-4",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_articles.py",
+      "line": 85,
+      "description": "An article test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-articles-5",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_articles.py",
+      "line": 107,
+      "description": "An article test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-hardcoded-password-profile",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_profile.py",
+      "line": 12,
+      "description": "A profile test contains a hardcoded password (Snyk: python/NoHardcodedPasswords/test, CWE-798/CWE-259)."
+    },
+    {
+      "id": "conduit-v1-path-traversal-download",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 197,
+      "description": "A request-controlled export filename reaches a file read (Snyk: python/PT, CWE-23)."
+    },
+    {
+      "id": "conduit-v1-ssrf-avatar",
+      "type": "ssrf",
+      "severity": "high",
+      "file": "conduit/user/views.py",
+      "line": 66,
+      "description": "A profile image URL reaches a server-side request (Snyk: python/Ssrf, CWE-918)."
+    },
+    {
+      "id": "conduit-v1-xss-article-update",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 71,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the article update response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-article-read",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 89,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the article read response (Snyk: python/XSS, CWE-79)."
+    },
+    {
+      "id": "conduit-v1-xss-article-favorite",
+      "type": "xss",
+      "severity": "high",
+      "file": "conduit/articles/views.py",
+      "line": 102,
+      "description": "Snyk Code reports a possible cross-site scripting flow in the article favorite response (Snyk: python/XSS, CWE-79)."
+    }
+  ]
+}

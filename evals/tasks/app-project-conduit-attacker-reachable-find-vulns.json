@@ -1,0 +1,8 @@
+{
+  "id": "app-project-conduit-attacker-reachable-find-vulns",
+  "name": "App Conduit: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-conduit",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 35
+}

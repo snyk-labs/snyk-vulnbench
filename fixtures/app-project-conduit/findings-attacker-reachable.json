@@ -1,0 +1,221 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Flask application (Conduit, a RealWorld-spec blog/social-writing API: articles, comments, tags, favorites, follows) with 6 intentionally vulnerable features, each mapped to a real business capability rather than a generic demo endpoint. Snyk Code detected 4 of 6 (command-injection, insecure-deserialization, path-traversal, ssrf); sql-injection and code-injection were genuine Snyk misses, verified instead by manual source-to-sink trace and a live PoC (see POC.md). Per this batch's realism-first policy, that gap was preserved rather than engineered away.",
+  "vulnerabilities": [
+    {
+      "id": "conduit-v2-sql-injection-search",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sqli",
+        "sql injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "conduit/articles/views.py",
+          "line": 180,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 181,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 183
+        },
+        {
+          "file": "conduit/articles/search.py",
+          "line": 13
+        },
+        {
+          "file": "conduit/articles/search.py",
+          "line": 14
+        },
+        {
+          "file": "conduit/articles/search.py",
+          "line": 19,
+          "type": "sink"
+        }
+      ],
+      "description": "The article-search endpoint's `q` parameter is concatenated directly into a raw SQL LIKE clause across title/description/body instead of being passed as a bound parameter. Snyk Code did not report this flow (verified by manual trace and a live PoC, not SARIF) — a genuine scanner miss, not a curation error.",
+      "vulnerabilityImpact": "Allows an attacker to alter the search query's logic, e.g. bypass the keyword filter entirely and enumerate every article regardless of the supplied term.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "conduit-v2-path-traversal-download",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "conduit/articles/views.py",
+          "line": 191,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 192,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 197
+        },
+        {
+          "file": "conduit/articles/export.py",
+          "line": 18
+        },
+        {
+          "file": "conduit/articles/export.py",
+          "line": 19,
+          "type": "sink"
+        }
+      ],
+      "description": "The article-download endpoint joins a request-controlled `filename` parameter onto the article's export directory with no containment check before opening it, allowing `../` sequences to escape the intended per-article folder.",
+      "vulnerabilityImpact": "Allows any reader to read arbitrary files on the server outside the exports folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "conduit-v2-command-injection-pdf-export",
+      "type": "command-injection",
+      "typeAliases": [
+        "shell injection",
+        "os command injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "conduit/articles/views.py",
+          "line": 202,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 203,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 208
+        },
+        {
+          "file": "conduit/articles/pdf.py",
+          "line": 10
+        },
+        {
+          "file": "conduit/articles/pdf.py",
+          "line": 13
+        },
+        {
+          "file": "conduit/articles/pdf.py",
+          "line": 16,
+          "type": "sink"
+        }
+      ],
+      "description": "The article-to-PDF export endpoint passes an optional reader-chosen `label` (falling back to the article title) into a shell command string built for a PDF converter, run with shell=True and no escaping or validation.",
+      "vulnerabilityImpact": "Allows an attacker to break out of the intended command via shell metacharacters and execute arbitrary OS commands with the privileges of the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "conduit-v2-insecure-deserialization-draft-resume",
+      "type": "insecure-deserialization",
+      "typeAliases": [
+        "unsafe deserialization",
+        "pickle deserialization"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "conduit/articles/views.py",
+          "line": 228,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 229,
+          "type": "sink"
+        }
+      ],
+      "description": "The \"resume my in-progress draft\" link restores a parked article draft by base64-decoding and unpickling the unauthenticated `draft` query parameter, with no integrity check.",
+      "vulnerabilityImpact": "Allows an unauthenticated attacker to achieve remote code execution by sending any user (or hitting the endpoint directly, since it needs no account or session) a crafted `draft` value.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "conduit-v2-code-injection-filter",
+      "type": "code-injection",
+      "typeAliases": [
+        "eval injection",
+        "python code injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "conduit/articles/views.py",
+          "line": 234,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 235,
+          "type": "source"
+        },
+        {
+          "file": "conduit/articles/views.py",
+          "line": 244,
+          "type": "sink"
+        }
+      ],
+      "description": "The advanced article-filter endpoint evaluates the reader-supplied `expression` with Python's eval(), passing only a local-variable context dict that does not restrict access to builtins. Snyk Code did not report this flow (verified by manual trace and a live PoC, not SARIF) — a genuine scanner miss, not a curation error.",
+      "vulnerabilityImpact": "Allows an attacker to execute arbitrary Python code, and via __import__, arbitrary OS commands, on the server.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "conduit-v2-ssrf-avatar-url",
+      "type": "ssrf",
+      "typeAliases": [
+        "server-side request forgery"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "conduit/user/views.py",
+          "line": 58,
+          "type": "source"
+        },
+        {
+          "file": "conduit/user/views.py",
+          "line": 66
+        },
+        {
+          "file": "conduit/user/avatar.py",
+          "line": 7
+        },
+        {
+          "file": "conduit/user/avatar.py",
+          "line": 8,
+          "type": "sink"
+        }
+      ],
+      "description": "Updating a profile's `image` field triggers a server-side fetch to confirm the submitted URL actually resolves to an image, with no allowlist or restriction on the target host.",
+      "vulnerabilityImpact": "Allows an attacker to make the server issue arbitrary outbound HTTP requests, including to internal-only services not otherwise reachable from outside the network.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

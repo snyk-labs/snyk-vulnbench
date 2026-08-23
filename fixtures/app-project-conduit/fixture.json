@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-conduit",
+  "name": "Conduit RealWorld API",
+  "kind": "api-service",
+  "languages": ["python"],
+  "frameworks": ["flask"],
+  "runtimes": [
+    {
+      "name": "python",
+      "version": "3.7"
+    }
+  ],
+  "datastores": ["postgresql", "sqlite"],
+  "source": {
+    "repository": "https://github.com/gothinkster/flask-realworld-example-app"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

@@ -1,0 +1,13 @@
+version: "3"
+services:
+  app:
+    build: .
+    command: python -m flask run --host 0.0.0.0 --port 5000
+    environment:
+      - FLASK_APP=autoapp.py
+      - FLASK_DEBUG=1
+      - CONDUIT_SECRET=local-dev-secret-not-for-production
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/var/www/conduit
