@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-pygmy",
+  "name": "Pygmy URL Shortener",
+  "kind": "web-app",
+  "languages": ["python", "javascript"],
+  "frameworks": ["flask", "django"],
+  "runtimes": [
+    {
+      "name": "python",
+      "version": "3.8"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "source": {
+    "repository": "https://github.com/amitt001/pygmy"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

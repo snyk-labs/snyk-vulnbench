@@ -1,0 +1,167 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Dual-service Flask+Django URL shortener with click analytics, custom and secret links, and auto-expiry. The Flask REST API in pygmy/ is called by the Django UI in pygmyui/. The key contains five attacker-reachable vulnerabilities seeded into real application features. Reproduction steps are in POC.md.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-pygmy-sql-injection-search",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sqli",
+        "sql injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 113,
+          "type": "source"
+        },
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 114
+        },
+        {
+          "file": "pygmy/model/search.py",
+          "line": 16
+        },
+        {
+          "file": "pygmy/model/search.py",
+          "line": 20,
+          "type": "sink"
+        }
+      ],
+      "description": "The \"search my links\" endpoint's `q` parameter is concatenated directly into a raw SQL LIKE clause instead of being passed as a bound parameter. The injection also breaks out of the surrounding `owner = ...` filter, exposing other users' links, not just bypassing the keyword match.",
+      "vulnerabilityImpact": "Allows an authenticated user to read other users' shortened links (long_url, short_code) by breaking out of both the keyword filter and the per-owner scoping.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-pygmy-path-traversal-export",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 146,
+          "type": "source"
+        },
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 147
+        },
+        {
+          "file": "pygmy/utilities/export.py",
+          "line": 19
+        },
+        {
+          "file": "pygmy/utilities/export.py",
+          "line": 20,
+          "type": "sink"
+        }
+      ],
+      "description": "The links-export download endpoint joins a request-controlled `filename` parameter onto the user's export directory with no containment check before opening it, allowing `../` sequences to escape the intended per-user folder.",
+      "vulnerabilityImpact": "Allows an authenticated user to read arbitrary files on the server outside the exports folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-pygmy-command-injection-click-lookup",
+      "type": "command-injection",
+      "typeAliases": [
+        "shell injection",
+        "os command injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "pygmy/rest/diagnostics.py",
+          "line": 14,
+          "type": "source"
+        },
+        {
+          "file": "pygmy/rest/diagnostics.py",
+          "line": 15
+        },
+        {
+          "file": "pygmy/core/network.py",
+          "line": 7
+        },
+        {
+          "file": "pygmy/core/network.py",
+          "line": 8,
+          "type": "sink"
+        }
+      ],
+      "description": "The click-analytics reverse-DNS lookup tool (abuse investigation on a link's traffic) passes the `host` query parameter directly into a `host` shell command with shell=True, with no escaping or validation.",
+      "vulnerabilityImpact": "Allows an authenticated user to break out of the intended command via shell metacharacters and execute arbitrary OS commands with the privileges of the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-pygmy-code-injection-filter",
+      "type": "code-injection",
+      "typeAliases": [
+        "eval injection",
+        "python code injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 127,
+          "type": "source"
+        },
+        {
+          "file": "pygmy/rest/user.py",
+          "line": 135,
+          "type": "sink"
+        }
+      ],
+      "description": "The advanced link-filter endpoint evaluates the caller-supplied `expression` with Python's eval(), passing only a local-variable context dict that does not restrict access to builtins.",
+      "vulnerabilityImpact": "Allows an authenticated user to execute arbitrary Python code, and via __import__, arbitrary OS commands, on the server.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-pygmy-ssrf-reachability-check",
+      "type": "ssrf",
+      "typeAliases": [
+        "server-side request forgery"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "pygmy/rest/shorturl.py",
+          "line": 54,
+          "type": "source"
+        },
+        {
+          "file": "pygmy/rest/shorturl.py",
+          "line": 61
+        },
+        {
+          "file": "pygmy/utilities/reachability.py",
+          "line": 7
+        },
+        {
+          "file": "pygmy/utilities/reachability.py",
+          "line": 8,
+          "type": "sink"
+        }
+      ],
+      "description": "Before shortening a new link, the server verifies the submitted `long_url` is reachable by making a server-side HTTP request to it, with no allowlist or restriction on the target host.",
+      "vulnerabilityImpact": "Allows an attacker to make the server issue arbitrary outbound HTTP requests, including to internal-only services not otherwise reachable from outside the network.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

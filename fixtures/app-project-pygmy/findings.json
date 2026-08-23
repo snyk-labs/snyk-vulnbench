@@ -1,0 +1,166 @@
+{
+  "_note": "This VulnBench 1.0 answer key is generated from Snyk Code SARIF. Keep vulnerabilities in SARIF results order because V1 type matching is greedy. See docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type.",
+  "description": "Snyk Code findings for the Pygmy URL shortener, captured on 2026-08-23. This V1 key intentionally includes all 20 SARIF results; the five curated attacker-reachable vulnerabilities are maintained separately in findings-attacker-reachable.json.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-pygmy-snyk-01-open-redirect-link-auth-remote",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "pygmyui/templates/auth/link_auth.html",
+      "line": 22,
+      "description": "Snyk Code javascript/OR: unsanitized remote-resource data reaches replace and controls request redirection."
+    },
+    {
+      "id": "app-project-pygmy-snyk-02-open-redirect-link-auth-location",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "pygmyui/templates/auth/link_auth.html",
+      "line": 24,
+      "description": "Snyk Code javascript/OR: unsanitized document-location data reaches replace and controls request redirection."
+    },
+    {
+      "id": "app-project-pygmy-snyk-03-cookie-secure-views",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/pygmy/views.py",
+      "line": 197,
+      "description": "Snyk Code python/WebCookieMissesCallToSetSecure: a cookie is set without the Secure flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-04-cookie-secure-auth-63",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 63,
+      "description": "Snyk Code python/WebCookieMissesCallToSetSecure: a cookie is set without the Secure flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-05-cookie-secure-auth-66",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 66,
+      "description": "Snyk Code python/WebCookieMissesCallToSetSecure: a cookie is set without the Secure flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-06-cookie-secure-auth-106",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 106,
+      "description": "Snyk Code python/WebCookieMissesCallToSetSecure: a cookie is set without the Secure flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-07-cookie-secure-auth-109",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 109,
+      "description": "Snyk Code python/WebCookieMissesCallToSetSecure: a cookie is set without the Secure flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-08-code-injection-filter",
+      "type": "code-injection",
+      "severity": "high",
+      "file": "pygmy/rest/user.py",
+      "line": 135,
+      "description": "Snyk Code python/CodeInjection: an HTTP parameter reaches eval and is executed as Python code."
+    },
+    {
+      "id": "app-project-pygmy-snyk-09-command-injection-click-lookup",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "pygmy/rest/diagnostics.py",
+      "line": 15,
+      "description": "Snyk Code python/CommandInjection: an HTTP parameter reaches subprocess.check_output and is used as a shell command."
+    },
+    {
+      "id": "app-project-pygmy-snyk-10-hardcoded-secret-link-validator",
+      "type": "hardcoded-credentials",
+      "severity": "high",
+      "file": "pygmy/validator/link.py",
+      "line": 12,
+      "description": "Snyk Code python/HardcodedNonCryptoSecret: a value intended to be secret is hardcoded."
+    },
+    {
+      "id": "app-project-pygmy-snyk-11-hardcoded-secret-django-settings",
+      "type": "hardcoded-credentials",
+      "severity": "high",
+      "file": "pygmyui/pygmyui/settings.py",
+      "line": 24,
+      "description": "Snyk Code python/HardcodedNonCryptoSecret: a value intended to be secret is hardcoded."
+    },
+    {
+      "id": "app-project-pygmy-snyk-12-hardcoded-password-integration-test",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "tests/test_integration.py",
+      "line": 70,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: a password is hardcoded in a dictionary key."
+    },
+    {
+      "id": "app-project-pygmy-snyk-13-path-traversal-export",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "pygmy/rest/user.py",
+      "line": 147,
+      "description": "Snyk Code python/PT: an HTTP parameter reaches open and is used as a path, allowing arbitrary-file reads."
+    },
+    {
+      "id": "app-project-pygmy-snyk-14-sql-injection-search",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "pygmy/rest/user.py",
+      "line": 114,
+      "description": "Snyk Code python/Sqli: an HTTP parameter reaches execute and is used in an SQL query."
+    },
+    {
+      "id": "app-project-pygmy-snyk-15-ssrf-reachability-check",
+      "type": "ssrf",
+      "severity": "high",
+      "file": "pygmy/rest/shorturl.py",
+      "line": 61,
+      "description": "Snyk Code python/Ssrf: an HTTP request-body value reaches requests.get and controls its URL."
+    },
+    {
+      "id": "app-project-pygmy-snyk-16-cookie-httponly-views",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/pygmy/views.py",
+      "line": 197,
+      "description": "Snyk Code python/WebCookieMissesCallToSetHttpOnly: a cookie is set without the HttpOnly flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-17-cookie-httponly-auth-63",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 63,
+      "description": "Snyk Code python/WebCookieMissesCallToSetHttpOnly: a cookie is set without the HttpOnly flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-18-cookie-httponly-auth-66",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 66,
+      "description": "Snyk Code python/WebCookieMissesCallToSetHttpOnly: a cookie is set without the HttpOnly flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-19-cookie-httponly-auth-106",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 106,
+      "description": "Snyk Code python/WebCookieMissesCallToSetHttpOnly: a cookie is set without the HttpOnly flag."
+    },
+    {
+      "id": "app-project-pygmy-snyk-20-cookie-httponly-auth-109",
+      "type": "information-exposure",
+      "severity": "low",
+      "file": "pygmyui/user_auth/views.py",
+      "line": 109,
+      "description": "Snyk Code python/WebCookieMissesCallToSetHttpOnly: a cookie is set without the HttpOnly flag."
+    }
+  ]
+}

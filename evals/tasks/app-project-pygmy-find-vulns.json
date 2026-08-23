@@ -1,0 +1,7 @@
+{
+  "id": "app-project-pygmy-find-vulns",
+  "name": "App Project Pygmy: Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "app-project-pygmy",
+  "maxTurns": 40
+}

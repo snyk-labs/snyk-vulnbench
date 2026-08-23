@@ -1,0 +1,8 @@
+{
+  "id": "app-project-pygmy-attacker-reachable-find-vulns",
+  "name": "App Project Pygmy: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-pygmy",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}
