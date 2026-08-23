@@ -1,0 +1,3 @@
+Welcome to the full example project.
+
+This document is served by the /api/documents endpoint.

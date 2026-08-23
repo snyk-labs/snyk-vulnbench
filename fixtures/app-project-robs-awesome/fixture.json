@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-robs-awesome",
+  "name": "Robs Awesome",
+  "kind": "web-app",
+  "languages": ["python"],
+  "frameworks": ["fastapi"],
+  "runtimes": [
+    {
+      "name": "python",
+      "version": "3.11.1"
+    }
+  ],
+  "datastores": ["sqlite", "postgresql", "redis"],
+  "provenance": {
+    "origin": "unknown",
+    "seeded": true
+  },
+  "todos": [
+    "Confirm the upstream repository and baseline revision."
+  ]
+}

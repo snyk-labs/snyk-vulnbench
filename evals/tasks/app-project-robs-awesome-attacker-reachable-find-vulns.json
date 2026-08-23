@@ -1,0 +1,8 @@
+{
+  "id": "app-project-robs-awesome-attacker-reachable-find-vulns",
+  "name": "App Python Robs Awesome: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-robs-awesome",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}

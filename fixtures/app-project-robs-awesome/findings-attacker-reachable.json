@@ -1,0 +1,242 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "FastAPI Python application (Reports, Documents, Integrations feature areas) with intentionally vulnerable request handling, some confined to a single file and some spanning the route/service boundary.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-robs-awesome-sql-injection-reports",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sqli",
+        "sql injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 52,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 56
+        },
+        {
+          "file": "backend/services/reports.py",
+          "line": 7
+        },
+        {
+          "file": "backend/services/reports.py",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The reports search endpoint's `query` parameter is concatenated directly into a raw SQL LIKE clause in the reports service layer instead of being passed as a bound parameter.",
+      "vulnerabilityImpact": "Allows an attacker to alter the query's logic (e.g. bypass the search filter entirely, or with a different payload extract data beyond what the search feature is meant to expose).",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no",
+      "poc": "curl -G --data-urlencode \"query=zzz' OR '1'='1' -- \" http://localhost:8000/api/reports"
+    },
+    {
+      "id": "app-project-robs-awesome-path-traversal-documents",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 94,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 96
+        },
+        {
+          "file": "backend/services/documents.py",
+          "line": 7
+        },
+        {
+          "file": "backend/services/documents.py",
+          "line": 9
+        },
+        {
+          "file": "backend/www.py",
+          "line": 99,
+          "type": "sink"
+        }
+      ],
+      "description": "The document download endpoint accepts a multi-segment `name` path parameter and passes it to `resolve_document_path()` in the documents service layer, which joins it directly onto the documents directory with no containment check, allowing `../` sequences to escape the intended directory.",
+      "vulnerabilityImpact": "Allows an attacker to read arbitrary files on the server outside the documents folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no",
+      "poc": "curl \"http://localhost:8000/api/documents/..%2F..%2Fpyproject.toml\""
+    },
+    {
+      "id": "app-project-robs-awesome-command-injection-dns-check",
+      "type": "command-injection",
+      "typeAliases": [
+        "indirect command injection",
+        "shell injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 104,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 107
+        },
+        {
+          "file": "backend/www.py",
+          "line": 108,
+          "type": "sink"
+        }
+      ],
+      "description": "The integration DNS-check endpoint embeds the `hostname` parameter directly into a double-quoted shell command string and executes it with shell=True, without escaping or validating the value.",
+      "vulnerabilityImpact": "Allows an attacker to break out of the intended command via shell metacharacters and execute arbitrary OS commands with the privileges of the server process.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no",
+      "poc": "curl -G --data-urlencode 'hostname=localhost\"; id; #' http://localhost:8000/api/integrations/dns-check"
+    },
+    {
+      "id": "app-project-robs-awesome-ssrf-integrations-preview",
+      "type": "ssrf",
+      "typeAliases": [
+        "server-side request forgery"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 115,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 118
+        },
+        {
+          "file": "backend/services/integrations.py",
+          "line": 4
+        },
+        {
+          "file": "backend/services/integrations.py",
+          "line": 6,
+          "type": "sink"
+        }
+      ],
+      "description": "The integration preview endpoint passes the `url` parameter directly to a server-side HTTP client with no allowlist or validation of the target host.",
+      "vulnerabilityImpact": "Allows an attacker to make the server issue arbitrary outbound HTTP requests, including to internal-only services not otherwise reachable from outside the network.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no",
+      "poc": "curl -G --data-urlencode \"url=http://127.0.0.1:8999/\" http://localhost:8000/api/integrations/preview"
+    },
+    {
+      "id": "app-project-robs-awesome-insecure-deserialization-report-draft",
+      "type": "insecure-deserialization",
+      "typeAliases": [
+        "unsafe deserialization",
+        "pickle deserialization"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 77,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 80
+        },
+        {
+          "file": "backend/services/drafts.py",
+          "line": 6
+        },
+        {
+          "file": "backend/services/drafts.py",
+          "line": 8,
+          "type": "sink"
+        }
+      ],
+      "description": "The report draft resume endpoint base64-decodes and unpickles the `state` parameter with no integrity check or restriction on the unpickled type.",
+      "vulnerabilityImpact": "Allows an attacker to submit a crafted pickle payload that executes arbitrary code on the server the moment it is deserialized.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no",
+      "poc": "see POC.md \"Insecure deserialization\" section (crafted pickle payload via os.system)"
+    },
+    {
+      "id": "app-project-robs-awesome-open-redirect-report-open",
+      "type": "open-redirect",
+      "typeAliases": [
+        "open redirect",
+        "unvalidated redirect"
+      ],
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 86,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 90
+        },
+        {
+          "file": "backend/services/redirects.py",
+          "line": 4
+        },
+        {
+          "file": "backend/services/redirects.py",
+          "line": 6,
+          "type": "sink"
+        }
+      ],
+      "description": "The report-open endpoint redirects the user to the `return_to` query parameter with no validation that the target is a relative path or an allowlisted host.",
+      "vulnerabilityImpact": "Allows an attacker to craft a link that appears to originate from this application but redirects the victim to an attacker-controlled site (e.g. for phishing).",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no",
+      "poc": "curl -i \"http://localhost:8000/api/reports/1/open?return_to=https://example.com/\""
+    },
+    {
+      "id": "app-project-robs-awesome-code-injection-reports-evaluate",
+      "type": "code-injection",
+      "typeAliases": [
+        "eval injection",
+        "python code injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "backend/www.py",
+          "line": 62,
+          "type": "source"
+        },
+        {
+          "file": "backend/www.py",
+          "line": 70,
+          "type": "sink"
+        }
+      ],
+      "description": "The report filter endpoint evaluates the `expression` parameter directly with Python's eval(), passing only a local-variable dict that does not restrict access to builtins.",
+      "vulnerabilityImpact": "Allows an attacker to execute arbitrary Python code, and via __import__, arbitrary OS commands, on the server.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no",
+      "poc": "see POC.md \"Code injection\" section (eval via __import__('os').system(...))"
+    }
+  ]
+}

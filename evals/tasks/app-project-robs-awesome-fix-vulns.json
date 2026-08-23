@@ -1,0 +1,7 @@
+{
+  "id": "app-project-robs-awesome-fix-vulns",
+  "name": "App Python Robs Awesome: Fix Vulnerabilities",
+  "category": "fix-vulns",
+  "fixture": "app-project-robs-awesome",
+  "maxTurns": 45
+}

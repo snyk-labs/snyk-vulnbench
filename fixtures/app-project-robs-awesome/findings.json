@@ -1,0 +1,62 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "FastAPI reporting, document-management, and integrations application with seven Snyk Code findings.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-robs-awesome-code-injection-reports-evaluate",
+      "type": "code-injection",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 70,
+      "description": "The report-evaluation endpoint passes an HTTP parameter to eval (Snyk: python/CodeInjection, CWE-94)."
+    },
+    {
+      "id": "app-project-robs-awesome-command-injection-dns-check",
+      "type": "command-injection",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 108,
+      "description": "The DNS-check endpoint passes an HTTP parameter to subprocess.run with shell=True (Snyk: python/CommandInjection, CWE-78)."
+    },
+    {
+      "id": "app-project-robs-awesome-insecure-deserialization-report-draft",
+      "type": "insecure-deserialization",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 80,
+      "description": "The report-draft endpoint passes an HTTP parameter to pickle.loads (Snyk: python/Deserialization, CWE-502)."
+    },
+    {
+      "id": "app-project-robs-awesome-open-redirect-report-open",
+      "type": "open-redirect",
+      "severity": "medium",
+      "file": "backend/www.py",
+      "line": 90,
+      "description": "The report-open endpoint passes an HTTP parameter to RedirectResponse without validating the destination (Snyk: python/OR, CWE-601)."
+    },
+    {
+      "id": "app-project-robs-awesome-path-traversal-documents",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 99,
+      "description": "The document-download endpoint passes an HTTP path parameter to FileResponse without enforcing directory containment (Snyk: python/PT, CWE-23)."
+    },
+    {
+      "id": "app-project-robs-awesome-sql-injection-reports",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 56,
+      "description": "The reports search endpoint passes an HTTP parameter to sqlalchemy.text in a raw SQL query (Snyk: python/Sqli, CWE-89)."
+    },
+    {
+      "id": "app-project-robs-awesome-ssrf-integrations-preview",
+      "type": "ssrf",
+      "severity": "high",
+      "file": "backend/www.py",
+      "line": 118,
+      "description": "The integrations preview endpoint passes an HTTP parameter to requests.get without restricting the destination (Snyk: python/Ssrf, CWE-918)."
+    }
+  ]
+}
