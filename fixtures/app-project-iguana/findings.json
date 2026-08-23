@@ -1,0 +1,326 @@
+{
+  "_note": "Snyk Code baseline for VulnBench 1.0. Keep rows in the scanner emission order because type-only matching is greedy.",
+  "description": "Snyk Code findings for the Iguana Django fixture, captured on 2026-08-23.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-iguana-snyk-1",
+      "type": "code-injection",
+      "severity": "high",
+      "file": "src/issue/views.py",
+      "line": 440,
+      "description": "Snyk Code python/CodeInjection: Unsanitized input from an HTTP parameter flows into eval, where it is executed as Python code. This may result in a Code Injection vulnerability."
+    },
+    {
+      "id": "app-project-iguana-snyk-2",
+      "type": "insecure-cryptography",
+      "severity": "low",
+      "file": "src/api/custom_jwt_auth.py",
+      "line": 58,
+      "description": "Snyk Code python/InsecureHash: A password is verified (equality check) against an unsalted, fast hash hashlib.sha256. Store passwords with a salted, computationally expensive algorithm such as bcrypt, scrypt, argon2, or PBKDF2."
+    },
+    {
+      "id": "app-project-iguana-snyk-3",
+      "type": "sql-injection",
+      "severity": "high",
+      "file": "src/issue/views.py",
+      "line": 423,
+      "description": "Snyk Code python/Sqli: Unsanitized input from an HTTP parameter flows into execute, where it is used in an SQL query. This may result in an SQL Injection vulnerability."
+    },
+    {
+      "id": "app-project-iguana-snyk-4",
+      "type": "redos",
+      "severity": "high",
+      "file": "src/search/views.py",
+      "line": 67,
+      "description": "Snyk Code python/reDOS: Unsanitized user input from an HTTP parameter flows into re.match, where it is used to build a regular expression. This may result in a Regular expression Denial of Service attack (reDOS)."
+    },
+    {
+      "id": "app-project-iguana-snyk-5",
+      "type": "idor",
+      "severity": "medium",
+      "file": "src/backlog/views.py",
+      "line": 73,
+      "description": "Snyk Code python/MissingObjectPermission: Django get_object function was found to be not enforcing object level permissions. Not validating object permisions could result in Access Control issues."
+    },
+    {
+      "id": "app-project-iguana-snyk-6",
+      "type": "idor",
+      "severity": "medium",
+      "file": "src/issue/views.py",
+      "line": 565,
+      "description": "Snyk Code python/MissingObjectPermission: Django get_object function was found to be not enforcing object level permissions. Not validating object permisions could result in Access Control issues."
+    },
+    {
+      "id": "app-project-iguana-snyk-7",
+      "type": "idor",
+      "severity": "medium",
+      "file": "src/issue/views.py",
+      "line": 590,
+      "description": "Snyk Code python/MissingObjectPermission: Django get_object function was found to be not enforcing object level permissions. Not validating object permisions could result in Access Control issues."
+    },
+    {
+      "id": "app-project-iguana-snyk-8",
+      "type": "idor",
+      "severity": "medium",
+      "file": "src/issue/views.py",
+      "line": 618,
+      "description": "Snyk Code python/MissingObjectPermission: Django get_object function was found to be not enforcing object level permissions. Not validating object permisions could result in Access Control issues."
+    },
+    {
+      "id": "app-project-iguana-snyk-9",
+      "type": "idor",
+      "severity": "medium",
+      "file": "src/issue/views.py",
+      "line": 652,
+      "description": "Snyk Code python/MissingObjectPermission: Django get_object function was found to be not enforcing object level permissions. Not validating object permisions could result in Access Control issues."
+    },
+    {
+      "id": "app-project-iguana-snyk-10",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/invite_users/test_invite_users.py",
+      "line": 42,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-11",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_attachments.py",
+      "line": 51,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-12",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_comments.py",
+      "line": 51,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-13",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_filter.py",
+      "line": 54,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-14",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/landing_page/test_landing_page.py",
+      "line": 38,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-15",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/tag/test_manage_tag.py",
+      "line": 49,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-16",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/user_profile/test_user_profile.py",
+      "line": 46,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in username."
+    },
+    {
+      "id": "app-project-iguana-snyk-17",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/user_management/test_login.py",
+      "line": 30,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in here."
+    },
+    {
+      "id": "app-project-iguana-snyk-18",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_login.py",
+      "line": 68,
+      "description": "Snyk Code python/NoHardcodedCredentials/test: Do not hardcode credentials in code. Found hardcoded credential used in here."
+    },
+    {
+      "id": "app-project-iguana-snyk-19",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/invite_users/test_invite_users.py",
+      "line": 42,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-20",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_attachments.py",
+      "line": 51,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-21",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_comments.py",
+      "line": 51,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-22",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/issue/test_filter.py",
+      "line": 54,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-23",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/landing_page/test_landing_page.py",
+      "line": 38,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-24",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/tag/test_manage_tag.py",
+      "line": 49,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-25",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/user_profile/test_user_profile.py",
+      "line": 46,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-26",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_login.py",
+      "line": 70,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-27",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_reset_password.py",
+      "line": 35,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-28",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_sign_up.py",
+      "line": 41,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-29",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_sign_up.py",
+      "line": 41,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-30",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_profile/testcases/test_edit_user_profile.py",
+      "line": 43,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-31",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_profile/testcases/test_edit_user_profile.py",
+      "line": 44,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-32",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_profile/testcases/test_edit_user_profile.py",
+      "line": 72,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in password."
+    },
+    {
+      "id": "app-project-iguana-snyk-33",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/user_management/test_login.py",
+      "line": 32,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in pw."
+    },
+    {
+      "id": "app-project-iguana-snyk-34",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/functional_tests/user_management/test_logout.py",
+      "line": 31,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in pw."
+    },
+    {
+      "id": "app-project-iguana-snyk-35",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_login.py",
+      "line": 82,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in a dictionary key."
+    },
+    {
+      "id": "app-project-iguana-snyk-36",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_login.py",
+      "line": 93,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in a dictionary key."
+    },
+    {
+      "id": "app-project-iguana-snyk-37",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_login.py",
+      "line": 101,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in a dictionary key."
+    },
+    {
+      "id": "app-project-iguana-snyk-38",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_reset_password.py",
+      "line": 93,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in a dictionary key."
+    },
+    {
+      "id": "app-project-iguana-snyk-39",
+      "type": "hardcoded-credentials",
+      "severity": "low",
+      "file": "src/user_management/testcases/test_reset_password.py",
+      "line": 86,
+      "description": "Snyk Code python/NoHardcodedPasswords/test: Do not hardcode passwords in code. Found hardcoded password used in new_password."
+    },
+    {
+      "id": "app-project-iguana-snyk-40",
+      "type": "path-traversal",
+      "severity": "high",
+      "file": "src/project/views.py",
+      "line": 129,
+      "description": "Snyk Code python/PT: Unsanitized input from an HTTP parameter flows into open, where it is used as a path. This may result in a Path Traversal vulnerability and allow an attacker to read arbitrary files."
+    }
+  ]
+}

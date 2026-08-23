@@ -35,6 +35,8 @@ export function mapRuleId(ruleId: string): VulnType {
   if (/commandinjection/.test(id)) return "command-injection";
   // Snyk: javascript/CodeInjection — JavaScript code execution through eval-like sinks
   if (/codeinjection/.test(id)) return "code-injection";
+  // Snyk: python/MissingObjectPermission — object-level authorization is absent.
+  if (/missingobjectpermission/.test(id)) return "idor";
   // Snyk: javascript/UseCsurfForExpress — missing CSRF middleware; rule id uses "csurf"
   if (/csrf|csurf|crosssiterequestforgery/.test(id)) return "csrf";
   // Snyk: javascript/OR — Open Redirect uses abbreviated rule id (message text says "Open Redirect")
@@ -70,7 +72,8 @@ export function mapRuleId(ruleId: string): VulnType {
   // Snyk: javascript/HttpToHttps — HTTP server/listener should use HTTPS for sensitive traffic
   if (/httptohttps|insecuretransport|cleartexttransmission/.test(id)) return "insecure-transport";
   // Snyk: java/InsecureCipher — broken or risky cryptographic algorithm such as DES
-  if (/insecurecipher|weakcipher|brokencryptographic|riskycryptographic/.test(id))
+  // Snyk: python/InsecureHash — a weak hash function is used for security-sensitive data.
+  if (/insecurecipher|insecurehash|weakcipher|brokencryptographic|riskycryptographic/.test(id))
     return "insecure-cryptography";
   // Snyk: javascript/PrototypePollution (CWE-1321)
   if (/prototypepollution/.test(id)) return "prototype-pollution";

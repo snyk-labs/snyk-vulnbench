@@ -1,0 +1,66 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+{% block title %}{% trans "Edit" %} {{ project.name }}{% endblock title %}
+
+{% block content %}
+{% trans "settings" as viewpoint %}
+{% include "project/project_navigation_bar.html" %}
+
+<div class="row">
+	<div class="col-md-2">
+		{% trans "repos" as viewpoint %}
+		{% include "project/project_edit_navigation_bar.html" %}
+	</div>
+	<div class="col-md-10">
+		<p></p>
+		<div class="panel panel-default">
+			<div class="panel-heading">
+				{% trans "Repository links" %}
+				<div style="float:right">
+					<a href="{% url 'project:gitintegration:create' project=project.name_short %}"><span class="glyphicon glyphicon-plus"></span></a>
+				</div>
+			</div>
+			<div class="panel-body">
+				<ul class="list-group">
+					{% for repo in repositories %}
+					<li class="list-group-item">
+						<div class=row>
+							<div class="col-md-10" id="repo_name_{{ forloop.counter }}">
+								<a href={% url 'project:gitintegration:detail' project=project.name_short repository=repo.pk %}>{{ repo }}</a>
+							</div>
+							<div class="col-md-2">
+								<a id="edit_repo_{{ forloop.counter }}" class="btn btn-success" href="{% url 'project:gitintegration:edit' project=project.name_short repository=repo.pk %}"><span class="glyphicon glyphicon-pencil" style="color:black"></span> {% trans "Edit" %}</a>
+							</div>
+						</div>
+					</li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}

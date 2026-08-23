@@ -1,0 +1,75 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+
+{% block title %}{% trans "Sign Up" %}{% endblock title %}
+
+{% block content %}
+<h2>{% trans "Sign Up" %}</h2>
+<div class="alert alert-info">
+	{% trans "The Password should contain at least 8 characters, be not entirely numeric, be not too common and be not to similar to your name." %}
+</div>
+
+{% if user.is_authenticated %}
+	<p>{% blocktrans with username=user.username %}Welcome {{ username }}, you are already a member and logged in. Do you want to logout? {% endblocktrans %}</p>
+	<form action={% url 'logout' %}>
+		{% buttons %}
+		<input class="btn btn-primary" type="submit" id="submit_logout" value="{% trans "Logout" %}" />
+		{% endbuttons %}
+	</form>
+{% else %}
+
+	<li class="list-group-item">
+		<form method="POST" id="id_register_form">{% csrf_token %}
+			{% bootstrap_form form%}
+			{% buttons %}
+				<button type="submit" class="save btn btn-default" id="id_submit_sign_up" action="{% url 'sign_up' %}">{% trans "Sign up" %}</button>
+				{# allows copy of entered elements with js #}
+				<body onload="showButton()">
+				<a href="#" onclick="document.forms[0].submit();return false;" class="btn btn-default" id="id_submit_refresh_captcha_js" name="submit_refresh_captcha" style="display: none;">{% trans "Refresh" %}</a>
+				<noscript>
+					<a href="{% url 'sign_up'%}" class="btn btn-default" id="id_submit_refresh_captcha" name="id_submit_refresh_captcha_no_js">{% trans "Refresh" %}</a>
+				</noscript>
+			{% endbuttons %}
+		</form>
+	</li>
+	<br>
+	<p>{% trans "Already a member?" %}</p>
+	{% buttons %}
+		<a class="btn btn-default" id="id_login_ref" href="{% url 'login' %}">{% trans "Login" %}</a>
+		<a class="btn btn-default" id="id_reset_ref" href="{% url 'password_reset' %}">{% trans "Forgot your password?" %}</a>
+	{% endbuttons %}
+{% endif %}
+{% endblock content %}
+
+
+{% block extra_script %}
+<script type="text/javascript">
+function showButton(){
+	document.getElementById("id_submit_refresh_captcha_js").style.display="inline";
+}
+</script>
+{% endblock extra_script %}

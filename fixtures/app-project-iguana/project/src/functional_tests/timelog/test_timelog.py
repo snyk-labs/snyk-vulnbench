@@ -1,0 +1,221 @@
+"""
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+from django.test import Client
+from lib.selenium_test_case import SeleniumTestCase
+from selenium.webdriver.common.by import By
+from django.urls import reverse
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.keys import Keys
+from datetime import timedelta
+
+from django.contrib.auth import get_user_model
+from project.models import Project
+from kanbancol.models import KanbanColumn
+from issue.models import Issue
+from timelog.models import Timelog
+
+
+# TODO TESTCASE refactoring + write testcases
+class TimelogTest(SeleniumTestCase):
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user('test', 'test@test.com', 'test')
+        self.project = Project(creator=self.user, name_short='PRJ')
+        self.project.save()
+        self.project.developer.add(self.user)
+        # NOTE: those elements get modified by some of those tests, so this shall NOT be created in setUpTestData()
+        self.issue = Issue(title='issue title',
+                           project=self.project,
+                           due_date='2016-12-16',
+                           storypoints='3'
+                           )
+        self.issue.save()
+        self.issue2 = Issue(title='title2',
+                            project=self.project,
+                            due_date='2016-12-16',
+                            storypoints='3'
+                            )
+        self.issue2.save()
+        self.issue.assignee.add(self.user)
+
+        # Uses the cookie hack from:
+        # https://stackoverflow.com/questions/22494583/login-with-code-when-using-liveservertestcase-with-django
+        client = Client()
+        client.login(username='test', password='test')
+        self.cookie = client.cookies['sessionid']
+        self.selenium.get("{}{}".format(self.live_server_url, reverse('timelog:loginfo')))
+        self.selenium.add_cookie({'name': 'sessionid', 'value': self.cookie.value, 'secure': False, 'path': '/'})
+        self.selenium.refresh()
+
+    def test_workflow(self):
+        driver = self.selenium
+        driver.get(self.live_server_url + reverse('landing_page:home'))
+        driver.find_element(By.LINK_TEXT, "Projects").click()
+        driver.find_element(By.LINK_TEXT, "Create new project").click()
+        driver.find_element(By.ID, "id_name").clear()
+        driver.find_element(By.ID, "id_name").send_keys("Test-Project")
+        driver.find_element(By.ID, "id_name_short").clear()
+        driver.find_element(By.ID, "id_name_short").send_keys("TTT")
+        driver.find_element(By.ID, "id_description").clear()
+        driver.find_element(By.ID, "id_description").send_keys("Description")
+        driver.find_element(By.ID, "id_submit_create").click()
+        driver.find_element(By.LINK_TEXT, "Board").click()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys("Issue")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys("Another")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys("So funny")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys(">2 +10m")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys(">3 +1h")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.ID, "expression").clear()
+        driver.find_element(By.ID, "expression").send_keys(">1 +15m")
+        driver.find_element(By.ID, "expression").submit()
+        driver.find_element(By.LINK_TEXT, "TTT-1").click()
+        self.assertIn("15 Minutes", driver.find_element(By.ID, "issue_detail_log_1").text)
+        driver.find_element(By.LINK_TEXT, "TTT").click()
+        driver.find_element(By.LINK_TEXT, "TTT-2").click()
+        self.assertIn("10 Minutes", driver.find_element(By.ID, "issue_detail_log_1").text)
+        driver.find_element(By.LINK_TEXT, "TTT").click()
+        driver.find_element(By.LINK_TEXT, "TTT-3").click()
+        self.assertIn("1 Hour", driver.find_element(By.ID, "issue_detail_log_1").text)
+        driver.find_element(By.CSS_SELECTOR, "#issue_detail_log_1 > div > a > span.glyphicon.glyphicon-pencil").click()
+        driver.find_element(By.ID, "id_time").clear()
+        driver.find_element(By.ID, "id_time").send_keys("50m")
+        driver.find_element(By.ID, "id_submit_save_timelog_change").click()
+        self.assertIn("50 Minutes", driver.find_element(By.ID, "issue_detail_log_1").text)
+        driver.find_element(By.LINK_TEXT, "Timelogging").click()
+        self.assertEqual("total: 1 Hour and 15 Minutes",
+                         driver.find_element(By.CSS_SELECTOR, "li.list-group-item > b").text)
+        driver.find_element(By.ID, "timelog").click()
+        self.assertIn("10 Minutes", driver.find_element(By.CSS_SELECTOR, "#log_1 > div.row > div.col-xs-5").text)
+        self.assertIn("15 Minutes", driver.find_element(By.CSS_SELECTOR, "#log_2 > div.row > div.col-xs-5").text)
+        self.assertIn("50 Minutes", driver.find_element(By.CSS_SELECTOR, "#log_3 > div.row > div.col-xs-5").text)
+        driver.find_element(By.LINK_TEXT, "Activity").click()
+        driver.find_element(By.LINK_TEXT, "Last Week").click()
+        driver.find_element(By.ID, "dropdownMenu1").click()
+        driver.find_element(By.ID, "content").click()
+        driver.find_element(By.ID, "dropdownMenu1").click()
+        driver.find_element(By.LINK_TEXT, "Activity").click()
+        driver.find_element(By.ID, "dropdownMenu1").click()
+        driver.find_element(By.XPATH, "//div[@id='content']/div/div[2]/div/div/ul/li[2]/a/b").click()
+        driver.find_element(By.ID, "cal-heatmap-previous").click()
+        driver.find_element(By.ID, "cal-heatmap-next").click()
+        driver.find_element(By.CSS_SELECTOR, "i.caret").click()
+        driver.find_element(By.LINK_TEXT, "Profile").click()
+        self.assertIn("test", driver.find_element(By.CSS_SELECTOR, "h1.page-header").text)
+        driver.find_element(By.ID, "show_actions").click()
+
+    def test_reachable_and_elements_exist(self):
+        # TODO TESTCASE
+        # TODO for each site check it is available + check (some) content like the title + check existence of forms
+        #      and their form elements by their ids!
+        # TODO timelog:loginfo
+        # TODO project/<proj_pattern>/issue/<issue_sqn>/log
+        pass
+
+    def test_time_field_required(self):
+        # TODO TESTCASE
+        # TODO timelog:loginfo
+        # TODO project/<proj_pattern>/issue/<issue_sqn>/log
+        pass
+
+    def test_issue_loglist(self):
+        # TODO project/<proj_pattern>/issue/<issue_sqn>/logs
+        # TODO this should only test if the elements created with models are listed here
+        pass
+
+    # TODO this should only test if the elements created with models are listed here (s.b.)
+    def test_overview_log_form(self):
+        driver = self.selenium
+        driver.get(self.live_server_url + reverse('timelog:loginfo'))
+        driver.find_element(By.ID, "id_time").send_keys("2h")
+        self.assertEqual(len(Select(driver.find_element(By.ID, "id_issue")).options), 2)
+        Select(driver.find_element(By.ID, "id_issue")).select_by_visible_text("issue title")
+        driver.find_element(By.CSS_SELECTOR, ".save").click()
+        entry = driver.find_element(By.ID, "log_1")
+        self.assertIn('issue title', entry.text)
+        self.assertIn('2 Hours', entry.text)
+        driver.find_element(By.ID, "log_edit_link_1").click()
+        driver.find_element(By.ID, "id_time").clear()
+        driver.find_element(By.ID, "id_time").send_keys("1h")
+        driver.find_element(By.CSS_SELECTOR, ".save").click()
+        driver.get(self.live_server_url + reverse('timelog:loginfo'))
+        entry = driver.find_element(By.ID, "log_1")
+        self.assertIn('issue title', entry.text)
+        self.assertIn('1 Hour', entry.text)
+        self.issue2.assignee.add(self.user)
+        self.selenium.refresh()
+        self.assertEqual(len(Select(driver.find_element(By.ID, "id_issue")).options), 3)
+        driver.find_element(By.ID, "id_time").send_keys("5h")
+        Select(driver.find_element(By.ID, "id_issue")).select_by_visible_text("title2")
+        driver.find_element(By.CSS_SELECTOR, ".save").click()
+        driver.get('{}{}'.format(self.live_server_url, reverse('issue:detail',
+                                                               kwargs={'project': self.project.name_short,
+                                                                       'sqn_i': self.issue2.number
+                                                                       }
+                                                               )))
+        entry = driver.find_element(By.ID, "issue_detail_log_1")
+        self.assertIn('5 Hours', entry.text)
+
+        driver.get(self.live_server_url + reverse('timelog:loginfo'))
+        driver.find_element(By.ID, "log_delete_link_2").click()
+        driver.find_element(By.ID, 'id_submit_delete').click()
+
+        driver.get('{}{}'.format(self.live_server_url, reverse('issue:detail',
+                                                               kwargs={'project': self.project.name_short,
+                                                                       'sqn_i': self.issue2.number
+                                                                       }
+                                                               )
+                                 )
+                   )
+        self.assertNotIn('5 Hours', driver.page_source)
+
+    def test_issue_detail_log_form(self):
+        driver = self.selenium
+        t = Timelog(user=self.user, issue=self.issue, time=timedelta(hours=3))
+        t.save()
+        driver.get('{}{}'.format(self.live_server_url, reverse('issue:detail',
+                                                               kwargs={'project': self.project.name_short,
+                                                                       'sqn_i': self.issue.number
+                                                                       }
+                                                               )))
+        entry = driver.find_element(By.ID, "issue_detail_log_1")
+        self.assertIn('3 Hour', entry.text)
+
+    def test_delete_timelog(self):
+        # TODO TESTCASE
+        pass
+
+    def test_keep_and_dont_delete_timelog(self):
+        # TODO
+        # TODO TESTCASE
+        pass

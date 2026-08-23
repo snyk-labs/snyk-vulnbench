@@ -1,0 +1,8 @@
+{
+  "id": "app-project-iguana-attacker-reachable-find-vulns",
+  "name": "App Project Iguana: Find Attacker-Reachable Vulnerabilities",
+  "category": "attacker-reachable-find-vulns",
+  "fixture": "app-project-iguana",
+  "groundTruth": "attacker-reachable",
+  "maxTurns": 40
+}

@@ -1,0 +1,59 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% load i18n %}
+{% load static %}
+
+<form id="olea" method="post" action="{% url 'olea:processOlea' project=project.name_short %}">{% csrf_token %}
+    <div class="input-group">
+        <input type="text" id="expression" title="{% include "olea/olea_tooltip.html" %}" class="form-control" name="expression" {{oleafocus}} value="{{oleaexpression}}" placeholder="{% trans 'Place your change expression here' %}" autocomplete="off" />
+        <span class="input-group-btn">
+            <button class="btn btn-default" type="submit">{% trans 'Go' %}</button>
+        </span>
+    </div>
+    {# set the 'olea_sprint' variable to add any newly created issue right to that sprint #}
+    {% if olea_sprint and olea_sprint.is_active %}
+        <input type="hidden" name="currentsprint" value="{{olea_sprint.seqnum}}">
+    {% else %}
+        <input type="hidden" name="currentsprint" value="">
+    {% endif %}
+    <input type="hidden" name="next" value="{{request.get_full_path}}">
+</form>
+
+{% block extra_script %}
+    <script src="{% static "js/tribute/tribute.min.js" %}"></script>
+    <script src="{% static "js/tribute/tribute_wrapper.js" %}"></script>
+    <script>
+    $(document).ready(function(){
+        var tr = new TributeWrapper();
+        tr.addCollection('@', "/project/userac/{{ project.name_short }}/");
+        tr.addCollection('>', "/project/issueac/{{ project.name_short }}/", />{{ project.name_short }}-(\d+)/);
+        tr.addCollection('~', "/project/issueac/{{ project.name_short }}/", /~{{ project.name_short }}-(\d+)/);
+        tr.addCollection('#', "/project/tagac/{{ project.name_short }}/");
+        tr.addCollection('!', "/issue/prioac/");
+        tr.addCollection(':', "/issue/typeac/");
+        tr.addCollection('&', "/project/kanbanac/{{ project.name_short }}/");
+        tr.attach(document.querySelectorAll("#expression"));
+    });
+    </script>
+{% endblock %}

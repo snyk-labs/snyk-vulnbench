@@ -1,0 +1,55 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% load i18n %}
+
+<li>
+<form id="search" method="post" action="{% url 'search:resultpage' %}" class="form-inline">{% csrf_token %}
+	<input class="form-control search-term" type="text" id="uinputxpr" name="expression" placeholder={% trans "Search" %} autocomplete="off"/>
+	<button type="submit" class="btn btn-default form-control search-go">{% trans "Go" %}</button>
+</form>
+</li>
+
+{% if user.searches.all %}
+<li>
+	{# The span prevents bootstrap from styling this weirdly #}
+	<span>{% trans "Or use " %}<a id="recent-searches-link" href="{% url 'search:advanced' %}">{% trans "recent expressions" %}</a>:</span>
+</li>
+{% endif %}
+
+{% for search in user.searches.all %}
+	<li>
+		<form id="search{{forloop.counter}}" method="post" action="{% url 'search:resultpage' %}" class="form-inline">{% csrf_token %}
+			<input class="form-control search-term" type="text" name="expression" readonly value='{{search.searchexpression}}' />
+			<button type="submit" class="btn btn-default form-control search-go">{% trans "Go" %}</button>
+		</form>
+	</li>
+{% endfor %}
+
+{% block extra_script %}
+	<script>
+		$("#searchmenu").on('click', function() {
+			setTimeout('$("#uinputxpr").focus()', 100)
+		})
+	</script>
+{% endblock extra_script %}

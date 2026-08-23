@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "app-project-iguana",
+  "name": "Iguana Project Management",
+  "kind": "web-app",
+  "languages": ["python"],
+  "frameworks": ["django"],
+  "runtimes": [
+    {
+      "name": "python",
+      "version": "3.8.12"
+    }
+  ],
+  "datastores": ["sqlite"],
+  "source": {
+    "repository": "https://github.com/iguana-project/iguana"
+  },
+  "provenance": {
+    "origin": "real-repository",
+    "seeded": true
+  }
+}

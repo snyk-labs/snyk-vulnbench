@@ -1,0 +1,83 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<!DOCTYPE html>
+{% load i18n %}
+{% load static %}
+{% load breadcrumbs %}
+{% load bootstrap3 %}
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{LANGUAGE_CODE}}">
+<head>
+	<link rel="shortcut icon" type="image/png" href="{% static 'favicon.ico' %}"/>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<title>{% block title %}Iguana{% endblock %}</title>
+	<meta name="description" content="{% block description %}{% trans "Open source issue/ticket managment with a Kanban board." %}{% endblock %}">
+	<meta name="keywords" content="{% block keywords %}{% trans "Kanban, board, issue, ticket, software, development, open" %}{% endblock %}">
+
+	{% block css %}
+		{% bootstrap_css %}
+		<link rel="stylesheet" href="{% static "css/iguana.css" %}" />
+	{% endblock css %}
+	{% block extra_css %}
+        <!-- Include individual files as needed -->
+    {% endblock extra_css %}
+
+    {% block javascript %}
+        <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+        {% bootstrap_javascript jquery=1 %}
+    {% endblock javascript %}
+    {% block extra_script %}
+        <!-- Include individual files as needed -->
+    {% endblock %}
+
+	{% block additional_stuff %}{% trans "" %}{% endblock %}
+</head>
+
+<body>
+	{% include "navigation.html" %}
+	<div id="content">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					{% breadcrumbs %}
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+					{% for message in messages %}
+						<div class="alert alert-{{ message.tags }}">
+							{{ message }}
+						</div>
+					{% endfor %}
+					{% block content %}{% endblock %}
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- keep scroll position on all pages -->
+	<script type="text/javascript" src="{% static "js/jquery/maintainscroll.jquery.min.js" %}"></script>
+</body>
+</html>

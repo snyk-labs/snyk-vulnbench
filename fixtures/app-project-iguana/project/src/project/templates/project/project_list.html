@@ -1,0 +1,102 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}Project List{% endblock title %}
+
+{% block content %}
+	<h1 class="page-header">{% trans "Your projects" %}
+				<div class="dropdown pull-right">
+					<button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+						{% trans "Show" %}
+						<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+						<li>
+								<a href="?data=timelog">
+									{% trans "Timelogs" %}
+									{% if chart_type == "timelog" %}
+										<span class="glyphicon glyphicon-ok"></span>
+									{% endif %}
+								</a>
+							</li>
+						<li>
+								<a href="?data=actions">
+									{% trans "Actions" %}
+									{% if chart_type == "actions" %}
+										<span class="glyphicon glyphicon-ok"></span>
+									{% endif %}
+								</a>
+							</li>
+					</ul>
+				</div>
+	</h1>
+<br>
+{% if latest_project_list %}
+	<div class="row" style="border-bottom: 2px solid grey; padding-bottom:10px; margin-bottom:10px">
+		<div class="col-xs-3">
+			{% trans "Handle" %}
+		</div>
+		<div class="col-xs-3">
+			{% trans "Name" %}
+		</div>
+		<div class="col-xs-2">
+			{% trans "Creator" %}
+		</div>
+		<div class="col-xs-4">
+			{% trans "Activity" %}
+		</div>
+	</div>
+		{% for project in latest_project_list %}
+		<div class="row" style="border-bottom: 1px solid grey; margin-bottom:10px; padding:10px; padding-top:0px">
+			<div class="col-xs-3" style="padding-top:22px">
+				<span>{{ project.name_short }}</span>
+			</div>
+			<div class="col-xs-3" style="padding-top:22px">
+				<a href="{% url 'project:detail' project=project.name_short %}">{{ project.name }}</a>
+			</div>
+			<div class="col-xs-2" style="padding-top:22px">
+				{{ project.creator }}
+			</div>
+			<div class="col-xs-4" style="padding-top:0px">
+				<div id="project_activity_{{ project.name_short }}" title="Activity past month" style="padding-top:0px"></div>
+			</div>
+		</div>
+		{% endfor %}
+{% else %}
+	<p>No Projects created yet.</p>
+{% endif %}
+
+<p><a class="btn btn-default" href="{% url 'project:create' %}">{% trans "Create new project" %}</a></p>
+{% for project in latest_project_list %}
+	<script>
+		create_project_activity('{{project.name_short}}')
+	</script>
+{% endfor %}
+{% endblock content %}
+{% block extra_script %}
+<script src="{% static "js/graphs/d3.min.js" %}"></script>
+<script src="{% static "js/graphs/draw_spark.js" %}"></script>
+{% endblock %}

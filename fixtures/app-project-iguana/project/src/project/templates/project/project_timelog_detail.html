@@ -1,0 +1,82 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load filter %}
+
+{% block title %}Timelog{% endblock title %}
+
+{% block content %}
+	{% trans "timelogging" as viewpoint %}
+	{% include "project/project_navigation_bar.html" %}
+	<h1 class="page-header"><img src="{{ava_url}}" width="40" alt="{% trans "Avatar" %} {{ user }}"/>  {{ user }}</h1>
+	<ul class="list-group">
+		{% for l in logs %}
+			<li class ="list-group-item">
+				<div class="row">
+					<div class="col-xs-10">
+						{{l.time|duration}} {% trans "on" %}
+						<a href="{% url 'issue:detail' project=l.issue.project.name_short sqn_i=l.issue.number %}">
+							{{ l.issue.title }}
+						</a>
+						<br><small>
+							{{ l.created_at }}
+						</small>
+					</div>
+					{% if request.user == l.user %}
+						<div class="col-xs-1">
+							<a id="log_edit_link_{{forloop.counter}}" href="{% url 'issue:logedit' project=l.issue.project.name_short sqn_i=l.issue.number sqn_l=l.number %}?next={{ request.get_full_path }}">
+								<span class="glyphicon glyphicon-pencil"></span>
+							</a>
+						</div>
+						<div class="col-xs-1">
+							<a id="log_delete_link_{{forloop.counter}}" href="{% url 'issue:logdelete' project=l.issue.project.name_short sqn_i=l.issue.number sqn_l=l.number  %}?next={{ request.get_full_path}}">
+								<span class="glyphicon glyphicon-remove"></span>
+							</a>
+						</div>
+					{% endif %}
+				</div>
+			</li>
+		{% empty %}
+			<li class ="list-group-item">
+				{% trans "No logs yet" %}
+			</li>
+		{% endfor %}
+	</ul>
+	<div class="pagination">
+		<span class="step-links">
+			{% if logs.has_previous %}
+				<a href="?page={{ logs.previous_page_number }}">previous</a>
+			{% endif %}
+
+			<span class="current">
+				Page {{ logs.number }} of {{ logs.paginator.num_pages }}.
+			</span>
+
+			{% if logs.has_next %}
+				<a href="?page={{ logs.next_page_number }}">next</a>
+			{% endif %}
+		</span>
+	</div>
+{% endblock content %}

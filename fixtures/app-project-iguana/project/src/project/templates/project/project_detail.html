@@ -1,0 +1,138 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load markdownify %}
+{% load activity_tags %}
+{% block title %}{{ project.name }}{% endblock title %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static "css/pysegments.css" %}" />
+{% endblock extra_css %}
+{% block content %}
+{% trans "overview" as viewpoint %}
+{% include "project/project_navigation_bar.html" %}
+
+<h1 class="page-header">
+	{{ project.name }} <small> {{ project.name_short }} </small>
+</h1>
+<div class="row">
+	<div class="col-md-9">
+		{% if project.description %}
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "Description" %}</div>
+			{# NOTE: normally it is a security risk to mark something as safe because html escaping doesn't take place. But in this case markdown won't work without and the input has been verified already. #}
+			<div class="panel-body">{{project.description|markdownify:project|safe}}</div>
+		</div>
+		{% endif %}
+		<div class="panel panel-default">
+			<div class="panel-heading clearfix">
+				{% trans "Activity" %}
+				<button class="btn btn-default" id="project-detail-previous-week" title="{% trans "previous week" %}"><i class="glyphicon glyphicon-chevron-left"></i>7</button>
+				<button class="btn btn-default" id="project-detail-previous-day" title="{% trans "previous day" %}"><i class="glyphicon glyphicon-chevron-left"></i>1</button>
+				<button class="btn btn-default disabled" id="project-detail-next-day" title="{% trans "next day" %}">1<i class="glyphicon glyphicon-chevron-right"></i></button>
+				<button class="btn btn-default disabled" id="project-detail-next-week" title="{% trans "next week" %}">7<i class="glyphicon glyphicon-chevron-right"></i></button>
+				<div class="dropdown pull-right">
+					<button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+						{% trans "Show" %}
+						<span class="caret"></span>
+					</button>
+					<ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
+						<li>
+								<a href="?data=timelog">
+									{% trans "Timelogs" %}
+									{% if chart_type == "timelog" %}
+										<span class="glyphicon glyphicon-ok"></span>
+									{% endif %}
+								</a>
+							</li>
+						<li>
+								<a href="?data=actions">
+									{% trans "Actions" %}
+									{% if chart_type == "actions" %}
+										<span class="glyphicon glyphicon-ok"></span>
+									{% endif %}
+								</a>
+							</li>
+					</ul>
+				</div>
+			</div>
+			<div class="panel-body">
+				<div id="project_activity">
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="col-md-3">
+		<div class="btn-group-vertical panel-like">
+			<a class="btn btn-danger" href="{% url 'project:leave' project=project.name_short %}" title="{% trans "Leave project" %}">{% trans "Leave project" %}</a>
+		{% if request.user|is_following:project %}
+			<a class="btn btn-default" href="{{request.path}}?follow=false" title="{% trans "on the dashboard" %}">
+				<span class="glyphicon glyphicon-list" style="top:10px;"></span>
+				{% trans "Remove events from the" %}<br>{% trans "Activity Stream" %}
+			</a>
+		{% else %}
+			<a class="btn btn-default" href="{{request.path}}?follow=true" title="{% trans "on the dashboard" %}">
+				<span class="glyphicon glyphicon-list" style="top:10px;"></span>
+				{% trans "Show events in the" %}<br>{% trans "Activity Stream" %}
+			</a>
+		{% endif %}
+		<a class="btn btn-default" href="{% url 'archive:archive' project=project.name_short %}" title="{% trans "Past issues" %}"><span class="glyphicon glyphicon-book"></span> {% trans "Archive" %}</a>
+		</div>
+		<div class="panel panel-default">
+			<div class ="panel-heading">
+				{% trans "Developer" %}
+			</div>
+			<ul class="list-group">
+				{% for dev in project.developer.all %}
+							<li class="list-group-item">
+					<img src="{{ dev.avatar.url}}" width="25" alt="{% trans "Avatar" %} {{ dev }}">
+					<a href="{% url 'user_profile:user_profile_page' dev.username %}">  {{ dev.username}}</a>
+				</li>
+				{% endfor %}
+			</ul>
+		</div>
+				<div class="panel panel-default">
+						<div class ="panel-heading">
+				{% trans "Managers" %}
+			</div>
+						<ul class="list-group">
+			{% for dev in project.manager.all %}
+								<li class="list-group-item">
+					<img src="{{ dev.avatar.url}}" width="25" alt="{% trans "Avatar" %} {{ dev }}">
+					<a href="{% url 'user_profile:user_profile_page' dev.username %}">  {{ dev.username}}</a>
+				</li>
+			{% endfor %}
+						</ul>
+		</div>
+	</div>
+</div>
+{% endblock content %}
+{% block extra_script %}
+<script src="{% static "js/graphs/d3.min.js" %}"></script>
+<script src="{% static "js/graphs/draw_bars_project_detail.js" %}"></script>
+					<script>
+						create_project_activity('{{project.name_short}}')
+					</script>
+{% endblock %}

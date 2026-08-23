@@ -1,0 +1,198 @@
+{
+  "_note": "When adding a new vulnerability type not already in VulnType, see docs/benchmark-management.md#updating-when-you-add-a-new-vulnerability-type for the source files that need updating.",
+  "description": "Django 2.2 project-management and issue-tracker application with kanban, Git integration, timelogs, and a custom search DSL. The six findings comprise one inherited stored-data ReDoS flow and five seeded flows integrated into existing application features.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-iguana-command-injection-test-connection",
+      "type": "command-injection",
+      "typeAliases": [
+        "shell injection",
+        "os command injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "src/gitintegration/views.py",
+          "line": 121,
+          "type": "source"
+        },
+        {
+          "file": "src/gitintegration/views.py",
+          "line": 123
+        },
+        {
+          "file": "src/gitintegration/frontend.py",
+          "line": 45
+        },
+        {
+          "file": "src/gitintegration/frontend.py",
+          "line": 45,
+          "type": "sink"
+        }
+      ],
+      "description": "The \"test repository connection\" endpoint reads `url` directly from `request.POST` and passes it to `Frontend.test_connection()`, which concatenates it into a `git ls-remote <url>` shell command with `shell=True`. Unlike the actual repository-create flow, this endpoint does not go through `RepositoryCreateForm`/the model's `validate_local_path` validator, so shell metacharacters in the URL are not blocked.",
+      "vulnerabilityImpact": "Allows an authenticated developer to execute arbitrary OS commands with the privileges of the server process by supplying a URL containing shell metacharacters.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-iguana-redos-testpattern",
+      "type": "redos",
+      "typeAliases": [
+        "regular expression denial of service",
+        "catastrophic backtracking"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/search/views.py",
+          "line": 65,
+          "type": "source"
+        },
+        {
+          "file": "src/search/views.py",
+          "line": 66
+        },
+        {
+          "file": "src/search/views.py",
+          "line": 67,
+          "type": "sink"
+        }
+      ],
+      "description": "The \"try a regex pattern\" endpoint (a preview tool for building advanced searches) runs `re.match(pattern, sample)` with both the pattern and the sample text taken directly from the request body, and no timeout or length limit. A catastrophic-backtracking pattern like `(a+)+$` matched against a crafted sample hangs the worker.",
+      "vulnerabilityImpact": "Allows an authenticated user to hang the single-threaded application worker with a single request, denying service to all other users.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-iguana-redos-search-operator",
+      "type": "redos",
+      "typeAliases": [
+        "regular expression denial of service",
+        "catastrophic backtracking"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/search/views.py",
+          "line": 131,
+          "type": "source"
+        },
+        {
+          "file": "src/search/parser.py",
+          "line": 112
+        },
+        {
+          "file": "src/search/parser.py",
+          "line": 121
+        },
+        {
+          "file": "src/search/frontend.py",
+          "line": 133,
+          "type": "sink"
+        }
+      ],
+      "description": "The advanced search DSL's `~` comparator maps to Django's `__regex` ORM lookup (`comparatorToQExpression` in search/parser.py), so an attacker-controlled pattern such as `Issue.title ~ \"(a+)+$\"` is evaluated against every stored value of the targeted field when `SearchFrontend.query()` calls `.filter(expr)`. Unlike the `TestPatternView` sample-based variant, this one requires a stored value shaped to trigger catastrophic backtracking (a short, unrelated stored title does not manifest the hang) — confirmed live by first running a control query against the seed data (returned instantly) and then again after planting a long-titled issue (hung and timed out).",
+      "vulnerabilityImpact": "Allows an authenticated user who can also create or control a searchable record (e.g. an issue title) to hang the single-threaded application worker for any other user who runs a matching regex search, or to hang it themselves on demand.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-iguana-sql-injection-issue-search",
+      "type": "sql-injection",
+      "typeAliases": [
+        "sqli",
+        "sql injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "src/issue/views.py",
+          "line": 422,
+          "type": "source"
+        },
+        {
+          "file": "src/issue/views.py",
+          "line": 423
+        },
+        {
+          "file": "src/issue/search.py",
+          "line": 14
+        },
+        {
+          "file": "src/issue/search.py",
+          "line": 19,
+          "type": "sink"
+        }
+      ],
+      "description": "The quick issue-search endpoint's `q` query parameter is formatted directly into a raw SQL query executed via `django.db.connection.cursor()`, instead of being passed as a bound parameter.",
+      "vulnerabilityImpact": "Allows an authenticated user to break out of the intended keyword filter and, via UNION-based injection, read data from other tables (e.g. other users' credentials) that the issue-search feature was never meant to expose.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-iguana-code-injection-issue-filter",
+      "type": "code-injection",
+      "typeAliases": [
+        "eval injection",
+        "python code injection"
+      ],
+      "severity": "critical",
+      "filesRelated": [
+        {
+          "file": "src/issue/views.py",
+          "line": 436,
+          "type": "source"
+        },
+        {
+          "file": "src/issue/views.py",
+          "line": 440,
+          "type": "sink"
+        }
+      ],
+      "description": "The advanced issue-filter endpoint evaluates the caller-supplied `expression` with Python's `eval()`, passing only a local-variable context dict that does not restrict access to builtins.",
+      "vulnerabilityImpact": "Allows an authenticated user to execute arbitrary Python code, and via `__import__`, arbitrary OS commands, on the server.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "no",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-iguana-path-traversal-timelog-export",
+      "type": "path-traversal",
+      "typeAliases": [
+        "path traversal",
+        "directory traversal"
+      ],
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "src/project/views.py",
+          "line": 128,
+          "type": "source"
+        },
+        {
+          "file": "src/project/views.py",
+          "line": 129
+        },
+        {
+          "file": "src/project/export.py",
+          "line": 19
+        },
+        {
+          "file": "src/project/export.py",
+          "line": 21,
+          "type": "sink"
+        }
+      ],
+      "description": "The timelog-report download endpoint joins a request-controlled `filename` parameter onto the project's export directory with no containment check before opening it, allowing `../` sequences to escape the intended per-project folder.",
+      "vulnerabilityImpact": "Allows an authenticated user with read access to a project to read arbitrary files on the server outside the exports folder.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}

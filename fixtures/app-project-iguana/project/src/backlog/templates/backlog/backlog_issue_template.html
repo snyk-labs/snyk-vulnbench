@@ -1,0 +1,50 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% load i18n %}
+{% load cache %}
+{% cache 86400 backlog_issue_template issue.project.name_short issue.number request.user.username %}
+<tr id="{% if issue.sprint %}sprint{% else %}backlog{% endif %}_issue_{{issue.number}}" class="backlog-issue">
+	<td style="white-space: nowrap;" title={{issue.type}}>
+		<div class="issue-type text-muted {{issue.type|lower}}">
+			{{ issue.type|slice:":1" }}
+		</div>
+		{% include "issue/issue_info_template.html" %}
+	{% if view.get_sqn_s != -1 %}
+		<td style="padding-left: 0px">
+		<div class="pull-right">
+				<form style="display:inline-block" id="ats{{issue.number}}" method="post" action="{% url 'sprint:assigntosprint' project=project.name_short %}" >{% csrf_token %}
+					<input type="hidden" name="sqn_i" value={{issue.number}} />
+					<button style="padding:0px" type="submit" class="btn btn-link">
+						{% if issue.sprint %}
+							<span class="glyphicon glyphicon-minus" title="{% trans "Remove from sprint" %}"></span>
+						{% else %}
+							<span class="glyphicon glyphicon-plus" title="{% trans "Add to sprint" %}"></span>
+						{% endif %}
+					</button>
+				</form>
+		</div>
+		</td>
+	{% endif %}
+</tr>
+{% endcache %}

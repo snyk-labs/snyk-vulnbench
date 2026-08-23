@@ -1,0 +1,7 @@
+{
+  "id": "app-project-iguana-find-vulns",
+  "name": "App Project Iguana: Find Vulnerabilities",
+  "category": "find-vulns",
+  "fixture": "app-project-iguana",
+  "maxTurns": 40
+}

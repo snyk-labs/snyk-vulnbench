@@ -1,0 +1,54 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% load i18n %}
+<ul class="nav nav-tabs projectnav">
+	<li class="{% if viewpoint == 'overview' %}active{% endif %}">
+		<a href="{% url 'project:detail' project=project.name_short%}"><i class="glyphicon glyphicon-paperclip"></i> {% trans "Overview" %}</a>
+	</li>
+	<li class="{% if viewpoint == 'projlist' %}active{% endif %}">
+		<a href="{% url 'sprint:sprintboard' project=project.name_short %}">
+			<i class="glyphicon glyphicon-align-left gly-rotate-90"></i>
+			{% if project.has_active_sprint %}
+				{% trans "Sprintboard" %}
+			{% else %}
+				{% trans "Board" %}
+			{% endif %}
+		</a>
+	</li>
+	<li class="{% if viewpoint == 'backlog' %}active{% endif %}">
+		<a href="{% url 'backlog:backlog' project=project.name_short%}"><i class="glyphicon glyphicon-list"></i> {% trans "Backlog" %}</a>
+	</li>
+	<li class="{% if viewpoint == 'timelogging' %}active{% endif %}">
+		<a href="{% url 'project:timelog' project.name_short %}"><i class="glyphicon glyphicon-time"></i> {% trans "Timelogging" %}</a>
+	</li>
+	<li class="{% if viewpoint == 'settings' %}active{% endif %}">
+		{% if user in project.manager.all %}
+		<a id="project_edit" href="{% url 'project:edit' project.name_short %}">
+		{% else %}
+		<a id="project_edit" href="{% url 'tag:tag' project.name_short %}">
+		{% endif %}
+			<i class="glyphicon glyphicon-cog"></i> {% trans "Settings" %}
+		</a>
+	</li>
+</ul>

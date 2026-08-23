@@ -1,0 +1,74 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load filter %}
+
+{% block title %}{% trans "Repository link's details" %}{% endblock title %}
+
+{% block content %}
+<h1 class="page-header">{% trans "Repository link's details" %}</h1>
+
+<div class="row">
+	<div class="col-md-12">
+		<a class="btn btn-success" id="button_edit" href="{% url 'project:gitintegration:edit' project=repository.project.name_short repository=repository.pk %}"><span class="glyphicon glyphicon-pencil" style="color:black"></span> {% trans "Edit" %}</a>
+		<a class="btn btn-danger" id="button_delete" href="{% url 'project:gitintegration:delete' project=repository.project.name_short repository=repository.pk %}"><span class="glyphicon glyphicon-remove" style="color:black"></span> {% trans "Delete" %}</a>
+		<p></p>
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "URL" %}</div>
+			<div class="panel-body">
+				{{ repository.url }}
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "Repository state" %}</div>
+			<div class="panel-body">
+				<div class="row">
+					<div class="col-md-2">
+						{% trans "Connection state" %}<br>
+						{% trans "Imported issues" %}
+					</div>
+					<div id="repo_state" class="col-md-10">
+						{% if repository.conn_ok %}
+						<span class="glyphicon glyphicon-ok" style="color:green"></span>
+						{% else %}
+						<span class="glyphicon glyphicon-remove" style="color:red"></span>
+						{% endif %}
+						<br>
+						{{ repository.commits.count }}
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "RSA public key" %}</div>
+			<div class="panel-body" style="white-space:normal;word-wrap:break-word">
+				{{ repository.rsa_pub_path.read|linebreaksbr }}
+				{# the opened file needs to get closed afterwards #}
+				{{ repository.rsa_pub_path.close }}
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock content %}

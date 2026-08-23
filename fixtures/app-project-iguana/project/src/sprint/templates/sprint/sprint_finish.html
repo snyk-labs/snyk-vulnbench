@@ -1,0 +1,123 @@
+<!--
+Iguana (c) by Marc Ammon, Moritz Fickenscher, Lukas Fridolin, Michael Gunselmann, Katrin Raab, Christian Strate
+
+Iguana is licensed under BSD-2-Clause License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice,
+      this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer
+      in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+{% load bootstrap3 %}
+{% block title %}
+	{% trans "Finish sprint" %} {{ sprint.seqnum }}
+{% endblock title %}
+
+{% block content %}
+
+	<h1 class="page-header">
+		{% trans "Finish sprint" %} {{ sprint.seqnum }}
+	</h1>
+	<div class="alert alert-info">
+		{% trans "Select the issues you want to move to another sprint. The unselected issues will be moved to backlog." %}
+	</div>
+	<form  method="post" action="{% url 'sprint:stopsprint' project=project.name_short sqn_s=sprint.seqnum %}">{% csrf_token %}
+		<div class="panel panel-default">
+			<div class="panel-heading" style="padding-left:8px">
+				<label style="margin-right:10px">
+					<input type="checkbox" name="select-all" id="id_select_all" />
+					<strong>{% trans "All" %}</strong>
+				</label>
+				<label style="margin-right:10px">
+					<input type="checkbox" name="select-todo" id="id_select_todo" />
+					<strong>{% trans "Todo" %}</strong>
+				</label>
+				<label style="margin-right:10px">
+					<input type="checkbox" name="select-progress" id="id_select_progress" />
+					<strong>{% trans "In progress" %}</strong>
+				</label>
+			</div>
+			<table class="table">
+				{% for issue in sprint.issues_left.all %}
+					<tr>
+						<td><input name="move_to_new_sprint" class="{{issue.kanbancol.type|lower}}" type="checkbox" value="{{ issue.number }}">
+						</td>
+						<td>
+							<div class="issue-type text-muted {{issue.type|lower}}" title={{issue.type}}>
+								{{ issue.type|slice:":1" }}
+							</div>
+							{% include "issue/issue_info_template.html"%}
+						</td>
+					</tr>
+				{% endfor %}
+			</table>
+		</div>
+		<div class="form-group"><label class="control-label" for="id_sprint">{% trans "Move to" %}</label><select class="form-control" id="id_sprint" name="sprint" title="" required="">
+				{% for sprint in project.sprint.get_new_sprints %}
+					<option value="{{ sprint.seqnum }}">Sprint {{ sprint.seqnum }}</option>
+				{% endfor %}
+				<option value="new">{% trans "New sprint" %}</option>
+			</select>
+		</div>
+		<button type="submit" id="finish_sprint" class="btn btn-success" title="{% trans "Move to archive" %}">
+			<span class="glyphicon glyphicon-ok"></span> {% trans "Finish"%}
+		</button>
+		<a class="btn btn-default" href="{% url 'backlog:backlog' project=project.name_short sqn_s=sprint.seqnum %}">{% trans "Go back" %}</a>
+	</form>
+
+{% endblock %}
+{% block extra_script %}
+	<script>
+$( document ).ready(function() {
+	$("#id_select_all").change(function(){  //"select all" change
+		$("[name=move_to_new_sprint]").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+		$("#select_todo").prop('checked', false); //change all ".checkbox" checked status
+		$("#select_progress").prop('checked', false); //change all ".checkbox" checked status
+	});
+	$("#select_todo").change(function(){  //"select all" change
+		$("[name=move_to_new_sprint]").prop('checked', false); //change all ".checkbox" checked status
+		$(".todo").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+		$("#id_select_all").prop('checked', false); //change all ".checkbox" checked status
+		$("#select_progress").prop('checked', false); //change all ".checkbox" checked status
+	});
+	$("#select_progress").change(function(){  //"select all" change
+		$("[name=move_to_new_sprint]").prop('checked', false); //change all ".checkbox" checked status
+		$(".inprogress").prop('checked', $(this).prop("checked")); //change all ".checkbox" checked status
+		$("#id_select_all").prop('checked', false); //change all ".checkbox" checked status
+		$("#select_todo").prop('checked', false); //change all ".checkbox" checked status
+	});
+
+	//".checkbox" change
+	$('[name=move_to_new_sprint]').change(function(){
+		//uncheck "select all", if one of the listed checkbox item is unchecked
+		if(!$(this).prop("checked")){ //if this item is unchecked
+			$("#id_select_all").prop('checked', false); //change "select all" checked status to false
+		}
+			$("#select_todo").prop('checked', false); //change all ".checkbox" checked status
+			$("#select_progress").prop('checked', false); //change all ".checkbox" checked status
+		//check "select all" if all checkbox items are checked
+		if ($('[name=move_to_new_sprint]:checked').length == $('[name=move_to_new_sprint]').length ){
+			$("#id_select_all").prop('checked', true);
+			$("#select_todo").prop('checked', false); //change all ".checkbox" checked status
+			$("#select_progress").prop('checked', false); //change all ".checkbox" checked status
+		}
+	});
+});
+	</script>
+{% endblock %}
