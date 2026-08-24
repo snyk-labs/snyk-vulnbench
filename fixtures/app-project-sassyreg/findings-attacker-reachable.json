@@ -10,7 +10,8 @@
         "filesRelated": [
           {
             "file": "src/views/examples/PackageProfile.js",
-            "line": 83
+            "line": 83,
+            "type": "source"
           },
           {
             "file": "src/views/examples/PackageProfile.js",
