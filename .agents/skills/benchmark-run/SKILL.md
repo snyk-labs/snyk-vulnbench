@@ -116,7 +116,7 @@ For long benchmark runs (model configs take minutes per task), run the command i
 After the benchmark completes:
 
 1. Read the summary table from the command output.
-2. Report key metrics: score per task/config, total runs, wall time.
+2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time.
 3. Note the results file path (printed at the end of output).
 
 If the user wants a detailed report or writeup, suggest using the `benchmark-report-writer` skill.

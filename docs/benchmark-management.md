@@ -364,20 +364,16 @@ Each `vulnerabilities` entry uses the following shape:
 | `codeFlowCrossFile` | Yes | `"yes"` \| `"no"` | Whether locations span multiple files. It must agree with `filesRelated`. |
 | `codeFlowCrossService` | No | `"yes"` \| `"no"` | Preserved when present, but currently out of scope for scoring |
 
-The V2 primary score is **lenient endpoint-localized F1**. It requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path, normalized suffix, or a bare basename; lines allow an inclusive ±5 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the headline threshold. A finding receives no partial credit when it misses the applicable endpoint rule.
+The V2 primary score is **Attacker-Reachable Vulnerability Recall**: the fraction of independently curated attacker-reachable vulnerabilities matched under the active endpoint-localization policy. Matching requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path, normalized suffix, or a bare basename; lines allow an inclusive ±2 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the headline threshold. Precision and lenient endpoint-localized F1 are retained as secondary metrics.
 
-Each V2 run persists a complete scoring trace at `details.matchDiagnostics` and a complementary `details.scoreSuite` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, signed/absolute line deltas, compact source-and-sink/sink-only/source-only evidence classes, explicit all/available candidate ranks, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. `scoreSuite` records the explicitly named lenient endpoint-localized headline, strict exact-line flow F1, source/sink endpoint recall, tolerant full-flow overlap, and detection-only F1. These additions do not change the computed headline `score`. See [`docs/benchmark.md` → V2 score suite](./benchmark.md#v2-score-suite) for the complete semantics.
+Each V2 run persists a complete scoring trace at `details.matchDiagnostics` and a complementary `details.scoreSuite` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, signed/absolute line deltas, compact source-and-sink/sink-only/source-only evidence classes, explicit all/available candidate ranks, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. `scoreSuite` records secondary lenient endpoint-localized F1, strict exact-line flow F1, source/sink endpoint recall, tolerant full-flow overlap, and detection-only F1. See [`docs/benchmark.md` → V2 score suite](./benchmark.md#v2-score-suite) for the complete semantics.
 
-Aggregate JSONL rows preserve the generation context: each `task-aggregate` has a scalar `groundTruth`, while each `config-aggregate` has `groundTruths` plus a `byGroundTruth` metric breakdown. The existing overall config headline remains available for backward compatibility even when a run mixes V1 and V2 tasks.
+Aggregate JSONL rows preserve `groundTruth` and `primaryMetric`. Each `config-aggregate` has `groundTruths` plus a `byGroundTruth` metric breakdown. When selected tasks mix unlike primary metrics, the top-level quality headline is null; reports must use the generation-specific breakdown rather than averaging V1 F1 with V2 recall.
 
-The curated V2 files currently live in:
-
-- `fixtures/app-project-flask-bones/findings-attacker-reachable.json`
-- `fixtures/app-project-coffeeshop/findings-attacker-reachable.json`
-- `fixtures/app-project-halloween/findings-attacker-reachable.json`
-- `fixtures/app-project-keystonebank/findings-attacker-reachable.json`
-- `fixtures/app-project-sassyreg/findings-attacker-reachable.json`
-- `fixtures/app-project-vinyl-marketplace/findings-attacker-reachable.json`
+The live V2 inventory is discovered from
+`evals/tasks/*-attacker-reachable-find-vulns.json`; each referenced fixture must
+contain `findings-attacker-reachable.json`. Do not maintain a hard-coded fixture
+list in documentation—the task directory is authoritative as the corpus grows.
 
 ---
 

@@ -100,11 +100,11 @@ From the chat-summary.txt context:
 - Agent/SAST output uses `filesRelated` source-to-sink locations; endpoint objects can be labeled `source` or `sink`
 - Ground truth comes from `findings-attacker-reachable.json`
 - Type matching uses canonical `type` plus conservative `typeAliases`
-- Files match by normalized relative path or exact basename with an inclusive ±5-line tolerance
+- Files match by normalized relative path or exact basename with an inclusive ±2-line tolerance
 - One-location flows require that endpoint; two-location flows accept both locations or either endpoint; longer flows require distinct reported matches for both source and sink
 - Snyk Code automatically uses the rich SARIF code-flow parser for V2 tasks while retaining the V1 parser for existing tasks
 - Every V2 JSONL run stores all candidate type/location comparisons, source-and-sink/sink-only/source-only evidence classes, explicit ranks, line offsets, and structured finding/vulnerability outcomes under `details.matchDiagnostics`
-- The headline score remains F1 from vulnerability-level precision and recall
+- The V2 headline is **Attacker-Reachable Vulnerability Recall**; precision and all F1 variants remain secondary metrics
 
 ### fix-vulns
 - Agent runs on a temp copy of the fixture directory (to avoid permanent changes)
@@ -112,7 +112,7 @@ From the chat-summary.txt context:
 - Score = fraction of known vulns that were remediated
 
 ### Aggregation
-When multiple fixtures run, per-fixture scores are **macro-averaged** (unweighted mean) into a single headline number per config. When `--repetitions N` is used, repeated runs of the same (task, config) pair are averaged before the macro-average, with score and runtime standard deviation reported for aggregate rows. Task aggregates retain scalar `groundTruth`; config aggregates retain the overall headline plus `groundTruths` and a full `byGroundTruth` V1/V2 breakdown. See `docs/benchmark.md` → [Aggregation and Headline Scores](docs/benchmark.md#aggregation-and-headline-scores).
+When multiple fixtures run, comparable per-fixture primary scores are **macro-averaged** (unweighted mean) per config. V1 find tasks use F1, V2 uses Attacker-Reachable Vulnerability Recall, and fix tasks use fix rate. Every row records `primaryMetric`; unlike metrics are never averaged into one quality headline. Task aggregates retain scalar `groundTruth`; config aggregates expose generation-specific `byGroundTruth` metrics and null top-level quality fields when mixed. See `docs/benchmark.md` → [Aggregation and Headline Scores](docs/benchmark.md#aggregation-and-headline-scores).
 
 ## Authentication
 

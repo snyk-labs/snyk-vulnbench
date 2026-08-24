@@ -26,6 +26,7 @@ import type {
   F1Metric,
   FullFlowOverlapMetric,
   FileLocation,
+  GroundTruthKind,
 } from "./types.js";
 
 const anthropic = new Anthropic();
@@ -74,7 +75,7 @@ export function scoreFindVulns(agentOutput: string, task: EvalTask): FindVulnsDe
   return { agentFindings, truePositives, falsePositives, falseNegatives, precision, recall, byType, bySeverity };
 }
 
-export const ATTACKER_REACHABLE_LINE_TOLERANCE = 5;
+export const ATTACKER_REACHABLE_LINE_TOLERANCE = 2;
 
 /**
  * VulnBench 2.0 scorer. A finding must match both the vulnerability label and
@@ -238,6 +239,16 @@ export function findVulnsScore(details: FindVulnsDetails): number {
   const { precision, recall } = details;
   if (precision + recall === 0) return 0;
   return (2 * precision * recall) / (precision + recall);
+}
+
+/** Returns the generation-specific headline while preserving V1 F1 semantics. */
+export function primaryFindVulnsScore(
+  details: FindVulnsDetails,
+  groundTruth: GroundTruthKind,
+): number {
+  return groundTruth === "attacker-reachable"
+    ? details.recall
+    : findVulnsScore(details);
 }
 
 function buildAttackerReachableScoreSuite(

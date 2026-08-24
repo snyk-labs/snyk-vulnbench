@@ -100,6 +100,9 @@ function run(
     runConfigId: "test-config",
     runConfigName: "Test config",
     groundTruth,
+    primaryMetric: groundTruth === "attacker-reachable"
+      ? "attacker-reachable-vulnerability-recall"
+      : "f1",
     runConfigType: "model",
     effort: "high",
     thinking: { type: "adaptive" },
@@ -123,10 +126,14 @@ test("aggregates retain task ground truth and config generation breakdowns", () 
   const configAggregates = aggregateByConfig(taskAggregates, runs);
 
   assert.deepEqual(
-    taskAggregates.map((aggregate) => [aggregate.taskId, aggregate.groundTruth]),
+    taskAggregates.map((aggregate) => [
+      aggregate.taskId,
+      aggregate.groundTruth,
+      aggregate.primaryMetric,
+    ]),
     [
-      ["v1-task", "v1"],
-      ["v2-task", "attacker-reachable"],
+      ["v1-task", "v1", "f1"],
+      ["v2-task", "attacker-reachable", "attacker-reachable-vulnerability-recall"],
     ],
   );
   assert.equal(taskAggregates[0].fixtureId, "test-fixture");
@@ -135,17 +142,42 @@ test("aggregates retain task ground truth and config generation breakdowns", () 
   const config = configAggregates[0];
   assert.deepEqual(config.groundTruths, ["v1", "attacker-reachable"]);
   assert.equal(config.fixtureCount, 2);
-  assert.equal(config.score, 0.7);
+  assert.equal(config.primaryMetric, null);
+  assert.equal(config.score, null);
+  assert.equal(config.scoreStdDev, null);
+  assert.equal(config.recall, null);
+  assert.equal(config.precision, null);
   assert.equal(config.byGroundTruth.v1?.fixtureCount, 1);
+  assert.equal(config.byGroundTruth.v1?.primaryMetric, "f1");
   assert.equal(config.byGroundTruth.v1?.score, 0.5);
   assert.equal(config.byGroundTruth.v1?.recall, 0.5);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.fixtureCount, 1);
+  assert.equal(
+    config.byGroundTruth["attacker-reachable"]?.primaryMetric,
+    "attacker-reachable-vulnerability-recall",
+  );
   assert.equal(config.byGroundTruth["attacker-reachable"]?.score, 0.9);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.precision, 0.9);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.scoreSuite?.strictFlowF1.f1, 0.45);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.scoreSuite?.endpointRecall.source.recall, 0.9);
-  assert.equal(config.scoreSuite?.strictFlowF1.f1, 0.45);
+  assert.equal(config.scoreSuite, undefined);
   assert.ok((config.byGroundTruth.v1?.scoreStdDev ?? 0) > 0);
+});
+
+test("single-generation config aggregates preserve their primary metric", () => {
+  const v2Runs = [
+    run("v2-task", "attacker-reachable", 1, 0.5),
+    run("v2-task", "attacker-reachable", 2, 1),
+  ];
+  const aggregate = aggregateByConfig(aggregateByTask(v2Runs), v2Runs)[0];
+
+  assert.equal(
+    aggregate.primaryMetric,
+    "attacker-reachable-vulnerability-recall",
+  );
+  assert.equal(aggregate.score, 0.75);
+  assert.equal(aggregate.recall, 0.75);
+  assert.equal(aggregate.scoreSuite?.lenientEndpointLocalizedF1.recall, 0.75);
 });
 
 test("task aggregation rejects mixed ground truth under one task id", () => {

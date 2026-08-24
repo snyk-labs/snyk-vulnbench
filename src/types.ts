@@ -27,6 +27,10 @@ export type VulnType =
 export type Severity = "critical" | "high" | "medium" | "low";
 
 export type GroundTruthKind = "v1" | "attacker-reachable";
+export type PrimaryMetricKind =
+  | "f1"
+  | "attacker-reachable-vulnerability-recall"
+  | "fix-rate";
 
 export type FixtureOrigin = "real-repository" | "benchmark-created" | "synthetic" | "unknown";
 
@@ -468,7 +472,7 @@ export interface FullFlowOverlapMetric {
 
 /** Complementary V2 scores; omitted for V1 compatibility. */
 export interface AttackerReachableScoreSuite {
-  /** Current V2 headline, named explicitly for post-run analysis. */
+  /** Secondary V2 F1 metric using the same endpoint-localized matches as the recall headline. */
   lenientEndpointLocalizedF1: F1Metric;
   /** Type plus exact-line source-to-sink evidence. */
   strictFlowF1: F1Metric;
@@ -514,6 +518,8 @@ export interface EvalResult {
   runConfigName: string;
   /** Ground-truth schema used to score this run. */
   groundTruth: GroundTruthKind;
+  /** Defines the semantics of the top-level `score` field. */
+  primaryMetric: PrimaryMetricKind;
   /** Distinguishes model (Agent SDK) runs from command (SAST tool) runs in JSONL output */
   runConfigType: "model" | "command";
   /** Effort level used for this run (model runs only). Null for command runs. */
@@ -542,6 +548,7 @@ export interface AggregatedTaskResult {
   runConfigName: string;
   runConfigType: "model" | "command";
   groundTruth: GroundTruthKind;
+  primaryMetric: PrimaryMetricKind;
   effort: EffortLevel | null;
   thinking: ThinkingConfig | null;
   repetitions: number;
@@ -560,10 +567,12 @@ export interface AggregatedTaskResult {
 
 /** Config-level metrics restricted to one ground-truth generation. */
 export interface AggregatedGroundTruthResult {
+  /** Null only when a ground-truth bucket contains unlike task metrics (for example V1 find + fix). */
+  primaryMetric: PrimaryMetricKind | null;
   fixtureCount: number;
   repetitions: number;
-  score: number;
-  scoreStdDev: number;
+  score: number | null;
+  scoreStdDev: number | null;
   recall: number | null;
   precision: number | null;
   scoreSuite?: AttackerReachableScoreSuite;
@@ -582,11 +591,13 @@ export interface AggregatedConfigResult {
   groundTruths: GroundTruthKind[];
   /** Generation-specific headline metrics for direct V1/V2 analysis. */
   byGroundTruth: Partial<Record<GroundTruthKind, AggregatedGroundTruthResult>>;
+  /** Null when the selected tasks use unlike primary metrics. */
+  primaryMetric: PrimaryMetricKind | null;
   fixtureCount: number;
   repetitions: number;
-  score: number;
+  score: number | null;
   /** Sample standard deviation of repetition-level headline scores. Zero when repetitions < 2. */
-  scoreStdDev: number;
+  scoreStdDev: number | null;
   recall: number | null;
   precision: number | null;
   scoreSuite?: AttackerReachableScoreSuite;

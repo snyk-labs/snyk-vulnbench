@@ -36,14 +36,14 @@ The V1 behavior is retained for historical compatibility with `findings.json` fi
 V2 tasks opt into `findings-attacker-reachable.json` with `"groundTruth": "attacker-reachable"`. Their scorer addresses the original location-matching limitations:
 
 1. It compares normalized vulnerability `type` and conservative `typeAliases`.
-2. It matches normalized relative paths (or exact basenames) and allows an inclusive ±5-line difference.
+2. It matches normalized relative paths (or exact basenames) and allows an inclusive ±2-line difference.
 3. It uses the ground truth's `filesRelated[].type` endpoint annotations:
    - one-location flows require a match to that `source` or `sink`;
    - exactly two locations accept both matching locations or a match to either endpoint;
    - longer flows require distinct reported locations matching both source and sink.
 4. When duplicate vulnerability types exist, it chooses the qualifying unmatched candidate with the strongest endpoint/location overlap instead of relying only on ground-truth array order.
 
-Intermediate flow locations remain useful diagnostics but do not increase the endpoint threshold. V1 scoring remains type-only.
+Intermediate flow locations remain useful diagnostics but do not increase the endpoint threshold. V1 scoring remains type-only with F1 as its primary metric. V2 headlines Attacker-Reachable Vulnerability Recall; precision and F1 remain secondary.
 
 V2 run rows also persist complete candidate/type/location comparisons and finding/vulnerability outcomes under `details.matchDiagnostics`, including structured failure reasons for report generation and post-hoc scoring analysis.
 

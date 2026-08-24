@@ -4,7 +4,7 @@ import { aggregateByConfig, aggregateByTask } from "./aggregator.js";
 import { loadEvalTasks } from "./evals/loader.js";
 import { printSummaryTable } from "./reporter.js";
 import {
-  findVulnsScore,
+  primaryFindVulnsScore,
   scoreAttackerReachableFindVulns,
   scoreFindVulns,
 } from "./scorer.js";
@@ -108,7 +108,10 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
       fixtureId: result.fixtureId ?? task.fixtureId,
       fixtureMetadata: result.fixtureMetadata ?? task.fixtureMetadata,
       fixtureMetadataHash: result.fixtureMetadataHash ?? task.fixtureMetadataHash,
-      score: findVulnsScore(details),
+      primaryMetric: task.groundTruth === "attacker-reachable"
+        ? "attacker-reachable-vulnerability-recall"
+        : "f1",
+      score: primaryFindVulnsScore(details, task.groundTruth),
       details,
     };
   });

@@ -865,10 +865,18 @@
       container.appendChild(legend);
     }
 
+    function primaryMetricLabel(metric) {
+      if (metric === "attacker-reachable-vulnerability-recall") return "Attacker-Reachable Vulnerability Recall";
+      if (metric === "fix-rate") return "Fix Rate";
+      if (metric === "f1") return "F1";
+      return "Primary Score";
+    }
+
     function normalizeAggregateRows(rows) {
       return rows.map((r) => ({
         label: r.runConfigName,
         repetitions: r.repetitions || 1,
+        primaryMetric: r.primaryMetric,
         score: r.score,
         scoreStdDev: r.scoreStdDev,
         durationMs: r.sessionDurationMs,
@@ -886,6 +894,7 @@
       return rows.map((r) => ({
         label: r.runConfigName,
         repetitions: 1,
+        primaryMetric: r.primaryMetric || (r.groundTruth === "attacker-reachable" ? "attacker-reachable-vulnerability-recall" : "f1"),
         score: r.score,
         scoreStdDev: 0,
         durationMs: r.metrics && r.metrics.sessionDurationMs,
@@ -955,20 +964,27 @@
 
       const runs = normalizeAggregateRows(rows);
 
-      renderMetricSection(group, runs, {
-        heading: headline ? "Headline score" : "Composite score",
-        description: headline
-          ? "Macro-averaged benchmark score across all fixtures (higher is better). Error bars show sample standard deviation across repetition-level headline scores."
-          : "Aggregated benchmark score for this task across repetitions (higher is better). Error bars show sample standard deviation across repeated runs.",
-        title: "Score - " + title,
-        yAxisLabel: "SCORE",
-        value: (r) => r.score,
-        errorValue: (r) => r.scoreStdDev,
-        valueFormat: (value, i) => pctWithStdDev(value, runs[i].scoreStdDev, runs[i].repetitions),
-        yMax: 1,
-        yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
-        yTickFormat: (t) => Math.round(t * 100) + "%",
-      });
+      const scoreRuns = runs.filter((r) => isFiniteNumber(r.score) && r.primaryMetric);
+      if (scoreRuns.length > 0) {
+        const metricKinds = [...new Set(scoreRuns.map((r) => r.primaryMetric))];
+        const metricName = metricKinds.length === 1
+          ? primaryMetricLabel(metricKinds[0])
+          : "Primary Score";
+        renderMetricSection(group, scoreRuns, {
+          heading: headline ? `Headline ${metricName}` : metricName,
+          description: headline
+            ? `Macro-averaged ${metricName} across comparable fixtures (higher is better). Error bars show sample standard deviation across repetition-level headline scores.`
+            : `Aggregated ${metricName} for this task across repetitions (higher is better). Error bars show sample standard deviation across repeated runs.`,
+          title: metricName + " - " + title,
+          yAxisLabel: metricName.toUpperCase(),
+          value: (r) => r.score,
+          errorValue: (r) => r.scoreStdDev,
+          valueFormat: (value, i) => pctWithStdDev(value, scoreRuns[i].scoreStdDev, scoreRuns[i].repetitions),
+          yMax: 1,
+          yTicks: [0, 0.2, 0.4, 0.6, 0.8, 1],
+          yTickFormat: (t) => Math.round(t * 100) + "%",
+        });
+      }
 
       const maxDur = Math.max(
         ...runs.map((r) => r.durationMs + (isFiniteNumber(r.durationStdDevMs) ? r.durationStdDevMs : 0)),

@@ -7,7 +7,7 @@ import { runCommandTask } from "./command-runner.js";
 import {
   scoreFindVulns,
   scoreAttackerReachableFindVulns,
-  findVulnsScore,
+  primaryFindVulnsScore,
   scoreFixVulns,
   fixVulnsScore,
 } from "./scorer.js";
@@ -17,7 +17,7 @@ import { runPreflight } from "./preflight.js";
 import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -77,6 +77,13 @@ function emptyFindVulnsDetails(task: EvalTask): FindVulnsDetails {
   return { agentFindings: [], truePositives: [], falsePositives: [], falseNegatives, precision: 0, recall: 0, byType, bySeverity };
 }
 
+function primaryMetricForTask(task: EvalTask): PrimaryMetricKind {
+  if (task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) return "fix-rate";
+  return task.groundTruth === "attacker-reachable"
+    ? "attacker-reachable-vulnerability-recall"
+    : "f1";
+}
+
 async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const timestamp = new Date().toISOString();
   const isCommand = config.type === "command";
@@ -95,6 +102,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     runConfigId: config.id,
     runConfigName: config.name,
     groundTruth: task.groundTruth,
+    primaryMetric: primaryMetricForTask(task),
     runConfigType,
     effort,
     thinking,
@@ -144,7 +152,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       const details = task.groundTruth === "attacker-reachable"
         ? scoreAttackerReachableFindVulns(finalText, task)
         : scoreFindVulns(finalText, task);
-      const score = findVulnsScore(details);
+      const score = primaryFindVulnsScore(details, task.groundTruth);
       return { ...base, score, metrics, details };
     } else {
       const details = await scoreFixVulns(cwd, task);

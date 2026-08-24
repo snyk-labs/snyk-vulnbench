@@ -93,7 +93,7 @@ field that determines what kind of row they are:
 
 - `"run"` -- a single raw `EvalResult` (one execution of one task+config)
 - `"task-aggregate"` -- mean scores/runtimes plus standard deviation for one (task, config) pair across repeated runs
-- `"config-aggregate"` -- headline numbers plus score/runtime standard deviation for one config, macro-averaged across all fixtures
+- `"config-aggregate"` -- generation-specific headlines under `byGroundTruth`; top-level quality fields are null when unlike primary metrics are mixed
 
 Lines without a `_type` field are legacy `"run"` rows (backward compatible).
 
@@ -101,7 +101,7 @@ Lines without a `_type` field are legacy `"run"` rows (backward compatible).
 
 Parse each line as JSON. **Choose the right aggregate rows for the report:**
 
-- **Headline comparison section**: always use `_type === "config-aggregate"` rows when present. These give one number per config, macro-averaged across all fixtures, plus `scoreStdDev` and `sessionDurationStdDevMs` for headline error bars. The report must start with this section.
+- **Headline comparison section**: use `_type === "config-aggregate"` rows when present, but chart only rows/buckets sharing one `primaryMetric`. V1 uses F1; V2 uses Attacker-Reachable Vulnerability Recall; fix tasks use fix rate. When top-level `primaryMetric`/`score` are null, build separate headline sections from `byGroundTruth` and never average unlike metrics. The report must start with the relevant generation-specific headline.
 - **Per-fixture breakdown sections**: always use `_type === "task-aggregate"` rows when present. These give one number per (task, config) pair, with repeated runs already averaged, plus `scoreStdDev` and `sessionDurationStdDevMs` for per-fixture error bars.
 - **Detailed per-run rows**: do not use `_type === "run"` rows for standard score, duration, token, and cost charts when aggregate rows exist. Use raw rows intentionally for derived repeatability and complementarity charts, where repeated finding-level behavior is the point. Never embed raw rows into the HTML; compact them into chart specs.
 
@@ -116,12 +116,14 @@ For `"run"` rows, validate that every row has these required fields:
 - `taskId`, `taskName`
 - `runConfigName`, `runConfigType` (must be `"model"` or `"command"`)
 - `score` (number 0-1)
+- `primaryMetric` (`"f1"`, `"attacker-reachable-vulnerability-recall"`, or `"fix-rate"`; infer from `groundTruth`/task category only for legacy files)
 - `metrics.sessionDurationMs` (number)
 
 For `"task-aggregate"` rows, validate:
 - `taskId`, `taskName`
 - `runConfigId`, `runConfigName`, `runConfigType`
 - `score` (number 0-1)
+- `primaryMetric` (required on current rows)
 - `scoreStdDev` (number >= 0, optional for older JSONL files; treat missing as 0)
 - `sessionDurationMs` (number)
 - `sessionDurationStdDevMs` (number >= 0, optional for older JSONL files; treat missing as 0)
@@ -131,8 +133,10 @@ For `"task-aggregate"` rows, validate:
 For `"config-aggregate"` rows, validate:
 - `runConfigId`, `runConfigName`, `runConfigType`
 - `fixtureCount` (number)
-- `score` (number 0-1)
-- `scoreStdDev` (number >= 0, optional for older JSONL files; treat missing as 0)
+- `primaryMetric` (string or null)
+- `score` (number 0-1 or null; null means mixed metrics and must not be charted)
+- `scoreStdDev` (number >= 0 or null; optional for older JSONL files)
+- `byGroundTruth` (required on mixed current rows; use its comparable generation buckets)
 - `sessionDurationMs` (number)
 - `sessionDurationStdDevMs` (number >= 0, optional for older JSONL files; treat missing as 0)
 - `totalTokens` (number)
@@ -143,8 +147,10 @@ The `details.recall` and `details.precision` fields are present on `"run"` rows 
 `precision` are top-level fields (null for non-find-vulns tasks). The template handles
 this gracefully -- the recall/precision chart is only rendered when the data exists.
 
-If a row is missing critical fields (`score`, `sessionDurationMs`, `totalTokens`, or
-`totalCostUsd`), warn the user and skip that row rather than failing entirely.
+If a comparable row is missing critical fields (`score`, `primaryMetric`,
+`sessionDurationMs`, `totalTokens`, or `totalCostUsd`), warn the user and skip
+that quality row rather than failing entirely. A null mixed config score is valid:
+render operational charts from it, and quality charts from `byGroundTruth`.
 
 For the full EvalResult schema and all available fields, see
 [`docs/benchmark.md` — EvalResult](../../docs/benchmark.md#evalresult--the-final-record).
@@ -296,7 +302,7 @@ HTML table with sticky config labels, percentage labels in cells, Snyk purple fo
 many vulnerability types.
 
 Mapping rules:
-- Create a headline section from `"config-aggregate"` rows when present. Include score, duration, total tokens, cost when cost exists, recall/precision when present, and supported scatter tradeoff charts when at least two comparable points exist.
+- Create generation-specific headline sections from `"config-aggregate"` rows when present. Use top-level `score` only when `primaryMetric` is non-null; otherwise use comparable `byGroundTruth` buckets. Label V1 as F1, V2 as Attacker-Reachable Vulnerability Recall, and fix as fix rate. Include precision/F1 as secondary V2 charts.
 - Create one task section per `taskId` from `"task-aggregate"` rows. Include score, duration, total tokens, cost when cost exists, and recall/precision when present. For these standard task sections, keep the task name/fixture identifier visible so the user can look up the fixture.
 - When repeated `find-vulns` raw rows exist, add the model-callout repeatability and complementarity charts described below. These are additive to the standard headline and per-task charts; do not replace the standard chart package.
 - Put `"config-aggregate"` chart specs first, followed by task-level specs in task ID order. This keeps the HTML and article handoff easy to scan.
@@ -697,7 +703,8 @@ specs from aggregate rows: `"config-aggregate"` for the report headline and
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `effort` | `"low"\|"medium"\|"high"\|"max"\|null` | Reasoning effort level. Null for command runs. |
 | `thinking` | `ThinkingConfig\|null` | Extended thinking config: `{type:"adaptive"}`, `{type:"enabled",budgetTokens:N}`, or `{type:"disabled"}`. Null for command runs. |
-| `score` | number (0-1) | Overall Snyk-reference F1 score (find-vulns) or fraction fixed (fix-vulns) |
+| `score` | number (0-1) | Primary score named by `primaryMetric`: V1 F1, V2 attacker-reachable recall, or fix rate |
+| `primaryMetric` | string | Defines the top-level `score` semantics |
 | `timestamp` | string (ISO 8601) | When this run happened |
 | `repetition` | number (1-indexed) | Which repetition this is (e.g. 2 of 3) |
 | `totalRepetitions` | number | Total repetitions requested for this task+config pair |
@@ -743,7 +750,8 @@ A `BreakdownEntry` has: `{ total: number, found: number, precision: number, reca
 | `runConfigId`, `runConfigName` | string | Config identifier and display name |
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `repetitions` | number | How many runs were averaged |
-| `score` | number (0-1) | Mean score across repetitions |
+| `score` | number (0-1) | Mean primary score across repetitions |
+| `primaryMetric` | string | Shared task-level metric |
 | `scoreStdDev` | number | Sample standard deviation of score across repetitions. Use for score error bars. |
 | `recall` | number (0-1) or null | Mean recall (find-vulns only) |
 | `precision` | number (0-1) or null | Mean precision (find-vulns only) |
@@ -760,8 +768,10 @@ A `BreakdownEntry` has: `{ total: number, found: number, precision: number, reca
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
 | `fixtureCount` | number | How many distinct tasks contributed |
 | `repetitions` | number | How many repetition-level headline scores contributed |
-| `score` | number (0-1) | Macro-averaged score across all fixtures |
-| `scoreStdDev` | number | Sample standard deviation of repetition-level headline scores. Use for headline score error bars. |
+| `score` | number or null | Macro-averaged primary score, null when unlike metrics are mixed |
+| `scoreStdDev` | number or null | Primary-score standard deviation, null when unlike metrics are mixed |
+| `primaryMetric` | string or null | Shared metric, or null for mixed selections |
+| `byGroundTruth` | object | Generation-specific comparable headline metrics |
 | `recall` | number (0-1) or null | Macro-averaged recall (find-vulns only) |
 | `precision` | number (0-1) or null | Macro-averaged precision (find-vulns only) |
 | `sessionDurationMs` | number | Macro-averaged wall-clock time |

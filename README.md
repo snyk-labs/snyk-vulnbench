@@ -20,7 +20,7 @@
 
 This repository contains the **VulnBench benchmarking harness**. It runs security tasks against AI coding agents and deterministic tooling, then records both outcome and operating characteristics:
 
-- **Finding and fixing quality** — precision, recall, F1, and fix rates against documented answer keys.
+- **Finding and fixing quality** — V1 F1, V2 Attacker-Reachable Vulnerability Recall, precision/F1 secondary metrics, and fix rates against documented answer keys.
 - **Attacker-reachability** — source-to-sink matching for curated, reachable vulnerability flows.
 - **Repeatability and efficiency** — recurrence across runs, token use, elapsed time, tool calls, and estimated cost.
 
@@ -53,7 +53,7 @@ It currently supports:
 | Evaluation | What it measures |
 | --- | --- |
 | `find-vulns` | Whether an agent identifies known vulnerability types. |
-| `attacker-reachable-find-vulns` | Whether reported source-to-sink flows match curated attacker-reachable findings. |
+| `attacker-reachable-find-vulns` | Attacker-Reachable Vulnerability Recall against curated source-to-sink findings; precision and F1 are secondary. |
 | `fix-vulns` | Whether an agent remediates documented vulnerabilities. |
 
 ### Benchmark output

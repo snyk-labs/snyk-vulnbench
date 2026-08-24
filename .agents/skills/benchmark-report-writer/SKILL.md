@@ -22,6 +22,13 @@ homework. Lead with the most novel, externally useful finding the data supports:
 repeatability across identical runs, complementarity between model review and SAST,
 or a cost-quality inversion. Treat reference-set F1 as context, not the headline.
 
+For VulnBench 2.0 attacker-reachable results, lead with **Attacker-Reachable
+Vulnerability Recall** (`primaryMetric:
+"attacker-reachable-vulnerability-recall"`). Precision and F1 remain secondary
+quality/noise guardrails. Never blend V1 F1, V2 recall, and fix rate into one
+headline; use `config-aggregate.byGroundTruth` whenever top-level quality fields
+are null.
+
 For public reports, avoid internal fixture codenames as prose labels. Use exact fixture
 IDs in inline code when a specific fixture must be named, such as
 `js-project-nightowl` or `js-project-tigerteam`. For chart titles, captions, section
@@ -63,7 +70,7 @@ Done when: you have a results source, a methodology source (guide or user-provid
 ### Step 2: Extract findings from the data
 
 1. Load the results programmatically. Prefer `jq` on JSONL or a small script over eyeballing the file — you need exact numbers, and exact numbers are the whole point.
-2. Compute at minimum, for each task × config cell: the score, total tokens (summing all token fields), wall time, and turn count. Identify the best score per task, the most efficient config (best score-per-token), and any outliers.
+2. Compute at minimum, for each task × config cell: `primaryMetric`, score, secondary precision/F1 where applicable, total tokens (summing all token fields), wall time, and turn count. Identify the best comparable score per task, the most efficient config (best score-per-token), and any outliers.
 3. If raw repeated `"run"` rows exist for `find-vulns`, compute repeatability metrics before deciding the story:
    - For unmatched model reports, group `details.falsePositives` by model config, task, vulnerability type, basename(file), and line. Count how many distinct repetitions each signature appeared in.
    - For reference-matched reports, group `details.truePositives` by model config, task, and reference finding id. Count how many distinct repetitions each signature appeared in.

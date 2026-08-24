@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  findVulnsScore,
+  primaryFindVulnsScore,
   scoreAttackerReachableFindVulns,
   scoreFindVulns,
 } from "../src/scorer.js";
@@ -97,9 +99,60 @@ test("V1 matching remains type-only", () => {
   assert.equal(details.truePositives.length, 1);
   assert.equal(details.recall, 1);
   assert.equal(details.matchDiagnostics, undefined);
+  assert.equal(primaryFindVulnsScore(details, "v1"), findVulnsScore(details));
 });
 
-test("V2 matches aliases, basenames, and the inclusive five-line boundary", () => {
+test("V2 primary score is attacker-reachable recall while F1 remains secondary", () => {
+  const known = attackerVuln("xss-sink", "xss", [
+    { file: "src/view.ts", line: 20, type: "sink" },
+  ]);
+  const details = scoreAttackerReachableFindVulns(
+    output([
+      finding("xss", [{ file: "src/view.ts", line: 20 }]),
+      finding("path traversal", [{ file: "src/other.ts", line: 99 }]),
+    ]),
+    attackerTask([known]),
+  );
+
+  assert.equal(details.recall, 1);
+  assert.equal(details.precision, 0.5);
+  assert.equal(primaryFindVulnsScore(details, "attacker-reachable"), 1);
+  assert.equal(findVulnsScore(details), 2 / 3);
+  assert.equal(details.scoreSuite?.lenientEndpointLocalizedF1.f1, 2 / 3);
+});
+
+test("V1 primary score remains F1 when precision and recall differ", () => {
+  const task = v1Task([{
+    id: "v1-sqli",
+    type: "sql-injection",
+    severity: "critical",
+    file: "src/query.ts",
+    line: 10,
+    description: "SQL injection",
+  }]);
+  const details = scoreFindVulns(output([
+    {
+      type: "sql-injection",
+      file: "src/query.ts",
+      line: 10,
+      severity: "critical",
+      description: "correct",
+    },
+    {
+      type: "xss",
+      file: "src/view.ts",
+      line: 20,
+      severity: "high",
+      description: "extra",
+    },
+  ]), task);
+
+  assert.equal(details.recall, 1);
+  assert.equal(details.precision, 0.5);
+  assert.equal(primaryFindVulnsScore(details, "v1"), 2 / 3);
+});
+
+test("V2 matches aliases, basenames, and the inclusive two-line boundary", () => {
   const known = attackerVuln(
     "xss-flow",
     "xss",
@@ -108,11 +161,11 @@ test("V2 matches aliases, basenames, and the inclusive five-line boundary", () =
   );
 
   const atBoundary = scoreAttackerReachableFindVulns(
-    output([finding("Cross Site Scripting", [{ file: "route.ts", line: 45 }])]),
+    output([finding("Cross Site Scripting", [{ file: "route.ts", line: 42 }])]),
     attackerTask([known]),
   );
   const outsideBoundary = scoreAttackerReachableFindVulns(
-    output([finding("xss", [{ file: "route.ts", line: 46 }])]),
+    output([finding("xss", [{ file: "route.ts", line: 43 }])]),
     attackerTask([known]),
   );
 
@@ -120,12 +173,12 @@ test("V2 matches aliases, basenames, and the inclusive five-line boundary", () =
   assert.equal(outsideBoundary.truePositives.length, 0);
   const comparison = atBoundary.matchDiagnostics?.candidateComparisons[0];
   assert.equal(comparison?.locationComparisons[0].pathMatch, "basename");
-  assert.equal(comparison?.locationComparisons[0].lineDelta, 5);
+  assert.equal(comparison?.locationComparisons[0].lineDelta, 2);
   assert.equal(comparison?.locationComparisons[0].locationMatched, true);
-  assert.equal(comparison?.endpointEvidence[0].absoluteLineDelta, 5);
+  assert.equal(comparison?.endpointEvidence[0].absoluteLineDelta, 2);
   assert.equal(comparison?.ranking.endpointMatchKind, "sink-only");
   assert.equal(comparison?.ranking.endpointEvidenceStrength, 2);
-  assert.equal(comparison?.ranking.closestEndpointLineDelta, 5);
+  assert.equal(comparison?.ranking.closestEndpointLineDelta, 2);
 });
 
 test("V2 score suite separates tolerant headline, strict flow, and detection-only F1", () => {
@@ -133,7 +186,7 @@ test("V2 score suite separates tolerant headline, strict flow, and detection-onl
     { file: "src/view.ts", line: 10, type: "sink" },
   ]);
   const details = scoreAttackerReachableFindVulns(
-    output([finding("xss", [{ file: "src/view.ts", line: 15 }])]),
+    output([finding("xss", [{ file: "src/view.ts", line: 12 }])]),
     attackerTask([known]),
   );
 
@@ -272,7 +325,7 @@ test("flows longer than two locations require distinct source and sink matches",
 
   const diagnostic = sourceOnly.matchDiagnostics;
   assert.equal(diagnostic?.schemaVersion, "v2-endpoint-diagnostics-2");
-  assert.equal(diagnostic?.lineTolerance, 5);
+  assert.equal(diagnostic?.lineTolerance, 2);
   assert.equal(diagnostic?.candidateComparisons.length, 1);
   assert.deepEqual(
     diagnostic?.candidateComparisons[0].matchedEndpointTypes,

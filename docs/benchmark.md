@@ -110,7 +110,7 @@ flowchart TD
         Q --> R{task.type?}
         R -->|find-vulns| S["Parse FINDINGS_JSON\nfrom agent or SAST output"]
         S --> T["Compare found vulns\nagainst vulns.json\nground truth"]
-        T --> U["Calculate\nprecision + recall\n→ F1 score"]
+        T --> U["Calculate generation-specific primary:\nV1 → F1\nV2 → attacker-reachable recall"]
         R -->|fix-vulns| V["Read modified\nfiles from temp dir"]
         V --> W["Ask Claude Haiku\nto judge each fix"]
         W --> X["Count fixed/total\n→ ratio score"]
@@ -190,7 +190,7 @@ The `--category` CLI flag filters the task list by category id (e.g. `--category
 | `find-vulns` | Find Vulnerabilities | F1 (precision + recall) | General vulnerability finding in code snippets/small apps |
 | `llm-find-vulns` | Find LLM Integration Vulnerabilities | F1 (precision + recall) | Vulnerability finding in LLM integration code (prompt injection, unsafe output handling, insecure API integrations) |
 | `app-find-vulns` | Find App Vulnerabilities | F1 (precision + recall) | Vulnerability finding in full application codebases (multi-file, larger scope) |
-| `attacker-reachable-find-vulns` | Find Attacker-Reachable Vulnerabilities | Location-aware F1 | VulnBench 2.0 application findings matched by type and source-to-sink code-flow locations |
+| `attacker-reachable-find-vulns` | Find Attacker-Reachable Vulnerabilities | **Attacker-Reachable Vulnerability Recall** | VulnBench 2.0 application findings matched by type and source-to-sink code-flow locations; precision/F1 are secondary |
 | `fix-vulns` | Fix Vulnerabilities | LLM judge (fraction fixed) | Agent remediates vulnerabilities by editing source files |
 
 #### Category → Task Mapping
@@ -220,11 +220,8 @@ EVAL_CATEGORIES.FIX_VULNS
 EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS
   { id: "attacker-reachable-find-vulns" }
          │
-         ├── app-project-coffeeshop-attacker-reachable-find-vulns
-         ├── app-project-halloween-attacker-reachable-find-vulns
-         ├── app-project-keystonebank-attacker-reachable-find-vulns
-         ├── app-project-sassyreg-attacker-reachable-find-vulns
-         └── app-project-vinyl-marketplace-attacker-reachable-find-vulns
+         └── app-project-*-attacker-reachable-find-vulns
+             (directory-scanned; see evals/tasks/ for the live inventory)
 ```
 
 #### Scoring Pipelines
@@ -238,6 +235,13 @@ flowchart LR
         FV1["Agent reads\nvulnerable code"] --> FV2
         FV2["Agent lists\nvulnerabilities found"] --> FV3
         FV3["Score: F1 via\nprecision + recall"]
+    end
+
+    subgraph AR["attacker-reachable-find-vulns"]
+        direction TB
+        AR1["Agent/SAST reports\nsource-to-sink findings"] --> AR2
+        AR2["Endpoint-aware matching\nagainst curated ground truth"] --> AR3
+        AR3["Primary: Attacker-Reachable\nVulnerability Recall"]
     end
 
     subgraph FX["fix-vulns"]
@@ -593,7 +597,7 @@ See the [Metrics Deep-Dive](#metrics-deep-dive) section for a full explanation o
 
 The scorer translates the agent's raw output into a number between 0 and 1. The logic is different for each eval category.
 
-#### find-vulns Scoring
+#### VulnBench 1.0 find-vulns Scoring
 
 ```mermaid
 flowchart TD
@@ -671,12 +675,12 @@ The reporter handles all output. It has five functions:
 
 **`printResult(result)`** — prints a label-aligned block for one run immediately after it completes. Each metric gets its own line with a fixed-width dim label, making it easy to scan vertically. See [Metrics Deep-Dive](#metrics-deep-dive) for annotated mock output.
 
-**`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. When repetitions > 1, the per-fixture table shows mean scores and mean wall time with `±SD` error bars. When multiple tasks are involved, a headline section shows per-config macro-averaged scores and runtimes, and when repetitions exist, headline score and runtime standard deviation. Columns: task/config id, score (color-coded), recall, precision, total tokens, cost, wall time. See [Sample Output — Summary Table](#sample-output--summary-table).
+**`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. Every score column names its `primaryMetric`. When repetitions > 1, the per-fixture table shows mean primary scores and wall time with `±SD` error bars. Comparable per-config headlines are macro-averaged; mixed V1/V2/fix selections suppress the combined quality headline and show generation-specific rows instead. See [Sample Output — Summary Table](#sample-output--summary-table).
 
 **`saveResults(results, dir, taskAggregates, configAggregates)`** — writes results to `results/benchmark-<timestamp>.jsonl`. Each line is a JSON object tagged with a `_type` discriminator:
 - `"run"` — raw `EvalResult` (one per execution)
 - `"task-aggregate"` — `AggregatedTaskResult` (one per task+config pair, mean plus score/runtime standard deviation across repetitions)
-- `"config-aggregate"` — `AggregatedConfigResult` (one per config, macro-averaged across fixtures, with headline score/runtime standard deviation)
+- `"config-aggregate"` — `AggregatedConfigResult` (one per config, with generation-specific headlines; mixed primary metrics have null top-level quality fields)
 
 JSONL (JSON Lines) format means one complete JSON object per line, making it easy to:
 - Load into analysis tools (Python pandas, etc.)
@@ -699,6 +703,8 @@ interface EvalResult {
   taskName: string;        // e.g. "JS App: Find Vulnerabilities"
   runConfigId: string;     // e.g. "opus-4-6"
   runConfigName: string;   // e.g. "Claude Opus 4.6 (no MCP)"
+  groundTruth: "v1" | "attacker-reachable";
+  primaryMetric: "f1" | "attacker-reachable-vulnerability-recall" | "fix-rate";
   runConfigType: "model" | "command"; // distinguishes Agent SDK runs from SAST tool runs
   effort: EffortLevel | null;      // "low" | "medium" | "high" | "max" — null for command runs
   thinking: ThinkingConfig | null; // { type: "adaptive" } etc. — null for command runs
@@ -734,7 +740,7 @@ For **find-vulns**:
 // BreakdownEntry = { total: number; found: number; precision: number; recall: number; f1: number }
 ```
 
-V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field. V2 rows also include `scoreSuite`, which names the existing headline and records complementary flow-quality metrics.
+V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field. V2 rows also include `scoreSuite`, which records secondary F1 and complementary flow-quality metrics alongside the recall headline.
 
 For **fix-vulns**:
 ```typescript
@@ -812,7 +818,7 @@ FINDINGS_JSON:
 
 ## Scoring Deep-Dive
 
-### Why F1 and Not Just Recall?
+### Why VulnBench 1.0 Uses F1
 
 You might think "recall is what matters — finding all the vulns is the goal." That's partially true, but a system that reports *every possible string combination as a vulnerability* would have 100% recall and be useless. F1 penalizes that by also requiring precision.
 
@@ -825,6 +831,22 @@ Scenario B: Agent finds 4/5 known vulns with no false alarms
 
 Scenario B is the better result — and F1 correctly ranks it higher.
 ```
+
+### Why VulnBench 2.0 Headlines Attacker-Reachable Vulnerability Recall
+
+V2 asks a different central question: **of the independently curated, attacker-reachable vulnerabilities, how many did the system identify under the active endpoint-localization policy?** The primary metric is therefore vulnerability-level recall:
+
+```text
+Attacker-Reachable Vulnerability Recall = TP / (TP + FN)
+```
+
+Precision and lenient endpoint-localized F1 remain prominent secondary metrics. They expose noisy reporting and prevent a high-recall system from being mistaken for a high-trust system, but they do not define the V2 headline. Every result row records `primaryMetric`, so `score` is unambiguous:
+
+- V1 find tasks: `primaryMetric: "f1"`
+- V2 find tasks: `primaryMetric: "attacker-reachable-vulnerability-recall"`
+- fix tasks: `primaryMetric: "fix-rate"`
+
+Because these quantities have different semantics, the harness never produces a combined quality headline for a config that mixes them.
 
 ### How Vuln Type Matching Works
 
@@ -847,7 +869,7 @@ Tasks with `"groundTruth": "attacker-reachable"` load `findings-attacker-reachab
 A reported vulnerability is a true positive only when:
 
 1. Its type matches the ground-truth `type` or a `typeAliases` value. Matching first normalizes case and separators, then applies the benchmark's existing conservative aliases. It does not use substring or fuzzy matching.
-2. Its `filesRelated` entries match the labeled endpoint evidence. Paths match after normalization when they are the same project-relative path, one normalized path is a suffix of the other, or a bare basename matches; its line may differ by at most **5 lines** (inclusive). Reported `source`/`sink` labels are preserved but the ground-truth endpoint labels determine which evidence is credited.
+2. Its `filesRelated` entries match the labeled endpoint evidence. Paths match after normalization when they are the same project-relative path, one normalized path is a suffix of the other, or a bare basename matches; its line may differ by at most **2 lines** (inclusive). Reported `source`/`sink` labels are preserved but the ground-truth endpoint labels determine which evidence is credited.
 3. The endpoint rule is met:
    - one ground-truth location: one reported match to that `source` or `sink`;
    - exactly two ground-truth locations: either both locations match, or one reported location matches either labeled endpoint;
@@ -855,19 +877,19 @@ A reported vulnerability is a true positive only when:
 
 Intermediate ground-truth flow locations do not increase the threshold. Each reported finding can be consumed only once, and one reported location cannot satisfy both endpoints of a longer flow. When multiple unmatched ground-truth vulnerabilities share a type, the scorer chooses the qualifying candidate with the strongest endpoint and location overlap rather than relying on JSON order. Matching remains binary per vulnerability; the existing precision, recall, F1, per-type, and per-severity calculations are reused.
 
-The primary V2 score (`score`, `details.precision`, and `details.recall`) is named **lenient endpoint-localized F1**. This is the backward-compatible headline: it uses the ±5-line tolerance and the endpoint rules above. If a ground-truth flow lists multiple `source` or `sink` locations, they are alternative anchors for that endpoint role; one matching anchor covers the role.
+The primary V2 `score` is **Attacker-Reachable Vulnerability Recall** (`details.recall`) under the endpoint-localized matching policy above. If a ground-truth flow lists multiple `source` or `sink` locations, they are alternative anchors for that endpoint role; one matching anchor covers the role. `details.precision` and `details.scoreSuite.lenientEndpointLocalizedF1` remain secondary metrics calculated from the same TP/FP/FN decisions.
 
 #### V2 score suite
 
 Every V2 run additionally records `details.scoreSuite` for post-run analysis:
 
-- **`lenientEndpointLocalizedF1`** repeats the current headline with explicit naming and TP/FP/FN counts.
+- **`lenientEndpointLocalizedF1`** is the secondary F1 companion to the recall headline, with explicit TP/FP/FN counts.
 - **`strictFlowF1`** requires a type match and exact-line source-and-sink evidence at distinct reported locations. Path comparison remains normalized project-relative path/basename matching. A ground-truth flow with just one labelled endpoint uses an exact match to that endpoint as its strict fallback.
 - **`endpointRecall.source` / `endpointRecall.sink`** measure whether each ground-truth source or sink endpoint group was localized by a type-matched reported finding. Repeated endpoint locations are alternatives, so they contribute one denominator unit per role and vulnerability.
-- **`fullFlowOverlap`** is the tolerant (±5-line) fraction of flow location groups recovered. Source alternatives form one group, sink alternatives form one group, and each unlabeled intermediate location is its own group. Like the F1 variants, each reported finding and ground-truth vulnerability can contribute to at most one selected pair.
+- **`fullFlowOverlap`** is the tolerant (±2-line) fraction of flow location groups recovered. Source alternatives form one group, sink alternatives form one group, and each unlabeled intermediate location is its own group. Like the F1 variants, each reported finding and ground-truth vulnerability can contribute to at most one selected pair.
 - **`detectionOnlyF1`** uses type matching alone with one-to-one matching, isolating vulnerability classification/detection from location and reachability evidence.
 
-The suite is additive: it does not change the V2 headline, existing result `score`, or V1 result shape.
+The suite is additive: it does not change the V2 recall headline or V1 result shape.
 
 ##### `scoreSuite` field reference
 
@@ -893,21 +915,27 @@ The suite is additive: it does not change the V2 headline, existing result `scor
 // }
 ```
 
-The scorer writes this block on every successful V2 `EvalResult.details` row in `src/scorer.ts`. V1 and error rows omit it. `lenientEndpointLocalizedF1` is built from the same selected true positives, false positives, and false negatives as the existing `details.precision`, `details.recall`, and top-level `score`; it is intentionally duplicated so raw-result consumers can use an unambiguous V2 metric name.
+Although three suite keys retain `F1` in their names for schema compatibility,
+each `F1Metric` stores TP, FP, FN, precision, **recall**, and F1. Use
+`strictFlowF1.recall` for exact-line strict-flow recall and
+`detectionOnlyF1.recall` for type-only detection recall; their `.f1` fields remain
+secondary precision-aware views.
+
+The scorer writes this block on every successful V2 `EvalResult.details` row in `src/scorer.ts`. V1 and error rows omit it. `lenientEndpointLocalizedF1` is built from the same selected true positives, false positives, and false negatives as `details.precision`, `details.recall`, and the top-level recall `score`; the decisions are shared even though the headline and F1 formulas differ.
 
 | Metric | Candidate eligibility | Line tolerance | Matching / denominator |
 |---|---|---:|---|
-| `lenientEndpointLocalizedF1` | Type plus the existing 1/2/3+ location endpoint rule | ±5 | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
+| `lenientEndpointLocalizedF1` | Type plus the existing 1/2/3+ location endpoint rule | ±2 | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
 | `strictFlowF1` | Type plus both distinct endpoint groups, except a single-endpoint ground truth uses its sole endpoint | 0 | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
 | `detectionOnlyF1` | Type only | N/A | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
-| `endpointRecall.source` / `.sink` | Type plus a matching source/sink group | ±5 | `matched / total` across only ground-truth vulnerabilities that declare that endpoint role; `null` when a role has no denominator |
-| `fullFlowOverlap` | Type plus at least one matching flow-location group | ±5 | `matchedLocationGroups / totalLocationGroups`; source alternatives are one group, sink alternatives are one group, and unlabeled intermediates are separate groups |
+| `endpointRecall.source` / `.sink` | Type plus a matching source/sink group | ±2 | `matched / total` across only ground-truth vulnerabilities that declare that endpoint role; `null` when a role has no denominator |
+| `fullFlowOverlap` | Type plus at least one matching flow-location group | ±2 | `matchedLocationGroups / totalLocationGroups`; source alternatives are one group, sink alternatives are one group, and unlabeled intermediates are separate groups |
 
 For strict and detection-only F1, findings are processed in reported order and select the first still-unmatched eligible ground-truth vulnerability. For full-flow overlap, each reported finding selects the still-unmatched type-compatible vulnerability with the most matched location groups; a ground-truth index breaks ties. Endpoint recall is an independent localization diagnostic: any type-compatible reported finding can establish a source or sink hit for a ground-truth vulnerability, so it does not report precision or consume findings.
 
 ##### Score-suite aggregation
 
-`aggregateByTask` averages every `scoreSuite` field across successful V2 repetitions for the same task/config pair. `aggregateByConfig` then macro-averages those per-task suite values and writes the optional block to the overall config aggregate (using only its V2 tasks) and to its V2 `byGroundTruth.attacker-reachable` entry. V1-only aggregates omit the suite. Counts and denominators in aggregate rows are therefore mean per-run/per-fixture values, not pooled corpus totals; use raw rows when a micro-aggregate is needed. The built-in summary tables keep the existing headline columns, while per-run console output prints the named V2 suite.
+`aggregateByTask` averages every `scoreSuite` field across successful V2 repetitions for the same task/config pair. `aggregateByConfig` macro-averages those per-task suite values only inside the V2 `byGroundTruth.attacker-reachable` bucket. V1-only aggregates omit the suite, and mixed-metric overall config rows omit both a combined quality score and suite. Counts and denominators in aggregate rows are mean per-run/per-fixture values, not pooled corpus totals; use raw rows when a micro-aggregate is needed.
 
 #### V2 match diagnostics
 
@@ -1106,11 +1134,11 @@ flowchart LR
 
 | Level | What it represents | How it's computed |
 |---|---|---|
-| **Per-run** | One execution of `runEval(task, config)` | Raw scores: headline F1, recall, precision, V2 score suite when applicable, time, tokens, cost |
+| **Per-run** | One execution of `runEval(task, config)` | Generation-specific primary score (`primaryMetric`), recall, precision, V2 score suite when applicable, time, tokens, cost |
 | **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions, plus score and runtime standard deviation across those repetitions |
 | **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures, plus score and runtime standard deviation across repetition-level headline values |
 
-The per-config level produces the **headline numbers** — the single values shown on comparison charts (e.g. "Opus F1: 83%, Sonnet F1: 71%, Snyk Code F1: 92%").
+The per-config level produces one headline only when all selected tasks share the same `primaryMetric`. V1 charts headline F1; V2 charts headline Attacker-Reachable Vulnerability Recall. Mixed-metric selections have no combined quality headline.
 
 **Example with 3 fixtures, 2 configs, 3 repetitions:**
 - 18 raw `EvalResult` objects (per-run level)
@@ -1121,7 +1149,7 @@ The per-config level produces the **headline numbers** — the single values sho
 
 ### Macro-Averaging
 
-The headline score for each config is a **macro-average** (unweighted mean) across fixtures. Each fixture contributes equally to the final number regardless of how many vulnerabilities it contains.
+Within one primary metric, the headline score for each config is a **macro-average** (unweighted mean) across fixtures. Each fixture contributes equally regardless of how many vulnerabilities it contains.
 
 **Why macro-average and not micro-average?** Micro-averaging pools all TP/FP/FN across fixtures and computes one combined metric. This would let a fixture with 50 vulns dominate over one with 3 vulns. Macro-averaging ensures each fixture (test scenario) has equal weight, which is appropriate when fixtures represent qualitatively different codebases rather than interchangeable samples from the same distribution.
 
@@ -1129,12 +1157,13 @@ This is the standard approach used by SWE-bench (resolve rate = mean of binary p
 
 #### Ground-truth-aware aggregates
 
-Raw run rows carry `groundTruth`, and task aggregates copy that value because every repetition of a task must use the same generation. Config aggregates preserve the existing overall macro-average for backward compatibility, but an overall row can mix V1 and attacker-reachable V2 tasks. Therefore each config aggregate also contains:
+Raw run rows carry `groundTruth` and `primaryMetric`; task aggregates copy both because every repetition of a task must use one metric. Config aggregates may contain multiple generations, so they include:
 
-- `groundTruths`: the generations represented in the overall headline, in stable V1-then-V2 order;
+- `groundTruths`: the generations represented, in stable V1-then-V2 order;
 - `byGroundTruth`: a generation-keyed object containing the same aggregate metric family (`fixtureCount`, repetitions, score/SD, recall, precision, V2 score suite when applicable, duration/SD, tokens, and cost) calculated from only that generation's tasks and raw repetitions.
+- `primaryMetric`: the shared metric when comparable, otherwise `null`.
 
-This keeps the historical all-task headline while allowing reports to compare V1 and V2 directly without joining raw rows or accidentally treating a mixed score as a single benchmark generation. When a run selects only one generation, `groundTruths` contains one value and `byGroundTruth` contains one entry.
+When selected tasks mix unlike metrics, the top-level config `score`, `scoreStdDev`, recall, and precision are `null`; operational metrics such as time, tokens, and cost remain aggregatable. Reports must use `byGroundTruth` rather than averaging V1 F1 with V2 recall. A single-generation selection retains a normal headline.
 
 ---
 
@@ -1219,7 +1248,7 @@ All numeric metrics are averaged at both the per-fixture and per-config levels. 
 
 | Metric | Per-fixture | Per-config |
 |---|---|---|
-| **Score (F1)** | Mean across reps, plus `scoreStdDev` across reps | Macro-avg across fixtures, plus `scoreStdDev` across repetition-level headline scores |
+| **Primary score** | Mean across reps, plus `scoreStdDev`; V1=F1, V2=attacker-reachable recall, fix=fix rate | Macro-avg only across fixtures sharing `primaryMetric`; null when unlike metrics are mixed |
 | **Recall** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
 | **Precision** | Mean across reps (find-vulns only) | Macro-avg across fixtures |
 | **Wall time** (`sessionDurationMs`) | Mean across reps, plus `sessionDurationStdDevMs` across reps | Macro-avg across fixtures, plus `sessionDurationStdDevMs` across repetition-level headline runtimes |
@@ -1232,7 +1261,7 @@ Aggregate rows are written to the JSONL output file alongside raw results, tagge
 |---|---|
 | `"run"` | Raw `EvalResult` — one execution |
 | `"task-aggregate"` | `AggregatedTaskResult` — mean plus score and runtime standard deviation across reps for one (task, config) |
-| `"config-aggregate"` | `AggregatedConfigResult` — macro-avg across fixtures for one config, with headline score and runtime standard deviation |
+| `"config-aggregate"` | `AggregatedConfigResult` — generation-specific headlines under `byGroundTruth`; top-level quality fields are null when primary metrics differ |
 
 Downstream consumers (chart generators, `jq` queries) can filter by `_type` to select the appropriate aggregation level.
 
@@ -1262,8 +1291,9 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Score (F1)** | `Score (F1) :  X%` | `score` | Headline quality number; V2 calls this lenient endpoint-localized F1 |
-| **Recall** | `Recall      :  X%  (N/M known vulns found)` | `details.recall` | Fraction of real vulns the agent found |
+| **V1 F1 headline** | `F1 : X%` | `score` with `primaryMetric: "f1"` | VulnBench 1.0 type-only headline |
+| **V2 Attacker-Reachable Vulnerability Recall headline** | `AR vuln recall : X%` | `score` with `primaryMetric: "attacker-reachable-vulnerability-recall"` | Fraction of curated attacker-reachable vulnerabilities matched under the active endpoint policy |
+| **Recall** | `Recall : X%` on V1; represented by the V2 headline | `details.recall` | Fraction of ground-truth vulnerabilities matched |
 | **Precision** | `Precision   :  X%  (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
 | **True positives** | Implicit in recall line | `details.truePositives` | Array of `{ id, type, severity }` for correctly identified vulns |
 | **False positives** | `(N false positives)` | `details.falsePositives` | Array of full `Vulnerability` objects for unmatched agent findings |
@@ -1273,13 +1303,13 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **V2 candidate diagnostics** | — | `details.matchDiagnostics.candidateComparisons` | Every reported-finding × ground-truth comparison, including type and location evidence |
 | **V2 finding outcomes** | — | `details.matchDiagnostics.findingOutcomes` | Match/false-positive outcome and best/eligible ground-truth candidates for each report |
 | **V2 vulnerability outcomes** | — | `details.matchDiagnostics.vulnerabilityOutcomes` | Match/miss outcome, best reported candidate, and normalized failure reason for each known vulnerability |
-| **V2 score suite** | `V2 headline`, `Strict flow`, `Endpoints`, `Flow overlap`, `Detection only` | `details.scoreSuite` | Named headline plus complementary strict-flow, endpoint-localization, coverage, and detection metrics |
+| **V2 score suite** | `Secondary F1`, `Strict flow`, `Endpoints`, `Flow overlap`, `Detection only` | `details.scoreSuite` | Secondary F1 plus complementary strict-flow, endpoint-localization, coverage, and detection metrics |
 
 #### Quality metrics (fix-vulns)
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Score** | `Score       :  X%` | `score` | Fraction of known vulns confirmed fixed by the LLM judge |
+| **Fix rate** | `Fix rate : X%` | `score` with `primaryMetric: "fix-rate"` | Fraction of known vulns confirmed fixed by the LLM judge |
 | **Vulns fixed** | `Fixed       :  N/M vulnerabilities` | `details.vulnsFixed` | Count confirmed remediated |
 | **Vulns attempted** | `Fixed       :  N/M vulnerabilities` | `details.vulnsAttempted` | Total known vulns in the fixture |
 | **Judge notes** | `Notes       :  ...` | `details.judgeNotes` | Per-vuln verdict from the LLM judge (Claude Haiku) |
@@ -1633,6 +1663,7 @@ Raw run rows and task-aggregate rows include `fixtureId`, the loaded `fixtureMet
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
   "groundTruth": "v1",
+  "primaryMetric": "f1",
   "effort": "high",
   "thinking": { "type": "adaptive" },
   "score": 0.667,
@@ -1699,7 +1730,7 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
 ```json
 {
   "schemaVersion": "v2-endpoint-diagnostics-2",
-  "lineTolerance": 5,
+  "lineTolerance": 2,
   "candidateComparisons": [
     {
       "findingId": "found-3",
@@ -1753,6 +1784,7 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
   "runConfigName": "Claude Sonnet 4.6 (no MCP)",
   "runConfigType": "model",
   "groundTruth": "v1",
+  "primaryMetric": "f1",
   "effort": "high",
   "thinking": { "type": "adaptive" },
   "repetitions": 3,
@@ -1778,6 +1810,7 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
   "groundTruths": ["v1", "attacker-reachable"],
   "byGroundTruth": {
     "v1": {
+      "primaryMetric": "f1",
       "fixtureCount": 1,
       "repetitions": 3,
       "score": 0.7,
@@ -1790,9 +1823,10 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
       "totalCostUsd": 0.043
     },
     "attacker-reachable": {
+      "primaryMetric": "attacker-reachable-vulnerability-recall",
       "fixtureCount": 1,
       "repetitions": 3,
-      "score": 0.75,
+      "score": 0.794,
       "scoreStdDev": 0.05,
       "recall": 0.794,
       "precision": 0.74,
@@ -1802,12 +1836,13 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
       "totalCostUsd": 0.05
     }
   },
+  "primaryMetric": null,
   "fixtureCount": 2,
   "repetitions": 3,
-  "score": 0.725,
-  "scoreStdDev": 0.045,
-  "recall": 0.757,
-  "precision": 0.695,
+  "score": null,
+  "scoreStdDev": null,
+  "recall": null,
+  "precision": null,
   "sessionDurationMs": 37677,
   "sessionDurationStdDevMs": 1890,
   "totalTokens": 52182,

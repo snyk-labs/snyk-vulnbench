@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { styleText } from "node:util";
-import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig, AggregatedTaskResult, AggregatedConfigResult } from "./types.js";
+import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig, AggregatedTaskResult, AggregatedConfigResult, PrimaryMetricKind } from "./types.js";
 
 // ─── Style Helpers ────────────────────────────────────────────────────────────
 
@@ -23,9 +23,14 @@ function coloredScore(score: number, label?: string): string {
   return s(scoreColor(score), text);
 }
 
-function scoreWithStdDev(score: number, stdDev: number, includeStdDev: boolean): string {
+function scoreWithStdDev(
+  score: number | null,
+  stdDev: number | null,
+  includeStdDev: boolean,
+): string {
+  if (score == null) return "-";
   const pct = `${(score * 100).toFixed(0)}%`;
-  if (!includeStdDev) return pct;
+  if (!includeStdDev || stdDev == null) return pct;
   return `${pct} ±${(stdDev * 100).toFixed(0)}pp`;
 }
 
@@ -46,6 +51,14 @@ function formatThinking(thinking: ThinkingConfig | null): string {
   if (thinking.type === "adaptive") return "adaptive";
   if (thinking.type === "disabled") return "disabled";
   return thinking.budgetTokens ? `enabled (${thinking.budgetTokens.toLocaleString()} tokens)` : "enabled";
+}
+
+function primaryMetricLabel(metric: PrimaryMetricKind): string {
+  if (metric === "attacker-reachable-vulnerability-recall") {
+    return "AR vuln recall";
+  }
+  if (metric === "fix-rate") return "Fix rate";
+  return "F1";
 }
 
 // ─── Config Group Header ──────────────────────────────────────────────────────
@@ -76,8 +89,17 @@ export function printResult(result: EvalResult): void {
   }
 
   const isFindVulns = "recall" in result.details;
-  const scoreLabel = isFindVulns ? "Score (F1)" : "Score";
-  console.log(metricLine(scoreLabel, coloredScore(result.score)));
+  const findDetails = isFindVulns ? result.details as FindVulnsDetails : null;
+  const totalKnown = findDetails
+    ? findDetails.truePositives.length + findDetails.falseNegatives.length
+    : 0;
+  const scoreContext = result.primaryMetric === "attacker-reachable-vulnerability-recall"
+    ? `(${findDetails?.truePositives.length ?? 0}/${totalKnown} known vulns found)`
+    : undefined;
+  console.log(metricLine(
+    primaryMetricLabel(result.primaryMetric),
+    coloredScore(result.score, scoreContext),
+  ));
 
   if (result.effort) {
     const thinkingLabel = formatThinking(result.thinking);
@@ -85,15 +107,16 @@ export function printResult(result: EvalResult): void {
   }
 
   if (isFindVulns) {
-    const d = result.details as FindVulnsDetails;
-    const totalKnown = d.truePositives.length + d.falseNegatives.length;
-    console.log(metricLine("Recall", coloredScore(d.recall, `(${d.truePositives.length}/${totalKnown} known vulns found)`)));
+    const d = findDetails!;
+    if (result.primaryMetric !== "attacker-reachable-vulnerability-recall") {
+      console.log(metricLine("Recall", coloredScore(d.recall, `(${d.truePositives.length}/${totalKnown} known vulns found)`)));
+    }
     console.log(metricLine("Precision", coloredScore(d.precision, `(${d.falsePositives.length} false positives)`)));
     if (d.scoreSuite) {
       const suite = d.scoreSuite;
       console.log(metricLine(
-        "V2 headline",
-        coloredScore(suite.lenientEndpointLocalizedF1.f1, "lenient endpoint-localized F1"),
+        "Secondary F1",
+        coloredScore(suite.lenientEndpointLocalizedF1.f1, "lenient endpoint-localized"),
       ));
       console.log(metricLine("Strict flow", coloredScore(suite.strictFlowF1.f1, "exact-line F1")));
       console.log(metricLine(
@@ -235,13 +258,14 @@ export function printSummaryTable(
     console.log(`\n  ${s("dim", `Per-fixture scores ${repLabel}:`)}`);
 
     const header = hasFindVulns
-      ? ["Task", "Config", "Score ±SD", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"]
-      : ["Task", "Config", "Score ±SD", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"];
+      ? ["Task", "Config", "Metric", "Primary ±SD", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"]
+      : ["Task", "Config", "Metric", "Primary ±SD", "Tokens", ...(hasCost ? ["Cost"] : []), "Time ±SD"];
 
     const rows = taskAggregates.map((a) => {
       const base = [
         a.taskId,
         a.runConfigId,
+        primaryMetricLabel(a.primaryMetric),
         scoreWithStdDev(a.score, a.scoreStdDev, true),
       ];
       if (hasFindVulns) {
@@ -256,11 +280,11 @@ export function printSummaryTable(
       return base;
     });
 
-    formatTable(header, rows, new Set([0, 1]), 2);
+    formatTable(header, rows, new Set([0, 1, 2]), 3);
   } else {
     const header = hasFindVulns
-      ? ["Task", "Config", "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
-      : ["Task", "Config", "Score", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
+      ? ["Task", "Config", "Metric", "Primary", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"]
+      : ["Task", "Config", "Metric", "Primary", "Tokens", ...(hasCost ? ["Cost"] : []), "Time"];
 
     const rows = results.map((r) => {
       const m = r.metrics;
@@ -268,6 +292,7 @@ export function printSummaryTable(
       const base = [
         r.taskId,
         r.runConfigId,
+        primaryMetricLabel(r.primaryMetric),
         r.error ? "ERROR" : `${(r.score * 100).toFixed(0)}%`,
       ];
       if (hasFindVulns) {
@@ -284,7 +309,7 @@ export function printSummaryTable(
       return base;
     });
 
-    formatTable(header, rows, new Set([0, 1]), 2);
+    formatTable(header, rows, new Set([0, 1, 2]), 3);
   }
 
   // ── Section 2: Headline by config (macro-average across fixtures) ──
@@ -293,37 +318,46 @@ export function printSummaryTable(
     const headlineLabel = hasMultipleTasks
       ? "Headline scores (macro-avg across fixtures):"
       : "Headline scores (mean across repetitions):";
-    console.log(`\n  ${s(["bold", "dim"], headlineLabel)}`);
+    const comparableConfigs = configAggregates.filter(
+      (config) => config.primaryMetric != null && config.score != null,
+    );
+    if (comparableConfigs.length > 0) {
+      console.log(`\n  ${s(["bold", "dim"], headlineLabel)}`);
+      const hdr = hasFindVulns
+        ? ["Config", "Metric", hasReps ? "Primary ±SD" : "Primary", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"]
+        : ["Config", "Metric", hasReps ? "Primary ±SD" : "Primary", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"];
 
-    const hdr = hasFindVulns
-      ? ["Config", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"]
-      : ["Config", hasReps ? "Score ±SD" : "Score", "Tokens", ...(hasCost ? ["Cost"] : []), hasReps ? "Time ±SD" : "Time", "Fixtures"];
+      const hRows = comparableConfigs.map((config) => {
+        const base = [
+          config.runConfigId,
+          primaryMetricLabel(config.primaryMetric!),
+          scoreWithStdDev(config.score, config.scoreStdDev, hasReps),
+        ];
+        if (hasFindVulns) {
+          base.push(config.recall != null ? `${(config.recall * 100).toFixed(0)}%` : "-");
+          base.push(config.precision != null ? `${(config.precision * 100).toFixed(0)}%` : "-");
+        }
+        base.push(Math.round(config.totalTokens).toLocaleString());
+        if (hasCost) {
+          base.push(config.totalCostUsd != null ? `$${config.totalCostUsd.toFixed(4)}` : "-");
+        }
+        base.push(durationWithStdDev(config.sessionDurationMs, config.sessionDurationStdDevMs, hasReps));
+        base.push(String(config.fixtureCount));
+        return base;
+      });
 
-    const hRows = configAggregates.map((c) => {
-      const base = [
-        c.runConfigId,
-        scoreWithStdDev(c.score, c.scoreStdDev, hasReps),
-      ];
-      if (hasFindVulns) {
-        base.push(c.recall != null ? `${(c.recall * 100).toFixed(0)}%` : "-");
-        base.push(c.precision != null ? `${(c.precision * 100).toFixed(0)}%` : "-");
-      }
-      base.push(Math.round(c.totalTokens).toLocaleString());
-      if (hasCost) {
-        base.push(c.totalCostUsd != null ? `$${c.totalCostUsd.toFixed(4)}` : "-");
-      }
-      base.push(durationWithStdDev(c.sessionDurationMs, c.sessionDurationStdDevMs, hasReps));
-      base.push(String(c.fixtureCount));
-      return base;
-    });
+      formatTable(hdr, hRows, new Set([0, 1]), 2);
+    }
 
-    formatTable(hdr, hRows, new Set([0]), 1);
+    if (configAggregates.some((config) => config.primaryMetric == null)) {
+      console.log(`\n  ${s("dim", "No combined quality headline is shown for configs mixing unlike primary metrics; use the ground-truth breakdown below.")}`);
+    }
 
     if (configAggregates.some((config) => config.groundTruths.length > 1)) {
       console.log(`\n  ${s(["bold", "dim"], "Headline breakdown by ground truth:")}`);
       const breakdownHeader = hasFindVulns
-        ? ["Config", "Ground truth", hasReps ? "Score ±SD" : "Score", "Recall", "Prec.", "Fixtures"]
-        : ["Config", "Ground truth", hasReps ? "Score ±SD" : "Score", "Fixtures"];
+        ? ["Config", "Ground truth", "Metric", hasReps ? "Primary ±SD" : "Primary", "Recall", "Prec.", "Fixtures"]
+        : ["Config", "Ground truth", "Metric", hasReps ? "Primary ±SD" : "Primary", "Fixtures"];
       const breakdownRows: string[][] = [];
       for (const config of configAggregates) {
         for (const groundTruth of config.groundTruths) {
@@ -332,6 +366,7 @@ export function printSummaryTable(
           const row = [
             config.runConfigId,
             groundTruth,
+            metrics.primaryMetric ? primaryMetricLabel(metrics.primaryMetric) : "mixed",
             scoreWithStdDev(metrics.score, metrics.scoreStdDev, hasReps),
           ];
           if (hasFindVulns) {
@@ -342,12 +377,14 @@ export function printSummaryTable(
           breakdownRows.push(row);
         }
       }
-      formatTable(breakdownHeader, breakdownRows, new Set([0, 1]), 2);
+      formatTable(breakdownHeader, breakdownRows, new Set([0, 1, 2]), 3);
     }
   } else {
     // Single task, single rep — just show the simple avg-by-config line like before
-    const avgParts = configAggregates.map((c) =>
-      `${s("dim", c.runConfigId)}  ${s(scoreColor(c.score), `${(c.score * 100).toFixed(0)}%`)}`,
+    const avgParts = configAggregates.flatMap((config) =>
+      config.score == null || config.primaryMetric == null
+        ? []
+        : [`${s("dim", config.runConfigId)}  ${s(scoreColor(config.score), `${primaryMetricLabel(config.primaryMetric)} ${(config.score * 100).toFixed(0)}%`)}`],
     );
     if (avgParts.length > 0) {
       console.log();

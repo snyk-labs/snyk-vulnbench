@@ -6,6 +6,7 @@ import type {
   AggregatedGroundTruthResult,
   AttackerReachableScoreSuite,
   GroundTruthKind,
+  PrimaryMetricKind,
 } from "./types.js";
 
 function mean(values: number[]): number {
@@ -119,6 +120,12 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
         `Task aggregate "${first.taskId}::${first.runConfigId}" mixes ground-truth generations`,
       );
     }
+    const primaryMetrics = new Set(runs.map((run) => run.primaryMetric));
+    if (primaryMetrics.size !== 1) {
+      throw new Error(
+        `Task aggregate "${first.taskId}::${first.runConfigId}" mixes primary metrics`,
+      );
+    }
 
     aggregated.push({
       taskId: first.taskId,
@@ -130,6 +137,7 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
       runConfigName: first.runConfigName,
       runConfigType: first.runConfigType,
       groundTruth: first.groundTruth,
+      primaryMetric: first.primaryMetric,
       effort: first.effort,
       thinking: first.thinking,
       repetitions: runs.length,
@@ -156,19 +164,27 @@ function aggregateConfigMetrics(
   tasks: AggregatedTaskResult[],
   rawRuns: EvalResult[],
 ): AggregatedGroundTruthResult {
-  const hasRecall = tasks.some((task) => task.recall != null);
-  const repetitionScores = headlineScoresByRepetition(rawRuns);
+  const primaryMetrics = [...new Set(tasks.map((task) => task.primaryMetric))];
+  const primaryMetric: PrimaryMetricKind | null = primaryMetrics.length === 1
+    ? primaryMetrics[0]
+    : null;
+  const hasComparableHeadline = primaryMetric !== null;
+  const hasRecall = hasComparableHeadline && tasks.some((task) => task.recall != null);
+  const repetitionScores = hasComparableHeadline
+    ? headlineScoresByRepetition(rawRuns)
+    : [];
   const repetitionDurations = headlineDurationsByRepetition(rawRuns);
   return {
+    primaryMetric,
     fixtureCount: tasks.length,
-    repetitions: repetitionScores.length,
-    score: mean(tasks.map((task) => task.score)),
-    scoreStdDev: sampleStdDev(repetitionScores),
+    repetitions: new Set(rawRuns.map((run) => run.repetition)).size,
+    score: hasComparableHeadline ? mean(tasks.map((task) => task.score)) : null,
+    scoreStdDev: hasComparableHeadline ? sampleStdDev(repetitionScores) : null,
     recall: hasRecall ? meanNullable(tasks.map((task) => task.recall)) : null,
     precision: hasRecall ? meanNullable(tasks.map((task) => task.precision)) : null,
-    scoreSuite: meanScoreSuites(
-      tasks.flatMap((task) => task.scoreSuite ? [task.scoreSuite] : []),
-    ),
+    scoreSuite: primaryMetric === "attacker-reachable-vulnerability-recall"
+      ? meanScoreSuites(tasks.flatMap((task) => task.scoreSuite ? [task.scoreSuite] : []))
+      : undefined,
     sessionDurationMs: mean(tasks.map((task) => task.sessionDurationMs)),
     sessionDurationStdDevMs: sampleStdDev(repetitionDurations),
     totalTokens: mean(tasks.map((task) => task.totalTokens)),
