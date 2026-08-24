@@ -28,13 +28,18 @@ VulnBench measures observed behavior under a defined protocol. It is not a unive
 
 ## Current release
 
-**[Snyk VulnBench JS 1.0](https://vulnbench.com/releases/js-1.0)** asks: _Can LLMs find the same bugs twice?_ The release evaluates repeated agentic security reviews across inspectable JavaScript projects and compares the results with a deterministic Snyk Code reference set.
+**[Snyk VulnBench JS 1.0](https://vulnbench.com/releases/js-1.0)** — referred to throughout this repository as **VulnBench 1.0** — asks: _Can LLMs find the same bugs twice?_ The release evaluates repeated agentic security reviews across inspectable JavaScript projects and compares the results with a deterministic Snyk Code reference set.
+
+Release shorthand is version-first: **VulnBench 1.0** (or VulnBench 1) and
+**VulnBench 2.0** (or VulnBench 2). Descriptive formal variants such as
+*Snyk VulnBench JS 1.0* and *Snyk VulnBench Apps 2.0* remain valid on first
+mention, but the version alone unambiguously identifies the generation.
 
 <p>
   <a href="https://vulnbench.com/releases/js-1.0/explore">Explore results</a>
   · <a href="https://vulnbench.com/releases/js-1.0/methodology">Review methodology</a>
   · <a href="https://vulnbench.com/releases/js-1.0/data">Download release data</a>
-  · <a href="https://github.com/snyk-labs/snyk-vulnbench-js-1.0">View the JS 1.0 source snapshot</a>
+  · <a href="https://github.com/snyk-labs/snyk-vulnbench-js-1.0">View the VulnBench 1.0 source snapshot</a>
 </p>
 
 Read the accompanying [paper](https://arxiv.org/abs/2606.15762) and [Snyk blog post](https://snyk.io/blog/snyk-vulnbench-js-1-0-llm-security-review-repeatability/) for the findings, limitations, and interpretation of this release.
@@ -98,7 +103,7 @@ docs/       Benchmark and fixture-management documentation
 ## Learn more
 
 - [VulnBench.com](https://vulnbench.com) — releases, results, and research principles
-- [JS 1.0 paper](https://arxiv.org/abs/2606.15762) — _Snyk VulnBench JS 1.0: Can LLMs Find the Same Bugs Twice?_
-- [JS 1.0 methodology](https://vulnbench.com/releases/js-1.0/methodology) and [data](https://vulnbench.com/releases/js-1.0/data)
+- [VulnBench 1.0 paper](https://arxiv.org/abs/2606.15762) — _Snyk VulnBench JS 1.0: Can LLMs Find the Same Bugs Twice?_
+- [VulnBench 1.0 methodology](https://vulnbench.com/releases/js-1.0/methodology) and [data](https://vulnbench.com/releases/js-1.0/data)
 - [Snyk announcement](https://snyk.io/blog/snyk-vulnbench-js-1-0-llm-security-review-repeatability/)
 - [VulnBench source repository](https://github.com/snyk-labs/snyk-vulnbench)

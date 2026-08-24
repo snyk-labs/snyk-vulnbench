@@ -398,7 +398,7 @@ Generate these bar charts when the denominators are non-zero:
      - `runConfigType` so command rows render in Snyk purple and model rows render
        in neutral gray
    - Set an explicit `xRange` and `yRange` with breathing room for labels. For the
-     JS 1.0-style scale, a useful default is `xRange: { min: -0.001, max: 0.04 }`
+     VulnBench 1.0-style scale, a useful default is `xRange: { min: -0.001, max: 0.04 }`
      and `yRange: { min: 0.58, max: 1.04 }`, then adjust to the data. The slight
      negative x-min gives the zero-variance Snyk point room away from the y-axis.
    - Provide `xTicks` and `yTicks` explicitly when possible so the visual reads as

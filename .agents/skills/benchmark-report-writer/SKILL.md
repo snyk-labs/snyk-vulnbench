@@ -29,6 +29,13 @@ quality/noise guardrails. Never blend V1 F1, V2 recall, and fix rate into one
 headline; use `config-aggregate.byGroundTruth` whenever top-level quality fields
 are null.
 
+Use version-first release naming in prose: **VulnBench 1.0** and **VulnBench
+2.0** (or VulnBench 1/VulnBench 2 after first mention). The published formal
+title *Snyk VulnBench JS 1.0* and descriptive variant *Snyk VulnBench Apps
+2.0* are valid on first mention, but do not require the `JS` or `Apps`
+qualifier in subsequent references. Never rename historical paper titles,
+release URLs, or source-snapshot directories.
+
 For public reports, avoid internal fixture codenames as prose labels. Use exact fixture
 IDs in inline code when a specific fixture must be named, such as
 `js-project-nightowl` or `js-project-tigerteam`. For chart titles, captions, section
