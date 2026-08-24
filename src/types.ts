@@ -445,6 +445,44 @@ export interface AttackerReachableScoringDiagnostics {
   vulnerabilityOutcomes: AttackerReachableVulnerabilityDiagnostic[];
 }
 
+export interface F1Metric {
+  truePositives: number;
+  falsePositives: number;
+  falseNegatives: number;
+  precision: number;
+  recall: number;
+  f1: number;
+}
+
+export interface EndpointRecallMetric {
+  matched: number;
+  total: number;
+  recall: number | null;
+}
+
+export interface FullFlowOverlapMetric {
+  matchedLocationGroups: number;
+  totalLocationGroups: number;
+  overlap: number | null;
+}
+
+/** Complementary V2 scores; omitted for V1 compatibility. */
+export interface AttackerReachableScoreSuite {
+  /** Current V2 headline, named explicitly for post-run analysis. */
+  lenientEndpointLocalizedF1: F1Metric;
+  /** Type plus exact-line source-to-sink evidence. */
+  strictFlowF1: F1Metric;
+  /** Type-only, one-to-one vulnerability detection. */
+  detectionOnlyF1: F1Metric;
+  /** Endpoint-group recall; repeated sources/sinks are alternative anchors. */
+  endpointRecall: {
+    source: EndpointRecallMetric;
+    sink: EndpointRecallMetric;
+  };
+  /** Tolerant flow-location coverage; endpoint alternatives count once per role. */
+  fullFlowOverlap: FullFlowOverlapMetric;
+}
+
 export interface FindVulnsDetails {
   agentFindings: Vulnerability[];
   truePositives: VulnMatch[];
@@ -456,6 +494,8 @@ export interface FindVulnsDetails {
   bySeverity: Record<string, BreakdownEntry>;
   /** Present for VulnBench 2.0 runs; omitted for V1 compatibility. */
   matchDiagnostics?: AttackerReachableScoringDiagnostics;
+  /** Present for VulnBench 2.0 runs; the headline precision/recall remain unchanged. */
+  scoreSuite?: AttackerReachableScoreSuite;
 }
 
 export interface FixVulnsDetails {
@@ -510,6 +550,7 @@ export interface AggregatedTaskResult {
   scoreStdDev: number;
   recall: number | null;
   precision: number | null;
+  scoreSuite?: AttackerReachableScoreSuite;
   sessionDurationMs: number;
   /** Sample standard deviation of wall-clock runtime across repetitions. Zero when repetitions < 2. */
   sessionDurationStdDevMs: number;
@@ -525,6 +566,7 @@ export interface AggregatedGroundTruthResult {
   scoreStdDev: number;
   recall: number | null;
   precision: number | null;
+  scoreSuite?: AttackerReachableScoreSuite;
   sessionDurationMs: number;
   sessionDurationStdDevMs: number;
   totalTokens: number;
@@ -547,6 +589,7 @@ export interface AggregatedConfigResult {
   scoreStdDev: number;
   recall: number | null;
   precision: number | null;
+  scoreSuite?: AttackerReachableScoreSuite;
   sessionDurationMs: number;
   /** Sample standard deviation of repetition-level headline runtimes. Zero when repetitions < 2. */
   sessionDurationStdDevMs: number;

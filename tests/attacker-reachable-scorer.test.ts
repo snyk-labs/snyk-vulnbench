@@ -128,6 +128,73 @@ test("V2 matches aliases, basenames, and the inclusive five-line boundary", () =
   assert.equal(comparison?.ranking.closestEndpointLineDelta, 5);
 });
 
+test("V2 score suite separates tolerant headline, strict flow, and detection-only F1", () => {
+  const known = attackerVuln("strict-line", "xss", [
+    { file: "src/view.ts", line: 10, type: "sink" },
+  ]);
+  const details = scoreAttackerReachableFindVulns(
+    output([finding("xss", [{ file: "src/view.ts", line: 15 }])]),
+    attackerTask([known]),
+  );
+
+  assert.equal(details.scoreSuite?.lenientEndpointLocalizedF1.f1, 1);
+  assert.equal(details.scoreSuite?.strictFlowF1.f1, 0);
+  assert.equal(details.scoreSuite?.detectionOnlyF1.f1, 1);
+  assert.deepEqual(details.scoreSuite?.endpointRecall.sink, {
+    matched: 1,
+    total: 1,
+    recall: 1,
+  });
+  assert.deepEqual(details.scoreSuite?.fullFlowOverlap, {
+    matchedLocationGroups: 1,
+    totalLocationGroups: 1,
+    overlap: 1,
+  });
+});
+
+test("V2 score suite treats repeated endpoints as alternatives and tracks intermediates", () => {
+  const known = attackerVuln("alternative-endpoints", "path-traversal", [
+    { file: "src/flow.ts", line: 10, type: "source" },
+    { file: "src/flow.ts", line: 11, type: "source" },
+    { file: "src/flow.ts", line: 20 },
+    { file: "src/flow.ts", line: 30, type: "sink" },
+    { file: "src/flow.ts", line: 31, type: "sink" },
+  ]);
+  const details = scoreAttackerReachableFindVulns(
+    output([finding("path traversal", [
+      { file: "src/flow.ts", line: 11 },
+      { file: "src/flow.ts", line: 30 },
+    ])]),
+    attackerTask([known]),
+  );
+
+  assert.equal(details.scoreSuite?.strictFlowF1.f1, 1);
+  assert.equal(details.scoreSuite?.endpointRecall.source.recall, 1);
+  assert.equal(details.scoreSuite?.endpointRecall.sink.recall, 1);
+  assert.deepEqual(details.scoreSuite?.fullFlowOverlap, {
+    matchedLocationGroups: 2,
+    totalLocationGroups: 3,
+    overlap: 2 / 3,
+  });
+});
+
+test("V2 strict flow falls back to its sole labelled endpoint", () => {
+  const known = attackerVuln("sink-only", "open-redirect", [
+    { file: "src/redirect.ts", line: 21, type: "sink" },
+  ]);
+  const details = scoreAttackerReachableFindVulns(
+    output([finding("open redirect", [{ file: "src/redirect.ts", line: 21 }])]),
+    attackerTask([known]),
+  );
+
+  assert.equal(details.scoreSuite?.strictFlowF1.f1, 1);
+  assert.deepEqual(details.scoreSuite?.endpointRecall.source, {
+    matched: 0,
+    total: 0,
+    recall: null,
+  });
+});
+
 test("one-location ground truth accepts a matching source or sink", () => {
   for (const type of ["source", "sink"] as const) {
     const known = attackerVuln(`one-${type}`, "path-traversal", [

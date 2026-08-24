@@ -726,6 +726,7 @@ For **find-vulns**:
   byType: Record<VulnType, BreakdownEntry>; // per-vulnerability-type precision/recall/F1
   bySeverity: Record<Severity, BreakdownEntry>; // per-severity precision/recall/F1
   matchDiagnostics?: AttackerReachableScoringDiagnostics; // rich V2-only candidate evidence
+  scoreSuite?: AttackerReachableScoreSuite; // complementary V2-only quality metrics
 }
 
 // Where:
@@ -733,7 +734,7 @@ For **find-vulns**:
 // BreakdownEntry = { total: number; found: number; precision: number; recall: number; f1: number }
 ```
 
-V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field.
+V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field. V2 rows also include `scoreSuite`, which names the existing headline and records complementary flow-quality metrics.
 
 For **fix-vulns**:
 ```typescript
@@ -846,13 +847,67 @@ Tasks with `"groundTruth": "attacker-reachable"` load `findings-attacker-reachab
 A reported vulnerability is a true positive only when:
 
 1. Its type matches the ground-truth `type` or a `typeAliases` value. Matching first normalizes case and separators, then applies the benchmark's existing conservative aliases. It does not use substring or fuzzy matching.
-2. Its `filesRelated` entries match the labeled endpoint evidence. A file matches by normalized project-relative path or exact basename, and its line may differ by at most **5 lines** (inclusive).
+2. Its `filesRelated` entries match the labeled endpoint evidence. Paths match after normalization when they are the same project-relative path, one normalized path is a suffix of the other, or a bare basename matches; its line may differ by at most **5 lines** (inclusive). Reported `source`/`sink` labels are preserved but the ground-truth endpoint labels determine which evidence is credited.
 3. The endpoint rule is met:
    - one ground-truth location: one reported match to that `source` or `sink`;
    - exactly two ground-truth locations: either both locations match, or one reported location matches either labeled endpoint;
    - more than two ground-truth locations: distinct reported locations must match both a labeled `source` and a labeled `sink`.
 
 Intermediate ground-truth flow locations do not increase the threshold. Each reported finding can be consumed only once, and one reported location cannot satisfy both endpoints of a longer flow. When multiple unmatched ground-truth vulnerabilities share a type, the scorer chooses the qualifying candidate with the strongest endpoint and location overlap rather than relying on JSON order. Matching remains binary per vulnerability; the existing precision, recall, F1, per-type, and per-severity calculations are reused.
+
+The primary V2 score (`score`, `details.precision`, and `details.recall`) is named **lenient endpoint-localized F1**. This is the backward-compatible headline: it uses the ±5-line tolerance and the endpoint rules above. If a ground-truth flow lists multiple `source` or `sink` locations, they are alternative anchors for that endpoint role; one matching anchor covers the role.
+
+#### V2 score suite
+
+Every V2 run additionally records `details.scoreSuite` for post-run analysis:
+
+- **`lenientEndpointLocalizedF1`** repeats the current headline with explicit naming and TP/FP/FN counts.
+- **`strictFlowF1`** requires a type match and exact-line source-and-sink evidence at distinct reported locations. Path comparison remains normalized project-relative path/basename matching. A ground-truth flow with just one labelled endpoint uses an exact match to that endpoint as its strict fallback.
+- **`endpointRecall.source` / `endpointRecall.sink`** measure whether each ground-truth source or sink endpoint group was localized by a type-matched reported finding. Repeated endpoint locations are alternatives, so they contribute one denominator unit per role and vulnerability.
+- **`fullFlowOverlap`** is the tolerant (±5-line) fraction of flow location groups recovered. Source alternatives form one group, sink alternatives form one group, and each unlabeled intermediate location is its own group. Like the F1 variants, each reported finding and ground-truth vulnerability can contribute to at most one selected pair.
+- **`detectionOnlyF1`** uses type matching alone with one-to-one matching, isolating vulnerability classification/detection from location and reachability evidence.
+
+The suite is additive: it does not change the V2 headline, existing result `score`, or V1 result shape.
+
+##### `scoreSuite` field reference
+
+```typescript
+{
+  lenientEndpointLocalizedF1: F1Metric;
+  strictFlowF1: F1Metric;
+  detectionOnlyF1: F1Metric;
+  endpointRecall: {
+    source: { matched: number; total: number; recall: number | null };
+    sink: { matched: number; total: number; recall: number | null };
+  };
+  fullFlowOverlap: {
+    matchedLocationGroups: number;
+    totalLocationGroups: number;
+    overlap: number | null;
+  };
+}
+
+// F1Metric = {
+//   truePositives: number; falsePositives: number; falseNegatives: number;
+//   precision: number; recall: number; f1: number;
+// }
+```
+
+The scorer writes this block on every successful V2 `EvalResult.details` row in `src/scorer.ts`. V1 and error rows omit it. `lenientEndpointLocalizedF1` is built from the same selected true positives, false positives, and false negatives as the existing `details.precision`, `details.recall`, and top-level `score`; it is intentionally duplicated so raw-result consumers can use an unambiguous V2 metric name.
+
+| Metric | Candidate eligibility | Line tolerance | Matching / denominator |
+|---|---|---:|---|
+| `lenientEndpointLocalizedF1` | Type plus the existing 1/2/3+ location endpoint rule | ±5 | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
+| `strictFlowF1` | Type plus both distinct endpoint groups, except a single-endpoint ground truth uses its sole endpoint | 0 | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
+| `detectionOnlyF1` | Type only | N/A | One finding and one vulnerability are consumed per selected pair; standard TP/FP/FN F1 |
+| `endpointRecall.source` / `.sink` | Type plus a matching source/sink group | ±5 | `matched / total` across only ground-truth vulnerabilities that declare that endpoint role; `null` when a role has no denominator |
+| `fullFlowOverlap` | Type plus at least one matching flow-location group | ±5 | `matchedLocationGroups / totalLocationGroups`; source alternatives are one group, sink alternatives are one group, and unlabeled intermediates are separate groups |
+
+For strict and detection-only F1, findings are processed in reported order and select the first still-unmatched eligible ground-truth vulnerability. For full-flow overlap, each reported finding selects the still-unmatched type-compatible vulnerability with the most matched location groups; a ground-truth index breaks ties. Endpoint recall is an independent localization diagnostic: any type-compatible reported finding can establish a source or sink hit for a ground-truth vulnerability, so it does not report precision or consume findings.
+
+##### Score-suite aggregation
+
+`aggregateByTask` averages every `scoreSuite` field across successful V2 repetitions for the same task/config pair. `aggregateByConfig` then macro-averages those per-task suite values and writes the optional block to the overall config aggregate (using only its V2 tasks) and to its V2 `byGroundTruth.attacker-reachable` entry. V1-only aggregates omit the suite. Counts and denominators in aggregate rows are therefore mean per-run/per-fixture values, not pooled corpus totals; use raw rows when a micro-aggregate is needed. The built-in summary tables keep the existing headline columns, while per-run console output prints the named V2 suite.
 
 #### V2 match diagnostics
 
@@ -1051,7 +1106,7 @@ flowchart LR
 
 | Level | What it represents | How it's computed |
 |---|---|---|
-| **Per-run** | One execution of `runEval(task, config)` | Raw scores: F1, recall, precision, time, tokens, cost |
+| **Per-run** | One execution of `runEval(task, config)` | Raw scores: headline F1, recall, precision, V2 score suite when applicable, time, tokens, cost |
 | **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions, plus score and runtime standard deviation across those repetitions |
 | **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures, plus score and runtime standard deviation across repetition-level headline values |
 
@@ -1077,7 +1132,7 @@ This is the standard approach used by SWE-bench (resolve rate = mean of binary p
 Raw run rows carry `groundTruth`, and task aggregates copy that value because every repetition of a task must use the same generation. Config aggregates preserve the existing overall macro-average for backward compatibility, but an overall row can mix V1 and attacker-reachable V2 tasks. Therefore each config aggregate also contains:
 
 - `groundTruths`: the generations represented in the overall headline, in stable V1-then-V2 order;
-- `byGroundTruth`: a generation-keyed object containing the same aggregate metric family (`fixtureCount`, repetitions, score/SD, recall, precision, duration/SD, tokens, and cost) calculated from only that generation's tasks and raw repetitions.
+- `byGroundTruth`: a generation-keyed object containing the same aggregate metric family (`fixtureCount`, repetitions, score/SD, recall, precision, V2 score suite when applicable, duration/SD, tokens, and cost) calculated from only that generation's tasks and raw repetitions.
 
 This keeps the historical all-task headline while allowing reports to compare V1 and V2 directly without joining raw rows or accidentally treating a mixed score as a single benchmark generation. When a run selects only one generation, `groundTruths` contains one value and `byGroundTruth` contains one entry.
 
@@ -1207,7 +1262,7 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Score (F1)** | `Score (F1) :  X%` | `score` | Harmonic mean of precision and recall — the headline quality number |
+| **Score (F1)** | `Score (F1) :  X%` | `score` | Headline quality number; V2 calls this lenient endpoint-localized F1 |
 | **Recall** | `Recall      :  X%  (N/M known vulns found)` | `details.recall` | Fraction of real vulns the agent found |
 | **Precision** | `Precision   :  X%  (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
 | **True positives** | Implicit in recall line | `details.truePositives` | Array of `{ id, type, severity }` for correctly identified vulns |
@@ -1218,6 +1273,7 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **V2 candidate diagnostics** | — | `details.matchDiagnostics.candidateComparisons` | Every reported-finding × ground-truth comparison, including type and location evidence |
 | **V2 finding outcomes** | — | `details.matchDiagnostics.findingOutcomes` | Match/false-positive outcome and best/eligible ground-truth candidates for each report |
 | **V2 vulnerability outcomes** | — | `details.matchDiagnostics.vulnerabilityOutcomes` | Match/miss outcome, best reported candidate, and normalized failure reason for each known vulnerability |
+| **V2 score suite** | `V2 headline`, `Strict flow`, `Endpoints`, `Flow overlap`, `Detection only` | `details.scoreSuite` | Named headline plus complementary strict-flow, endpoint-localization, coverage, and detection metrics |
 
 #### Quality metrics (fix-vulns)
 

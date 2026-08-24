@@ -7,6 +7,7 @@ import type {
   FindVulnsDetails,
   FixtureMetadata,
   GroundTruthKind,
+  AttackerReachableScoreSuite,
 } from "../src/types.js";
 
 const emptyMetrics: BenchmarkMetrics = {
@@ -42,6 +43,43 @@ function run(
   repetition: number,
   score: number,
 ): EvalResult {
+  const scoreSuite: AttackerReachableScoreSuite | undefined = groundTruth === "attacker-reachable"
+    ? {
+      lenientEndpointLocalizedF1: {
+        truePositives: score,
+        falsePositives: 1 - score,
+        falseNegatives: 1 - score,
+        precision: score,
+        recall: score,
+        f1: score,
+      },
+      strictFlowF1: {
+        truePositives: score / 2,
+        falsePositives: 1 - score / 2,
+        falseNegatives: 1 - score / 2,
+        precision: score / 2,
+        recall: score / 2,
+        f1: score / 2,
+      },
+      detectionOnlyF1: {
+        truePositives: score,
+        falsePositives: 1 - score,
+        falseNegatives: 1 - score,
+        precision: score,
+        recall: score,
+        f1: score,
+      },
+      endpointRecall: {
+        source: { matched: score, total: 1, recall: score },
+        sink: { matched: score, total: 1, recall: score },
+      },
+      fullFlowOverlap: {
+        matchedLocationGroups: score * 2,
+        totalLocationGroups: 2,
+        overlap: score,
+      },
+    }
+    : undefined;
   const details: FindVulnsDetails = {
     agentFindings: [],
     truePositives: [],
@@ -51,6 +89,7 @@ function run(
     recall: score,
     byType: {},
     bySeverity: {},
+    ...(scoreSuite && { scoreSuite }),
   };
   return {
     taskId,
@@ -103,6 +142,9 @@ test("aggregates retain task ground truth and config generation breakdowns", () 
   assert.equal(config.byGroundTruth["attacker-reachable"]?.fixtureCount, 1);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.score, 0.9);
   assert.equal(config.byGroundTruth["attacker-reachable"]?.precision, 0.9);
+  assert.equal(config.byGroundTruth["attacker-reachable"]?.scoreSuite?.strictFlowF1.f1, 0.45);
+  assert.equal(config.byGroundTruth["attacker-reachable"]?.scoreSuite?.endpointRecall.source.recall, 0.9);
+  assert.equal(config.scoreSuite?.strictFlowF1.f1, 0.45);
   assert.ok((config.byGroundTruth.v1?.scoreStdDev ?? 0) > 0);
 });
 

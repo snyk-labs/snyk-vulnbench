@@ -4,6 +4,7 @@ import type {
   AggregatedTaskResult,
   AggregatedConfigResult,
   AggregatedGroundTruthResult,
+  AttackerReachableScoreSuite,
   GroundTruthKind,
 } from "./types.js";
 
@@ -23,6 +24,50 @@ function meanNullable(values: (number | null)[]): number | null {
   const nums = values.filter((v): v is number => v != null);
   if (nums.length === 0) return null;
   return mean(nums);
+}
+
+function meanScoreSuites(
+  suites: AttackerReachableScoreSuite[],
+): AttackerReachableScoreSuite | undefined {
+  if (suites.length === 0) return undefined;
+  const meanF1 = (key: "lenientEndpointLocalizedF1" | "strictFlowF1" | "detectionOnlyF1") => ({
+    truePositives: mean(suites.map((suite) => suite[key].truePositives)),
+    falsePositives: mean(suites.map((suite) => suite[key].falsePositives)),
+    falseNegatives: mean(suites.map((suite) => suite[key].falseNegatives)),
+    precision: mean(suites.map((suite) => suite[key].precision)),
+    recall: mean(suites.map((suite) => suite[key].recall)),
+    f1: mean(suites.map((suite) => suite[key].f1)),
+  });
+  const meanEndpoint = (endpoint: "source" | "sink") => {
+    const values = suites.map((suite) => suite.endpointRecall[endpoint]);
+    return {
+      matched: mean(values.map((value) => value.matched)),
+      total: mean(values.map((value) => value.total)),
+      recall: meanNullable(values.map((value) => value.recall)),
+    };
+  };
+
+  return {
+    lenientEndpointLocalizedF1: meanF1("lenientEndpointLocalizedF1"),
+    strictFlowF1: meanF1("strictFlowF1"),
+    detectionOnlyF1: meanF1("detectionOnlyF1"),
+    endpointRecall: { source: meanEndpoint("source"), sink: meanEndpoint("sink") },
+    fullFlowOverlap: {
+      matchedLocationGroups: mean(suites.map((suite) => suite.fullFlowOverlap.matchedLocationGroups)),
+      totalLocationGroups: mean(suites.map((suite) => suite.fullFlowOverlap.totalLocationGroups)),
+      overlap: meanNullable(suites.map((suite) => suite.fullFlowOverlap.overlap)),
+    },
+  };
+}
+
+function scoreSuitesForResults(results: EvalResult[]): AttackerReachableScoreSuite[] {
+  return results.flatMap((result) =>
+    !result.error
+    && "scoreSuite" in result.details
+    && result.details.scoreSuite
+      ? [result.details.scoreSuite]
+      : []
+  );
 }
 
 function headlineScoresByRepetition(results: EvalResult[]): number[] {
@@ -96,6 +141,7 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
       precision: hasFindVulns
         ? mean(runs.filter((r) => !r.error && "recall" in r.details).map((r) => (r.details as FindVulnsDetails).precision))
         : null,
+      scoreSuite: meanScoreSuites(scoreSuitesForResults(runs)),
       sessionDurationMs: mean(runs.map((r) => r.metrics.sessionDurationMs)),
       sessionDurationStdDevMs: sampleStdDev(runs.map((r) => r.metrics.sessionDurationMs)),
       totalTokens: mean(runs.map((r) => r.metrics.totalLogicalInputTokens + r.metrics.totalOutputTokens)),
@@ -120,6 +166,9 @@ function aggregateConfigMetrics(
     scoreStdDev: sampleStdDev(repetitionScores),
     recall: hasRecall ? meanNullable(tasks.map((task) => task.recall)) : null,
     precision: hasRecall ? meanNullable(tasks.map((task) => task.precision)) : null,
+    scoreSuite: meanScoreSuites(
+      tasks.flatMap((task) => task.scoreSuite ? [task.scoreSuite] : []),
+    ),
     sessionDurationMs: mean(tasks.map((task) => task.sessionDurationMs)),
     sessionDurationStdDevMs: sampleStdDev(repetitionDurations),
     totalTokens: mean(tasks.map((task) => task.totalTokens)),

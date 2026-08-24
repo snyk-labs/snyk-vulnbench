@@ -21,6 +21,10 @@ import type {
   AttackerReachablePathMatch,
   AttackerReachableTypeComparison,
   AttackerReachableVulnerabilityDiagnostic,
+  AttackerReachableScoreSuite,
+  EndpointRecallMetric,
+  F1Metric,
+  FullFlowOverlapMetric,
   FileLocation,
 } from "./types.js";
 
@@ -220,6 +224,13 @@ export function scoreAttackerReachableFindVulns(
       findingOutcomes,
       vulnerabilityOutcomes,
     },
+    scoreSuite: buildAttackerReachableScoreSuite(
+      knownVulns,
+      agentFindings,
+      truePositives.length,
+      falsePositives.length,
+      falseNegatives.length,
+    ),
   };
 }
 
@@ -227,6 +238,213 @@ export function findVulnsScore(details: FindVulnsDetails): number {
   const { precision, recall } = details;
   if (precision + recall === 0) return 0;
   return (2 * precision * recall) / (precision + recall);
+}
+
+function buildAttackerReachableScoreSuite(
+  knownVulns: AttackerReachableVulnerability[],
+  agentFindings: AttackerReachableVulnerability[],
+  lenientTruePositives: number,
+  lenientFalsePositives: number,
+  lenientFalseNegatives: number,
+): AttackerReachableScoreSuite {
+  return {
+    lenientEndpointLocalizedF1: f1Metric(
+      lenientTruePositives,
+      lenientFalsePositives,
+      lenientFalseNegatives,
+    ),
+    strictFlowF1: scoreVariantF1(
+      knownVulns,
+      agentFindings,
+      (known, found) => strictFlowLocationsMatch(known.filesRelated, found.filesRelated),
+    ),
+    detectionOnlyF1: scoreVariantF1(knownVulns, agentFindings, () => true),
+    endpointRecall: {
+      source: endpointRecallFor("source", knownVulns, agentFindings),
+      sink: endpointRecallFor("sink", knownVulns, agentFindings),
+    },
+    fullFlowOverlap: fullFlowOverlapFor(knownVulns, agentFindings),
+  };
+}
+
+function f1Metric(
+  truePositives: number,
+  falsePositives: number,
+  falseNegatives: number,
+): F1Metric {
+  const precision = truePositives + falsePositives === 0
+    ? 0
+    : truePositives / (truePositives + falsePositives);
+  const recall = truePositives + falseNegatives === 0
+    ? 1
+    : truePositives / (truePositives + falseNegatives);
+  return {
+    truePositives,
+    falsePositives,
+    falseNegatives,
+    precision,
+    recall,
+    f1: f1(precision, recall),
+  };
+}
+
+function scoreVariantF1(
+  knownVulns: AttackerReachableVulnerability[],
+  agentFindings: AttackerReachableVulnerability[],
+  locationsEligible: (
+    known: AttackerReachableVulnerability,
+    found: AttackerReachableVulnerability,
+  ) => boolean,
+): F1Metric {
+  const matchedKnown = new Set<string>();
+  let truePositives = 0;
+
+  for (const found of agentFindings) {
+    const match = knownVulns.find((known) =>
+      !matchedKnown.has(known.id)
+      && typesMatch(known, found)
+      && locationsEligible(known, found)
+    );
+    if (!match) continue;
+    matchedKnown.add(match.id);
+    truePositives++;
+  }
+
+  return f1Metric(
+    truePositives,
+    agentFindings.length - truePositives,
+    knownVulns.length - truePositives,
+  );
+}
+
+function typesMatch(
+  known: AttackerReachableVulnerability,
+  found: AttackerReachableVulnerability,
+): boolean {
+  return compareAttackerReachableTypes(known, found)
+    .some((comparison) => comparison.matchedBy !== null);
+}
+
+function strictFlowLocationsMatch(
+  knownLocations: FileLocation[],
+  foundLocations: FileLocation[],
+): boolean {
+  const match = summarizeLocationMatches(knownLocations, foundLocations, 0);
+  const endpointTypes = [...new Set(uniqueLocations(knownLocations)
+    .flatMap((location) => location.type === "source" || location.type === "sink"
+      ? [location.type]
+      : []))] as Array<"source" | "sink">;
+
+  if (endpointTypes.length === 1) {
+    return match.matchedEndpointTypes.includes(endpointTypes[0]);
+  }
+  return match.sourceAndSinkMatched;
+}
+
+function endpointRecallFor(
+  endpoint: "source" | "sink",
+  knownVulns: AttackerReachableVulnerability[],
+  agentFindings: AttackerReachableVulnerability[],
+): EndpointRecallMetric {
+  const eligibleVulns = knownVulns.filter((known) =>
+    uniqueLocations(known.filesRelated).some((location) => location.type === endpoint)
+  );
+  const matched = eligibleVulns.filter((known) =>
+    agentFindings.some((found) =>
+      typesMatch(known, found)
+      && summarizeLocationMatches(known.filesRelated, found.filesRelated)
+        .matchedEndpointTypes.includes(endpoint)
+    )
+  ).length;
+  return {
+    matched,
+    total: eligibleVulns.length,
+    recall: eligibleVulns.length === 0 ? null : matched / eligibleVulns.length,
+  };
+}
+
+function fullFlowOverlapFor(
+  knownVulns: AttackerReachableVulnerability[],
+  agentFindings: AttackerReachableVulnerability[],
+): FullFlowOverlapMetric {
+  const groupsByVulnerability = knownVulns.map((known) => flowLocationGroups(known.filesRelated));
+  const matchedKnown = new Set<number>();
+  const coverageByVulnerability = new Array<number>(knownVulns.length).fill(0);
+
+  for (const found of agentFindings) {
+    const candidates = knownVulns
+      .map((known, index) => ({
+        index,
+        matchCount: typesMatch(known, found)
+          ? countFlowLocationGroupMatches(groupsByVulnerability[index], found.filesRelated)
+          : 0,
+      }))
+      .filter((candidate) => !matchedKnown.has(candidate.index) && candidate.matchCount > 0)
+      .sort((a, b) => b.matchCount - a.matchCount || a.index - b.index);
+    const selected = candidates[0];
+    if (!selected) continue;
+    matchedKnown.add(selected.index);
+    coverageByVulnerability[selected.index] = selected.matchCount;
+  }
+
+  const totalLocationGroups = groupsByVulnerability.reduce(
+    (total, groups) => total + groups.length,
+    0,
+  );
+  const matchedLocationGroups = coverageByVulnerability.reduce((total, count) => total + count, 0);
+  return {
+    matchedLocationGroups,
+    totalLocationGroups,
+    overlap: totalLocationGroups === 0 ? null : matchedLocationGroups / totalLocationGroups,
+  };
+}
+
+type FlowLocationGroup = FileLocation[];
+
+function flowLocationGroups(knownLocations: FileLocation[]): FlowLocationGroup[] {
+  const locations = uniqueLocations(knownLocations);
+  const sourceLocations = locations.filter((location) => location.type === "source");
+  const sinkLocations = locations.filter((location) => location.type === "sink");
+  const intermediates = locations.filter((location) => !location.type);
+  return [
+    ...(sourceLocations.length > 0 ? [sourceLocations] : []),
+    ...(sinkLocations.length > 0 ? [sinkLocations] : []),
+    ...intermediates.map((location) => [location]),
+  ];
+}
+
+function countFlowLocationGroupMatches(
+  groups: FlowLocationGroup[],
+  foundLocations: FileLocation[],
+): number {
+  const found = uniqueLocations(foundLocations);
+  const foundToGroup = new Array<number>(found.length).fill(-1);
+
+  function assignGroup(groupIndex: number, visitedFound: Set<number>): boolean {
+    for (let foundIndex = 0; foundIndex < found.length; foundIndex++) {
+      if (
+        visitedFound.has(foundIndex)
+        || !groups[groupIndex].some((known) => locationsMatch(known, found[foundIndex]))
+      ) {
+        continue;
+      }
+      visitedFound.add(foundIndex);
+      if (
+        foundToGroup[foundIndex] === -1
+        || assignGroup(foundToGroup[foundIndex], visitedFound)
+      ) {
+        foundToGroup[foundIndex] = groupIndex;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  let matches = 0;
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+    if (assignGroup(groupIndex, new Set())) matches++;
+  }
+  return matches;
 }
 
 // ─── Per-type / Per-severity Breakdown ────────────────────────────────────────
@@ -852,6 +1070,7 @@ function buildVulnerabilityOutcomes(
 function countLocationMatches(
   knownLocations: FileLocation[],
   foundLocations: FileLocation[],
+  lineTolerance = ATTACKER_REACHABLE_LINE_TOLERANCE,
 ): number {
   const known = uniqueLocations(knownLocations);
   const found = uniqueLocations(foundLocations);
@@ -861,7 +1080,7 @@ function countLocationMatches(
     for (let foundIndex = 0; foundIndex < found.length; foundIndex++) {
       if (
         visitedFound.has(foundIndex)
-        || !locationsMatch(known[knownIndex], found[foundIndex])
+        || !locationsMatch(known[knownIndex], found[foundIndex], lineTolerance)
       ) {
         continue;
       }
@@ -897,10 +1116,11 @@ interface LocationMatchSummary {
 function summarizeLocationMatches(
   knownLocations: FileLocation[],
   foundLocations: FileLocation[],
+  lineTolerance = ATTACKER_REACHABLE_LINE_TOLERANCE,
 ): LocationMatchSummary {
   const known = uniqueLocations(knownLocations);
   const found = uniqueLocations(foundLocations);
-  const locationComparisons = buildLocationComparisons(known, found);
+  const locationComparisons = buildLocationComparisons(known, found, lineTolerance);
   const endpointEvidence: AttackerReachableEndpointEvidence[] = locationComparisons
     .filter((comparison) =>
       comparison.locationMatched
@@ -940,7 +1160,7 @@ function summarizeLocationMatches(
   );
 
   return {
-    totalMatches: countLocationMatches(known, found),
+    totalMatches: countLocationMatches(known, found, lineTolerance),
     endpointTypesMatched: matchedEndpointTypes.length,
     sourceAndSinkMatched,
     matchedEndpointTypes,
@@ -953,6 +1173,7 @@ function summarizeLocationMatches(
 function buildLocationComparisons(
   knownLocations: FileLocation[],
   foundLocations: FileLocation[],
+  lineTolerance = ATTACKER_REACHABLE_LINE_TOLERANCE,
 ): AttackerReachableLocationComparison[] {
   const comparisons: AttackerReachableLocationComparison[] = [];
   for (
@@ -970,8 +1191,7 @@ function buildLocationComparisons(
       const pathMatch = filePathMatchKind(groundTruth.file, reported.file);
       const lineDelta = reported.line - groundTruth.line;
       const absoluteLineDelta = Math.abs(lineDelta);
-      const withinLineTolerance = absoluteLineDelta
-        <= ATTACKER_REACHABLE_LINE_TOLERANCE;
+      const withinLineTolerance = absoluteLineDelta <= lineTolerance;
       comparisons.push({
         groundTruthLocationIndex,
         reportedLocationIndex,
@@ -1002,9 +1222,13 @@ function attackerReachableLocationsMatch(
   return match.sourceAndSinkMatched;
 }
 
-function locationsMatch(known: FileLocation, found: FileLocation): boolean {
+function locationsMatch(
+  known: FileLocation,
+  found: FileLocation,
+  lineTolerance = ATTACKER_REACHABLE_LINE_TOLERANCE,
+): boolean {
   return filePathsMatch(known.file, found.file)
-    && Math.abs(known.line - found.line) <= ATTACKER_REACHABLE_LINE_TOLERANCE;
+    && Math.abs(known.line - found.line) <= lineTolerance;
 }
 
 function filePathsMatch(knownPath: string, foundPath: string): boolean {

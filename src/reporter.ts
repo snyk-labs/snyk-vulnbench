@@ -89,6 +89,23 @@ export function printResult(result: EvalResult): void {
     const totalKnown = d.truePositives.length + d.falseNegatives.length;
     console.log(metricLine("Recall", coloredScore(d.recall, `(${d.truePositives.length}/${totalKnown} known vulns found)`)));
     console.log(metricLine("Precision", coloredScore(d.precision, `(${d.falsePositives.length} false positives)`)));
+    if (d.scoreSuite) {
+      const suite = d.scoreSuite;
+      console.log(metricLine(
+        "V2 headline",
+        coloredScore(suite.lenientEndpointLocalizedF1.f1, "lenient endpoint-localized F1"),
+      ));
+      console.log(metricLine("Strict flow", coloredScore(suite.strictFlowF1.f1, "exact-line F1")));
+      console.log(metricLine(
+        "Endpoints",
+        `source ${formatNullableScore(suite.endpointRecall.source.recall)}  sink ${formatNullableScore(suite.endpointRecall.sink.recall)}`,
+      ));
+      console.log(metricLine(
+        "Flow overlap",
+        formatNullableScore(suite.fullFlowOverlap.overlap),
+      ));
+      console.log(metricLine("Detection only", coloredScore(suite.detectionOnlyF1.f1, "type-only F1")));
+    }
     const missedValue = d.falseNegatives.length > 0
       ? s("red", d.falseNegatives.map((v) => v.id).join(", "))
       : s("green", "none");
@@ -135,6 +152,10 @@ export function printResult(result: EvalResult): void {
       console.log(`${continuation}${lines[i]}`);
     }
   }
+}
+
+function formatNullableScore(score: number | null): string {
+  return score == null ? "n/a" : `${(score * 100).toFixed(0)}%`;
 }
 
 // ─── Save Results ─────────────────────────────────────────────────────────────
