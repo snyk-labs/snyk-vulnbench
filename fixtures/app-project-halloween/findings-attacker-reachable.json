@@ -70,11 +70,11 @@
         "severity": "high",
         "filesRelated": [
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 38
           },
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 41,
             "type": "source"
           },
@@ -83,7 +83,7 @@
             "line": 43
           },
           {
-            "file": "src/api/user/userService.ts",
+            "file": "src/api/user/userController.ts",
             "line": 50
           },
           {
@@ -98,15 +98,7 @@
             "file": "src/api/user/userService.ts",
             "line": 87,
             "type": "sink"
-          },
-          {
-            "file": "src/api/user/userService.ts",
-            "line": 88
-          },
-          {
-            "file": "src/api/user/userService.ts",
-            "line": 89
-          },
+          }
         ],
         "description": "Mass Assignment allows an attacker to modify the user's profile data, including sensitive information like email and role, leading to unauthorized access and data breaches.",
         "vulnerabilityImpact": "Mass Assignment allows an attacker to modify the user's profile data, including sensitive information like email and role, leading to unauthorized access and data breaches.",
