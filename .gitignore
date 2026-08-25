@@ -150,3 +150,6 @@ results/
 apm_modules/
 
 .data
+
+# macOS
+.DS_Store
