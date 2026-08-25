@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { EVAL_CATEGORIES } from "../types.js";
+import { isPromptTemplateId } from "../prompt-templates.js";
 import type {
   AttackerReachableVulnerability,
   CommandRunConfig,
@@ -617,12 +618,19 @@ export function loadRunConfigs(): RunConfig[] {
       }
       return entry as unknown as CommandRunConfig;
     } else {
-      if (!entry.model) {
-        throw new Error(`Model config "${entry.id}" missing required field: model`);
-      }
-      return entry as unknown as ModelRunConfig;
+      return validateModelRunConfig(entry);
     }
   });
+}
+
+export function validateModelRunConfig(entry: Record<string, unknown>): ModelRunConfig {
+  if (!entry.model) {
+    throw new Error(`Model config "${entry.id}" missing required field: model`);
+  }
+  if (entry.promptTemplateId !== undefined && !isPromptTemplateId(entry.promptTemplateId)) {
+    throw new Error(`Model config "${entry.id}" has unknown promptTemplateId "${entry.promptTemplateId}"`);
+  }
+  return entry as unknown as ModelRunConfig;
 }
 
 function validateUniqueRunConfigIds(configs: Array<Record<string, unknown>>): void {

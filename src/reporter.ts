@@ -105,6 +105,9 @@ export function printResult(result: EvalResult): void {
     const thinkingLabel = formatThinking(result.thinking);
     console.log(metricLine("Effort", `${result.effort}  ${s("dim", `(thinking: ${thinkingLabel})`)}`));
   }
+  if (result.promptTemplateId) {
+    console.log(metricLine("Prompt", result.promptTemplateId));
+  }
 
   if (isFindVulns) {
     const d = findDetails!;

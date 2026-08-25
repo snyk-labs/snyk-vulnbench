@@ -368,11 +368,13 @@ interface ModelRunConfig {
   model: string;                           // e.g. "claude-opus-4-6"
   effort?: EffortLevel;                    // "default" | "low" | "medium" | "high" | "max"
   thinking?: ThinkingConfig;               // defaults to { type: "adaptive" }
+  promptTemplateId?: PromptTemplateId;     // defaults to "default"
   mcpServers?: Record<string, MCPServer>;  // optional: MCP tool servers
   maxTurns?: number;
 }
 
 // EffortLevel = "default" | "low" | "medium" | "high" | "max"
+// PromptTemplateId = "default" | "snyk-mcp"
 // ThinkingConfig = { type: "adaptive" } | { type: "enabled"; budgetTokens?: number } | { type: "disabled" }
 
 // Command-based: runs a CLI tool (SAST scanner, etc.)
@@ -715,6 +717,7 @@ interface EvalResult {
   runConfigType: "model" | "command"; // distinguishes Agent SDK runs from SAST tool runs
   effort: EffortLevel | null;      // "default" | "low" | "medium" | "high" | "max" — null for command runs
   thinking: ThinkingConfig | null; // { type: "adaptive" } etc. — null for command runs
+  promptTemplateId: PromptTemplateId | null;
   score: number;           // 0.0–1.0
   metrics: BenchmarkMetrics; // tokens, time, tool calls
   details: FindVulnsDetails | FixVulnsDetails; // what happened in scoring

@@ -1,5 +1,6 @@
 import { query, type HookCallback } from "@anthropic-ai/claude-agent-sdk";
 import { dirname } from "path";
+import { resolvePromptTemplate } from "./prompt-templates.js";
 import type {
   EvalTask,
   McpTelemetry,
@@ -119,10 +120,7 @@ export async function runTask(
     const thinking = config.thinking ?? { type: "adaptive" as const };
     const benchmarkEnv = process.env;
     const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
-    // Temporary integration probe before prompt overrides become a run-config feature.
-    const prompt = config.id === "haiku-4-5-default-with-snyk-mcp"
-      ? `${task.prompt}\n\nAlways run snyk_code_scan tool to find security issues`
-      : task.prompt;
+    const prompt = resolvePromptTemplate(task.prompt, config.promptTemplateId);
 
     for await (const message of query({
       prompt,

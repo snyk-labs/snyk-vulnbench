@@ -478,6 +478,8 @@ Append an entry to the array:
 
 Both `effort` and `thinking` are optional — when omitted they default to `"high"` and `{ "type": "adaptive" }` respectively. Set `"effort": "default"` to omit the Agent SDK effort option and let Claude Code choose the model's native behavior; use this for models without configurable effort. Both values are captured in the JSONL result file for every run, enabling post-hoc comparisons across effort levels.
 
+`promptTemplateId` is optional and defaults to `"default"`, which leaves the task's user prompt unchanged. Use `"snyk-mcp"` only for an MCP-backed run: it requires the agent to invoke `snyk_code_scan` once before completing its independent review.
+
 Verify with dry-run:
 ```bash
 pnpm run benchmark -- --dry-run
@@ -516,6 +518,7 @@ Another example — Snyk MCP with credentials read from the repository-root `.en
   "name": "Claude Haiku 4.5 + Snyk MCP (default effort)",
   "model": "claude-haiku-4-5",
   "effort": "default",
+  "promptTemplateId": "snyk-mcp",
   "maxTurns": 30,
   "mcpServers": {
     "Snyk": {
@@ -676,6 +679,7 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `model` | Yes | `string` | Anthropic model ID, e.g. `"claude-opus-4-6"`, `"claude-sonnet-4-6"`, `"claude-haiku-4-5"`. |
 | `effort` | No | `"default"` \| `"low"` \| `"medium"` \| `"high"` \| `"max"` | Reasoning effort level. Defaults to `"high"` when omitted. `"default"` is a harness sentinel that omits the SDK effort option for models without configurable effort. Model availability varies. |
 | `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
+| `promptTemplateId` | No | `"default"` \| `"snyk-mcp"` | User-prompt augmentation. `"default"` preserves the task prompt; `"snyk-mcp"` requires one Snyk Code MCP scan before the independent review. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
 | `mcpServers` | No | `object` | Map of MCP server name → `MCPServerConfig`. Omit for a bare model run. |
 

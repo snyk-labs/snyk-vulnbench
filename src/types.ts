@@ -1,3 +1,5 @@
+import type { PromptTemplateId } from "./prompt-templates.js";
+
 export type VulnType =
   | "sql-injection"
   | "xss"
@@ -248,6 +250,8 @@ export interface ModelRunConfig {
   effort?: EffortLevel;
   /** Controls extended thinking mode. Defaults to { type: "adaptive" }. */
   thinking?: ThinkingConfig;
+  /** User-prompt augmentation selected from the prompt template registry. */
+  promptTemplateId?: PromptTemplateId;
   mcpServers?: Record<string, MCPServerConfig>;
   maxTurns?: number;
 }
@@ -544,6 +548,8 @@ export interface EvalResult {
   effort: EffortLevel | null;
   /** Thinking config used for this run (model runs only). Null for command runs. */
   thinking: ThinkingConfig | null;
+  /** Resolved user-prompt template used for this run. Null for command runs. */
+  promptTemplateId: PromptTemplateId | null;
   score: number; // 0–1
   metrics: BenchmarkMetrics;
   details: FindVulnsDetails | FixVulnsDetails;
@@ -569,6 +575,7 @@ export interface AggregatedTaskResult {
   primaryMetric: PrimaryMetricKind;
   effort: EffortLevel | null;
   thinking: ThinkingConfig | null;
+  promptTemplateId: PromptTemplateId | null;
   repetitions: number;
   score: number;
   /** Sample standard deviation of score across repetitions. Zero when repetitions < 2. */
@@ -605,6 +612,8 @@ export interface AggregatedConfigResult {
   runConfigId: string;
   runConfigName: string;
   runConfigType: "model" | "command";
+  /** Resolved user-prompt template used by this config. Null for command runs. */
+  promptTemplateId: PromptTemplateId | null;
   /** Ground-truth generations included in the overall headline. */
   groundTruths: GroundTruthKind[];
   /** Generation-specific headline metrics for direct V1/V2 analysis. */

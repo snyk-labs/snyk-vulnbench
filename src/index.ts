@@ -16,6 +16,7 @@ import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
 import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
+import { DEFAULT_PROMPT_TEMPLATE_ID } from "./prompt-templates.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
@@ -92,6 +93,9 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
   const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
   const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
+  const promptTemplateId = isCommand
+    ? null
+    : (config as ModelRunConfig).promptTemplateId ?? DEFAULT_PROMPT_TEMPLATE_ID;
 
   // Shared fields across all return sites (repetition/totalRepetitions set by caller)
   const base = {
@@ -107,6 +111,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     runConfigType,
     effort,
     thinking,
+    promptTemplateId,
     timestamp,
     repetition: 1,
     totalRepetitions: 1,
@@ -220,7 +225,8 @@ async function main() {
         const mc = c as ModelRunConfig;
         const effortTag = mc.effort ?? "high";
         const thinkingTag = mc.thinking ? mc.thinking.type : "adaptive";
-        label = `${mc.model} (effort: ${effortTag}, thinking: ${thinkingTag})`;
+        const promptTag = mc.promptTemplateId ?? DEFAULT_PROMPT_TEMPLATE_ID;
+        label = `${mc.model} (effort: ${effortTag}, thinking: ${thinkingTag}, prompt: ${promptTag})`;
       }
       console.log(`  ${styleText("dim", connector)} ${c.id}: ${label}`);
     }

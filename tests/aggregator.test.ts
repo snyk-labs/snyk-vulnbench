@@ -22,6 +22,7 @@ const emptyMetrics: BenchmarkMetrics = {
   toolCalls: [],
   toolStats: {},
   filesScanned: [],
+  mcp: { configuredServers: [], serverStatuses: [], advertisedToolCount: 0, toolStats: {} },
 };
 
 const fixtureMetadata: FixtureMetadata = {
@@ -106,6 +107,7 @@ function run(
     runConfigType: "model",
     effort: "high",
     thinking: { type: "adaptive" },
+    promptTemplateId: "default",
     score,
     metrics: { ...emptyMetrics, sessionDurationMs: repetition * 1_000 },
     details,
@@ -138,6 +140,8 @@ test("aggregates retain task ground truth and config generation breakdowns", () 
   );
   assert.equal(taskAggregates[0].fixtureId, "test-fixture");
   assert.equal(taskAggregates[0].fixtureMetadataHash, "test-metadata-hash");
+  assert.equal(taskAggregates[0].promptTemplateId, "default");
+  assert.equal(configAggregates[0].promptTemplateId, "default");
 
   const config = configAggregates[0];
   assert.deepEqual(config.groundTruths, ["v1", "attacker-reachable"]);

@@ -39,6 +39,7 @@
     "name": "Claude Haiku 4.5 + Snyk MCP (default effort)",
     "model": "claude-haiku-4-5",
     "effort": "default",
+    "promptTemplateId": "snyk-mcp",
     "maxTurns": 30,
     "mcpServers": {
       "Snyk": {
