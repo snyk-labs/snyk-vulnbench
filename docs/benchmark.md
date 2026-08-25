@@ -567,6 +567,12 @@ interface BenchmarkMetrics {
       totalOutputTokensEst: number; // estimated tokens returned FROM the tool (result)
     }
   };
+  mcp: {
+    configuredServers: string[];
+    serverStatuses: { name: string; status: string }[];
+    advertisedToolCount: number;
+    toolStats: Record<string, { count: number; totalDurationMs: number }>;
+  };
 }
 ```
 
@@ -1337,6 +1343,7 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **Total tokens** | `Tokens      :  N total` | `totalLogicalInputTokens + totalOutputTokens` | Total context consumed (logical input + output) |
 | **Cost** | `Cost        :  $X.XXXX` | `metrics.totalCostUsd` | Session cost in USD from the SDK (accounts for model and cached vs non-cached pricing). Null for command runs. |
 | **Per-tool stats** | `Tools       :  Read 4x avg 11ms ...` | `metrics.toolStats` | Per-tool call count, avg duration, and estimated input/output tokens |
+| **MCP diagnostics** | `MCP status` / `MCP calls` | `metrics.mcp` | Configured and connected servers, advertised tool count, and aggregate MCP tool invocation counts without raw tool output |
 
 ---
 

@@ -147,9 +147,11 @@ export function printResult(result: EvalResult): void {
       ? m.mcp.serverStatuses.map(({ name, status }) => `${name}: ${status}`).join(", ")
       : "not reported";
     console.log(metricLine("MCP status", statuses));
-    console.log(metricLine("MCP tools", `${m.mcp.advertisedTools.length} advertised`));
-    const calls = m.mcp.calls.length > 0
-      ? m.mcp.calls.map((call) => `${call.tool} (${call.durationMs}ms)`).join(", ")
+    console.log(metricLine("MCP tools", `${m.mcp.advertisedToolCount} advertised`));
+    const calls = Object.entries(m.mcp.toolStats).length > 0
+      ? Object.entries(m.mcp.toolStats)
+        .map(([tool, stats]) => `${tool} ×${stats.count} (${stats.totalDurationMs}ms)`)
+        .join(", ")
       : "none";
     console.log(metricLine("MCP calls", calls));
   }

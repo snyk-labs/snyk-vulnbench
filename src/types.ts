@@ -278,26 +278,15 @@ export interface ToolCallRecord {
   outputTokensEst: number;
 }
 
-/** Safe, bounded diagnostics for one MCP tool call; raw inputs and outputs are not retained. */
-export interface McpToolCallDiagnostic {
-  tool: string;
-  durationMs: number;
-  inputKeys: string[];
-  /** Whether a path argument resolves inside the benchmark fixture. */
-  pathScope?: "fixture" | "outside-fixture";
-  outputBytes: number;
-  outputSha256: string;
-}
-
 export interface McpTelemetry {
   /** MCP server names requested by the run config. */
   configuredServers: string[];
   /** Connection state reported by the Agent SDK initialization message. */
   serverStatuses: Array<{ name: string; status: string }>;
-  /** MCP tool names advertised to the agent at session startup. */
-  advertisedTools: string[];
-  /** Bounded metadata for MCP calls that actually occurred. */
-  calls: McpToolCallDiagnostic[];
+  /** Number of configured MCP tools advertised to the agent at session startup. */
+  advertisedToolCount: number;
+  /** Invocation count and aggregate duration for each MCP tool used in the run. */
+  toolStats: Record<string, { count: number; totalDurationMs: number }>;
 }
 
 export interface BenchmarkMetrics {

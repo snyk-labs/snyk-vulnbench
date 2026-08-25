@@ -1,6 +1,5 @@
 import { query, type HookCallback } from "@anthropic-ai/claude-agent-sdk";
-import { createHash } from "crypto";
-import { dirname, isAbsolute, relative, resolve, sep } from "path";
+import { dirname } from "path";
 import type {
   EvalTask,
   McpTelemetry,
@@ -42,26 +41,6 @@ function resolveMcpServers(
   );
 }
 
-function serialiseForTelemetry(value: unknown): string {
-  try {
-    return JSON.stringify(value) ?? "";
-  } catch {
-    return String(value);
-  }
-}
-
-function pathScope(input: unknown, cwd: string): "fixture" | "outside-fixture" | undefined {
-  if (!input || typeof input !== "object" || typeof (input as { path?: unknown }).path !== "string") {
-    return undefined;
-  }
-
-  const path = (input as { path: string }).path;
-  const fromFixture = relative(cwd, resolve(cwd, path));
-  return fromFixture === "" || (!fromFixture.startsWith(`..${sep}`) && fromFixture !== ".." && !isAbsolute(fromFixture))
-    ? "fixture"
-    : "outside-fixture";
-}
-
 /**
  * Runs an eval task using the Claude Agent SDK and collects benchmark metrics.
  * Returns the agent's final text output and accumulated metrics.
@@ -77,8 +56,8 @@ export async function runTask(
   const mcpTelemetry: McpTelemetry = {
     configuredServers: Object.keys(config.mcpServers ?? {}),
     serverStatuses: [],
-    advertisedTools: [],
-    calls: [],
+    advertisedToolCount: 0,
+    toolStats: {},
   };
   // Manual per-turn accumulation (fallback when SDKResultMessage.usage is unavailable)
   let accInputTokens = 0;
@@ -113,16 +92,10 @@ export async function runTask(
     const durationMs = Date.now() - startTime;
     toolCalls.push({ tool, durationMs, inputTokensEst, outputTokensEst });
     if (tool.startsWith("mcp__")) {
-      const serialisedOutput = serialiseForTelemetry(output);
-      const toolInput = (input as any).tool_input;
-      mcpTelemetry.calls.push({
-        tool,
-        durationMs,
-        inputKeys: toolInput && typeof toolInput === "object" ? Object.keys(toolInput).sort() : [],
-        ...(pathScope(toolInput, cwd) && { pathScope: pathScope(toolInput, cwd) }),
-        outputBytes: Buffer.byteLength(serialisedOutput),
-        outputSha256: createHash("sha256").update(serialisedOutput).digest("hex"),
-      });
+      const stats = mcpTelemetry.toolStats[tool] ?? { count: 0, totalDurationMs: 0 };
+      stats.count++;
+      stats.totalDurationMs += durationMs;
+      mcpTelemetry.toolStats[tool] = stats;
     }
     // Track unique files touched by filesystem tools
     if (tool === "Read" || tool === "Write" || tool === "Edit") {
@@ -222,12 +195,12 @@ export async function runTask(
             .filter((server: { name: string; status: string }) => configuredServers.has(server.name))
             .map((server: { name: string; status: string }) => ({ name: server.name, status: server.status }))
           : [];
-        mcpTelemetry.advertisedTools = Array.isArray(init.tools)
+        mcpTelemetry.advertisedToolCount = Array.isArray(init.tools)
           ? init.tools.filter((tool: unknown): tool is string =>
             typeof tool === "string"
             && mcpTelemetry.configuredServers.some((server) => tool.startsWith(`mcp__${server}__`))
-          )
-          : [];
+          ).length
+          : 0;
       }
 
       if ("result" in message) {
