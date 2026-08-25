@@ -226,7 +226,12 @@ export interface MCPServerConfig {
   env?: Record<string, string>;
 }
 
-export type EffortLevel = "low" | "medium" | "high" | "max";
+/**
+ * `"default"` is a harness sentinel: it omits the SDK effort option so Claude
+ * Code chooses the model's native default. It is useful for models that do not
+ * expose configurable effort levels.
+ */
+export type EffortLevel = "default" | "low" | "medium" | "high" | "max";
 
 export type ThinkingConfig =
   | { type: "adaptive" }
@@ -239,7 +244,7 @@ export interface ModelRunConfig {
   id: string;
   name: string;
   model: string;
-  /** Controls how much reasoning effort Claude applies. Defaults to "high". */
+  /** Controls how much reasoning effort Claude applies. `"default"` delegates to Claude Code. */
   effort?: EffortLevel;
   /** Controls extended thinking mode. Defaults to { type: "adaptive" }. */
   thinking?: ThinkingConfig;
@@ -273,6 +278,28 @@ export interface ToolCallRecord {
   outputTokensEst: number;
 }
 
+/** Safe, bounded diagnostics for one MCP tool call; raw inputs and outputs are not retained. */
+export interface McpToolCallDiagnostic {
+  tool: string;
+  durationMs: number;
+  inputKeys: string[];
+  /** Whether a path argument resolves inside the benchmark fixture. */
+  pathScope?: "fixture" | "outside-fixture";
+  outputBytes: number;
+  outputSha256: string;
+}
+
+export interface McpTelemetry {
+  /** MCP server names requested by the run config. */
+  configuredServers: string[];
+  /** Connection state reported by the Agent SDK initialization message. */
+  serverStatuses: Array<{ name: string; status: string }>;
+  /** MCP tool names advertised to the agent at session startup. */
+  advertisedTools: string[];
+  /** Bounded metadata for MCP calls that actually occurred. */
+  calls: McpToolCallDiagnostic[];
+}
+
 export interface BenchmarkMetrics {
   sessionDurationMs: number;
   totalInputTokens: number;
@@ -291,6 +318,8 @@ export interface BenchmarkMetrics {
   toolStats: Record<string, { count: number; totalDurationMs: number; totalInputTokensEst: number; totalOutputTokensEst: number }>;
   /** Unique file paths touched by Read, Write, or Edit tool calls */
   filesScanned: string[];
+  /** MCP connection, availability, and invocation telemetry. */
+  mcp: McpTelemetry;
 }
 
 export interface RunOutput {

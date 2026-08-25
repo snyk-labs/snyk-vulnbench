@@ -22,6 +22,17 @@ import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, C
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
 const TMP_DIR = resolve(__dirname, "../.tmp-fixtures");
+const DOTENV_PATH = resolve(__dirname, "../.env");
+
+// Load locally supplied credentials without committing them. Existing process
+// environment variables retain precedence over values in the file.
+try {
+  process.loadEnvFile(DOTENV_PATH);
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+    throw error;
+  }
+}
 
 // ─── CLI Argument Parsing ─────────────────────────────────────────────────────
 
@@ -116,7 +127,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     return {
       ...base,
       score: 0,
-      metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [] },
+      metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [], mcp: { configuredServers: [], serverStatuses: [], advertisedTools: [], calls: [] } },
       details: emptyFindVulnsDetails(task),
       error: `Command config "${config.id}" does not support fix-vulns tasks`,
     };

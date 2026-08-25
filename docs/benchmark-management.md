@@ -476,7 +476,7 @@ Append an entry to the array:
 ]
 ```
 
-Both `effort` and `thinking` are optional — when omitted they default to `"high"` and `{ "type": "adaptive" }` respectively. Both values are captured in the JSONL result file for every run, enabling post-hoc comparisons across effort levels.
+Both `effort` and `thinking` are optional — when omitted they default to `"high"` and `{ "type": "adaptive" }` respectively. Set `"effort": "default"` to omit the Agent SDK effort option and let Claude Code choose the model's native behavior; use this for models without configurable effort. Both values are captured in the JSONL result file for every run, enabling post-hoc comparisons across effort levels.
 
 Verify with dry-run:
 ```bash
@@ -508,27 +508,29 @@ MCP (Model Context Protocol) servers give the agent access to external tools —
 }
 ```
 
-Another example — Snyk MCP with an API token from the environment:
+Another example — Snyk MCP with credentials read from the repository-root `.env` file (or from pre-existing shell environment variables, which take precedence):
 
 ```json
 {
-  "id": "sonnet-with-snyk",
-  "name": "Claude Sonnet 4.6 + Snyk",
-  "model": "claude-sonnet-4-6",
+  "id": "haiku-with-snyk",
+  "name": "Claude Haiku 4.5 + Snyk MCP (default effort)",
+  "model": "claude-haiku-4-5",
+  "effort": "default",
   "maxTurns": 30,
   "mcpServers": {
-    "snyk": {
+    "Snyk": {
       "command": "npx",
-      "args": ["snyk-mcp"],
+      "args": ["-y", "snyk@latest", "mcp", "-t", "stdio"],
       "env": {
-        "SNYK_TOKEN": "${SNYK_TOKEN}"
+        "SNYK_TOKEN": "${SNYK_TOKEN}",
+        "SNYK_CFG_ORG": "${SNYK_CFG_ORG}"
       }
     }
   }
 }
 ```
 
-> **Note:** Environment variable interpolation in `env` values is handled by the Agent SDK at runtime. Make sure the variable is set in your shell before running.
+> **Note:** The harness loads the ignored root `.env` file and resolves `${NAME}` values before starting the MCP process. Missing variables fail the run with the variable name, never its value.
 
 ### How MCP tool permissions work
 
@@ -672,7 +674,7 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `id` | Yes | `string` | Unique identifier. Used in `--config` CLI filter. |
 | `name` | Yes | `string` | Human-readable label shown in console output and result files. |
 | `model` | Yes | `string` | Anthropic model ID, e.g. `"claude-opus-4-6"`, `"claude-sonnet-4-6"`, `"claude-haiku-4-5"`. |
-| `effort` | No | `"low"` \| `"medium"` \| `"high"` \| `"max"` | Reasoning effort level. Defaults to `"high"`. `"max"` is Opus 4.6 only. |
+| `effort` | No | `"default"` \| `"low"` \| `"medium"` \| `"high"` \| `"max"` | Reasoning effort level. Defaults to `"high"` when omitted. `"default"` is a harness sentinel that omits the SDK effort option for models without configurable effort. Model availability varies. |
 | `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
 | `mcpServers` | No | `object` | Map of MCP server name → `MCPServerConfig`. Omit for a bare model run. |

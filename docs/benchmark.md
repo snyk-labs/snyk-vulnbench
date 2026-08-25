@@ -366,13 +366,13 @@ interface ModelRunConfig {
   id: string;
   name: string;
   model: string;                           // e.g. "claude-opus-4-6"
-  effort?: EffortLevel;                    // "low" | "medium" | "high" | "max" — defaults to "high"
+  effort?: EffortLevel;                    // "default" | "low" | "medium" | "high" | "max"
   thinking?: ThinkingConfig;               // defaults to { type: "adaptive" }
   mcpServers?: Record<string, MCPServer>;  // optional: MCP tool servers
   maxTurns?: number;
 }
 
-// EffortLevel = "low" | "medium" | "high" | "max"
+// EffortLevel = "default" | "low" | "medium" | "high" | "max"
 // ThinkingConfig = { type: "adaptive" } | { type: "enabled"; budgetTokens?: number } | { type: "disabled" }
 
 // Command-based: runs a CLI tool (SAST scanner, etc.)
@@ -422,6 +422,7 @@ Two parameters control how deeply Claude reasons during a benchmark run:
 | `"medium"` | Moderate thinking | |
 | `"high"` | Deep reasoning | **Yes** (default if omitted) |
 | `"max"` | Maximum effort (Opus 4.6 only) | |
+| `"default"` | Harness sentinel that omits the Agent SDK effort option and uses the model default | |
 
 **`thinking`** — Controls Claude's extended thinking (chain-of-thought) mode:
 
@@ -706,7 +707,7 @@ interface EvalResult {
   groundTruth: "v1" | "attacker-reachable";
   primaryMetric: "f1" | "attacker-reachable-vulnerability-recall" | "fix-rate";
   runConfigType: "model" | "command"; // distinguishes Agent SDK runs from SAST tool runs
-  effort: EffortLevel | null;      // "low" | "medium" | "high" | "max" — null for command runs
+  effort: EffortLevel | null;      // "default" | "low" | "medium" | "high" | "max" — null for command runs
   thinking: ThinkingConfig | null; // { type: "adaptive" } etc. — null for command runs
   score: number;           // 0.0–1.0
   metrics: BenchmarkMetrics; // tokens, time, tool calls
@@ -1318,7 +1319,7 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 
 | Metric | Report line | JSONL field | What it means |
 |---|---|---|---|
-| **Effort** | `Effort      :  high  (thinking: adaptive)` | `effort` | Reasoning effort level (`"low"` / `"medium"` / `"high"` / `"max"`). Null for command runs. |
+| **Effort** | `Effort      :  high  (thinking: adaptive)` | `effort` | Reasoning effort level (`"default"` / `"low"` / `"medium"` / `"high"` / `"max"`). `"default"` delegates to Claude Code; null is for command runs. |
 | **Thinking** | Shown inline with effort | `thinking` | Extended thinking config (`{ type: "adaptive" }` / `{ type: "enabled", budgetTokens: N }` / `{ type: "disabled" }`). Null for command runs. |
 
 #### Session metrics (all eval types)

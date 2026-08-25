@@ -89,5 +89,6 @@ function emptyMetrics(sessionStart: number): BenchmarkMetrics {
     toolCalls: [],
     toolStats: {},
     filesScanned: [],
+    mcp: { configuredServers: [], serverStatuses: [], advertisedTools: [], calls: [] },
   };
 }

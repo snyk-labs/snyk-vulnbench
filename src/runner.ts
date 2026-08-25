@@ -1,6 +1,65 @@
 import { query, type HookCallback } from "@anthropic-ai/claude-agent-sdk";
-import { dirname } from "path";
-import type { EvalTask, ModelRunConfig, RunOutput, BenchmarkMetrics, ToolCallRecord } from "./types.js";
+import { createHash } from "crypto";
+import { dirname, isAbsolute, relative, resolve, sep } from "path";
+import type {
+  EvalTask,
+  McpTelemetry,
+  ModelRunConfig,
+  RunOutput,
+  BenchmarkMetrics,
+  ToolCallRecord,
+} from "./types.js";
+
+const ENV_REFERENCE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+
+function resolveMcpServers(
+  mcpServers: ModelRunConfig["mcpServers"],
+): ModelRunConfig["mcpServers"] {
+  if (!mcpServers) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(mcpServers).map(([serverName, server]) => {
+      if (!server.env) return [serverName, server];
+
+      const env = Object.fromEntries(
+        Object.entries(server.env).map(([key, value]) => [
+          key,
+          value.replace(ENV_REFERENCE, (_match, variable: string) => {
+            const resolved = process.env[variable];
+            if (resolved === undefined) {
+              throw new Error(
+                `MCP server "${serverName}" requires environment variable "${variable}", but it is not set`,
+              );
+            }
+            return resolved;
+          }),
+        ]),
+      );
+
+      return [serverName, { ...server, env }];
+    }),
+  );
+}
+
+function serialiseForTelemetry(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? "";
+  } catch {
+    return String(value);
+  }
+}
+
+function pathScope(input: unknown, cwd: string): "fixture" | "outside-fixture" | undefined {
+  if (!input || typeof input !== "object" || typeof (input as { path?: unknown }).path !== "string") {
+    return undefined;
+  }
+
+  const path = (input as { path: string }).path;
+  const fromFixture = relative(cwd, resolve(cwd, path));
+  return fromFixture === "" || (!fromFixture.startsWith(`..${sep}`) && fromFixture !== ".." && !isAbsolute(fromFixture))
+    ? "fixture"
+    : "outside-fixture";
+}
 
 /**
  * Runs an eval task using the Claude Agent SDK and collects benchmark metrics.
@@ -14,6 +73,12 @@ export async function runTask(
   const toolCalls: ToolCallRecord[] = [];
   const toolStartTimes = new Map<string, number>();
   const filesScannedSet = new Set<string>();
+  const mcpTelemetry: McpTelemetry = {
+    configuredServers: Object.keys(config.mcpServers ?? {}),
+    serverStatuses: [],
+    advertisedTools: [],
+    calls: [],
+  };
   // Manual per-turn accumulation (fallback when SDKResultMessage.usage is unavailable)
   let accInputTokens = 0;
   let accOutputTokens = 0;
@@ -42,8 +107,22 @@ export async function runTask(
     const tool = (input as any).tool_name ?? "unknown";
     const startTime = toolStartTimes.get(id) ?? Date.now();
     const inputTokensEst = estimateTokens((input as any).tool_input);
-    const outputTokensEst = estimateTokens((input as any).tool_response ?? (input as any).tool_result);
-    toolCalls.push({ tool, durationMs: Date.now() - startTime, inputTokensEst, outputTokensEst });
+    const output = (input as any).tool_response ?? (input as any).tool_result;
+    const outputTokensEst = estimateTokens(output);
+    const durationMs = Date.now() - startTime;
+    toolCalls.push({ tool, durationMs, inputTokensEst, outputTokensEst });
+    if (tool.startsWith("mcp__")) {
+      const serialisedOutput = serialiseForTelemetry(output);
+      const toolInput = (input as any).tool_input;
+      mcpTelemetry.calls.push({
+        tool,
+        durationMs,
+        inputKeys: toolInput && typeof toolInput === "object" ? Object.keys(toolInput).sort() : [],
+        ...(pathScope(toolInput, cwd) && { pathScope: pathScope(toolInput, cwd) }),
+        outputBytes: Buffer.byteLength(serialisedOutput),
+        outputSha256: createHash("sha256").update(serialisedOutput).digest("hex"),
+      });
+    }
     // Track unique files touched by filesystem tools
     if (tool === "Read" || tool === "Write" || tool === "Edit") {
       const filePath = (input as any).tool_input?.file_path;
@@ -62,20 +141,25 @@ export async function runTask(
   const lastUsagePerSession = new Map<string | null, string>();
 
   try {
-    const effort = config.effort ?? "high";
+    const effort = config.effort === "default" ? undefined : config.effort ?? "high";
     const thinking = config.thinking ?? { type: "adaptive" as const };
+    const mcpServers = resolveMcpServers(config.mcpServers);
+    // Temporary integration probe before prompt overrides become a run-config feature.
+    const prompt = config.id === "haiku-4-5-default-with-snyk-mcp"
+      ? `${task.prompt}\n\nAlways run snyk_code_scan tool to find security issues`
+      : task.prompt;
 
     for await (const message of query({
-      prompt: task.prompt,
+      prompt,
       options: {
         cwd,
         model: config.model,
         maxTurns: task.maxTurns ?? config.maxTurns ?? 30,
-        effort,
+        ...(effort && { effort }),
         thinking,
         allowedTools: [
           "Read", "Glob", "Grep", "Bash", "Write", "Edit",
-          ...Object.keys(config.mcpServers ?? {}).map((name) => `mcp__${name}__*`),
+          ...Object.keys(mcpServers ?? {}).map((name) => `mcp__${name}__*`),
         ],
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
@@ -85,7 +169,10 @@ export async function runTask(
             denyRead: [dirname(cwd)],
           },
         },
-        mcpServers: config.mcpServers,
+        mcpServers,
+        // Benchmark a config's declared tool set only; user/project connectors
+        // would otherwise leak unrelated MCP tools into the agent context.
+        strictMcpConfig: true,
         systemPrompt: task.systemPrompt,
         hooks: {
           PreToolUse: [{ matcher: ".*", hooks: [preToolHook] }],
@@ -118,6 +205,28 @@ export async function runTask(
         }
       }
 
+      if (message.type === "system" && (message as any).subtype === "init") {
+        const init = message as any;
+        const configuredServers = new Set(mcpTelemetry.configuredServers);
+        mcpTelemetry.serverStatuses = Array.isArray(init.mcp_servers)
+          ? init.mcp_servers
+            .filter((server: unknown): server is { name: string; status: string } =>
+              typeof server === "object"
+              && server !== null
+              && typeof (server as { name?: unknown }).name === "string"
+              && typeof (server as { status?: unknown }).status === "string"
+            )
+            .filter((server: { name: string; status: string }) => configuredServers.has(server.name))
+            .map((server: { name: string; status: string }) => ({ name: server.name, status: server.status }))
+          : [];
+        mcpTelemetry.advertisedTools = Array.isArray(init.tools)
+          ? init.tools.filter((tool: unknown): tool is string =>
+            typeof tool === "string"
+            && mcpTelemetry.configuredServers.some((server) => tool.startsWith(`mcp__${server}__`))
+          )
+          : [];
+      }
+
       if ("result" in message) {
         const result = message as any;
         if (result.result) finalText = result.result;
@@ -138,14 +247,14 @@ export async function runTask(
   } catch (err) {
     return {
       finalText,
-      metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet }),
+      metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
       error: String(err),
     };
   }
 
   return {
     finalText,
-    metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet }),
+    metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
   };
 }
 
@@ -167,6 +276,7 @@ interface BuildMetricsInput {
   resultNumTurns: number | null;
   toolCalls: ToolCallRecord[];
   filesScannedSet: Set<string>;
+  mcpTelemetry: McpTelemetry;
 }
 
 function buildMetrics(input: BuildMetricsInput): BenchmarkMetrics {
@@ -199,5 +309,6 @@ function buildMetrics(input: BuildMetricsInput): BenchmarkMetrics {
     toolCalls: input.toolCalls,
     toolStats,
     filesScanned: [...input.filesScannedSet],
+    mcp: input.mcpTelemetry,
   };
 }

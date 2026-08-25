@@ -142,6 +142,17 @@ export function printResult(result: EvalResult): void {
   console.log(metricLine("Time", `${durationSec}s`));
   console.log(metricLine("Turns", String(m.totalTurns)));
   console.log(metricLine("Files", String(m.filesScanned.length)));
+  if (m.mcp.configuredServers.length > 0) {
+    const statuses = m.mcp.serverStatuses.length > 0
+      ? m.mcp.serverStatuses.map(({ name, status }) => `${name}: ${status}`).join(", ")
+      : "not reported";
+    console.log(metricLine("MCP status", statuses));
+    console.log(metricLine("MCP tools", `${m.mcp.advertisedTools.length} advertised`));
+    const calls = m.mcp.calls.length > 0
+      ? m.mcp.calls.map((call) => `${call.tool} (${call.durationMs}ms)`).join(", ")
+      : "none";
+    console.log(metricLine("MCP calls", calls));
+  }
 
   const totalTokens = m.totalLogicalInputTokens + m.totalOutputTokens;
   if (totalTokens > 0) {

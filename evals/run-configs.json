@@ -35,6 +35,23 @@
     "maxTurns": 30
   },
   {
+    "id": "haiku-4-5-default-with-snyk-mcp",
+    "name": "Claude Haiku 4.5 + Snyk MCP (default effort)",
+    "model": "claude-haiku-4-5",
+    "effort": "default",
+    "maxTurns": 30,
+    "mcpServers": {
+      "Snyk": {
+        "command": "npx",
+        "args": ["-y", "snyk@latest", "mcp", "-t", "stdio"],
+        "env": {
+          "SNYK_TOKEN": "${SNYK_TOKEN}",
+          "SNYK_CFG_ORG": "${SNYK_CFG_ORG}"
+        }
+      }
+    }
+  },
+  {
     "type": "command",
     "id": "snyk-code",
     "name": "Snyk Code SAST",
