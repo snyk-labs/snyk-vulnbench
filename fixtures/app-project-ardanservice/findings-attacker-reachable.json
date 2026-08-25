@@ -1,0 +1,168 @@
+{
+  "_note": "Ground truth curated from the seeded ardanlabs/service handlers and helpers plus the Snyk Code SARIF captured in /tmp/snyk-ard.json. Each row lists the untrusted-request source at the handler and the vulnerable helper sink. Local exploit walkthroughs live in POC.md.",
+  "description": "Ardan Labs sales service with attacker-reachable department search, DNS diagnostic, webhook probe, audit report download, and preferences return flows.",
+  "vulnerabilities": [
+    {
+      "id": "app-project-ardanservice-command-injection-dnscheck-1",
+      "type": "command-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/domain/checkapp/checkapp.go",
+          "line": 50,
+          "type": "source"
+        },
+        {
+          "file": "app/domain/checkapp/checkapp.go",
+          "line": 55
+        },
+        {
+          "file": "app/domain/checkapp/diagnostics.go",
+          "line": 8
+        },
+        {
+          "file": "app/domain/checkapp/diagnostics.go",
+          "line": 9
+        },
+        {
+          "file": "app/domain/checkapp/diagnostics.go",
+          "line": 10,
+          "type": "sink"
+        }
+      ],
+      "description": "The DNS diagnostic handler forwards a request-controlled hostname into a shell command assembled by the diagnostic helper (Snyk: go/CommandInjection).",
+      "vulnerabilityImpact": "A caller can execute additional shell commands in the sales service process through the hostname diagnostic.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-ardanservice-sql-injection-department-search-1",
+      "type": "sql-injection",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 179,
+          "type": "source"
+        },
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 184
+        },
+        {
+          "file": "app/domain/userapp/department_search.go",
+          "line": 9
+        },
+        {
+          "file": "app/domain/userapp/department_search.go",
+          "line": 10
+        },
+        {
+          "file": "app/domain/userapp/department_search.go",
+          "line": 12,
+          "type": "sink"
+        }
+      ],
+      "description": "The department search endpoint concatenates a request-controlled department string into a SQL query and executes it through sqlx.QueryxContext (Snyk: go/Sqli).",
+      "vulnerabilityImpact": "A caller can rewrite the SELECT statement executed against the users table and exfiltrate or modify tenant data.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-ardanservice-ssrf-webhooktest-1",
+      "type": "ssrf",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 158,
+          "type": "source"
+        },
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 163
+        },
+        {
+          "file": "app/domain/userapp/webhook.go",
+          "line": 8
+        },
+        {
+          "file": "app/domain/userapp/webhook.go",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The user webhook test endpoint sends a request-controlled URL to the outbound HTTP probe helper (Snyk: go/Ssrf).",
+      "vulnerabilityImpact": "A caller can make the sales service perform loopback or other internal HTTP requests and return their contents.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-ardanservice-open-redirect-preferences-return-1",
+      "type": "open-redirect",
+      "severity": "medium",
+      "filesRelated": [
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 172,
+          "type": "source"
+        },
+        {
+          "file": "app/domain/userapp/userapp.go",
+          "line": 174
+        },
+        {
+          "file": "app/domain/userapp/redirect.go",
+          "line": 5
+        },
+        {
+          "file": "app/domain/userapp/redirect.go",
+          "line": 9,
+          "type": "sink"
+        }
+      ],
+      "description": "The preferences return endpoint forwards a request-controlled return_to value to the redirect helper (Snyk: go/OR).",
+      "vulnerabilityImpact": "A crafted preferences return link can send a user from the application to an attacker-selected external site after a save flow.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    },
+    {
+      "id": "app-project-ardanservice-path-traversal-audit-report-1",
+      "type": "path-traversal",
+      "severity": "high",
+      "filesRelated": [
+        {
+          "file": "app/domain/auditapp/auditapp.go",
+          "line": 61,
+          "type": "source"
+        },
+        {
+          "file": "app/domain/auditapp/auditapp.go",
+          "line": 66
+        },
+        {
+          "file": "app/domain/auditapp/reports.go",
+          "line": 10
+        },
+        {
+          "file": "app/domain/auditapp/reports.go",
+          "line": 11
+        },
+        {
+          "file": "app/domain/auditapp/reports.go",
+          "line": 12,
+          "type": "sink"
+        }
+      ],
+      "description": "The audit report download joins a request-controlled report name to the exports directory before reading it (Snyk: go/PT).",
+      "vulnerabilityImpact": "An admin caller can use relative path segments to read files outside the intended audit exports directory.",
+      "codeFlowMultiLine": "yes",
+      "codeFlowCrossFile": "yes",
+      "codeFlowCrossService": "no"
+    }
+  ]
+}
