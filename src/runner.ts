@@ -14,6 +14,7 @@ const ENV_REFERENCE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
 
 function resolveMcpServers(
   mcpServers: ModelRunConfig["mcpServers"],
+  environment: NodeJS.ProcessEnv,
 ): ModelRunConfig["mcpServers"] {
   if (!mcpServers) return undefined;
 
@@ -25,7 +26,7 @@ function resolveMcpServers(
         Object.entries(server.env).map(([key, value]) => [
           key,
           value.replace(ENV_REFERENCE, (_match, variable: string) => {
-            const resolved = process.env[variable];
+            const resolved = environment[variable];
             if (resolved === undefined) {
               throw new Error(
                 `MCP server "${serverName}" requires environment variable "${variable}", but it is not set`,
@@ -143,7 +144,8 @@ export async function runTask(
   try {
     const effort = config.effort === "default" ? undefined : config.effort ?? "high";
     const thinking = config.thinking ?? { type: "adaptive" as const };
-    const mcpServers = resolveMcpServers(config.mcpServers);
+    const benchmarkEnv = process.env;
+    const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
     // Temporary integration probe before prompt overrides become a run-config feature.
     const prompt = config.id === "haiku-4-5-default-with-snyk-mcp"
       ? `${task.prompt}\n\nAlways run snyk_code_scan tool to find security issues`
@@ -154,6 +156,7 @@ export async function runTask(
       options: {
         cwd,
         model: config.model,
+        env: benchmarkEnv,
         maxTurns: task.maxTurns ?? config.maxTurns ?? 30,
         ...(effort && { effort }),
         thinking,

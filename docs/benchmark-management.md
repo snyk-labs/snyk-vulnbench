@@ -508,7 +508,7 @@ MCP (Model Context Protocol) servers give the agent access to external tools —
 }
 ```
 
-Another example — Snyk MCP with credentials read from the repository-root `.env` file (or from pre-existing shell environment variables, which take precedence):
+Another example — Snyk MCP with credentials read from the repository-root `.env` file:
 
 ```json
 {
@@ -530,7 +530,7 @@ Another example — Snyk MCP with credentials read from the repository-root `.en
 }
 ```
 
-> **Note:** The harness loads the ignored root `.env` file and resolves `${NAME}` values before starting the MCP process. Missing variables fail the run with the variable name, never its value.
+> **Note:** The harness starts benchmarks in an isolated worker. For every key declared in the ignored root `.env`, that file overrides an inherited shell value before `${NAME}` values are resolved for the MCP process. Other runtime variables, including `PATH`, `HOME`, and Claude OAuth configuration, are preserved. Missing variables fail the run with the variable name, never its value.
 
 ### How MCP tool permissions work
 

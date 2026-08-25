@@ -34,7 +34,10 @@ export async function runCommandTask(
 
   let stdout: string;
   try {
-    const result = await execFileAsync(program, args, { maxBuffer: 10 * 1024 * 1024 });
+    const result = await execFileAsync(program, args, {
+      env: process.env,
+      maxBuffer: 10 * 1024 * 1024,
+    });
     stdout = result.stdout;
   } catch (err: any) {
     // `snyk code test` exits non-zero when findings are found — this is expected.

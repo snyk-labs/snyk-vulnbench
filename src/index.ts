@@ -15,6 +15,7 @@ import { printResult, printRunProgress, printConfigHeader, printSummaryTable, sa
 import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
 import { runPreflight } from "./preflight.js";
 import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
+import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
@@ -22,17 +23,6 @@ import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, C
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
 const TMP_DIR = resolve(__dirname, "../.tmp-fixtures");
-const DOTENV_PATH = resolve(__dirname, "../.env");
-
-// Load locally supplied credentials without committing them. Existing process
-// environment variables retain precedence over values in the file.
-try {
-  process.loadEnvFile(DOTENV_PATH);
-} catch (error) {
-  if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-    throw error;
-  }
-}
 
 // ─── CLI Argument Parsing ─────────────────────────────────────────────────────
 
@@ -277,7 +267,14 @@ async function main() {
   console.log(`Results saved to: ${outputPath}\n`);
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err);
-  process.exit(1);
-});
+if (isIsolatedBenchmarkWorker()) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
+} else {
+  runInIsolatedBenchmarkWorker().catch((err) => {
+    console.error("Failed to start isolated benchmark worker:", err);
+    process.exit(1);
+  });
+}

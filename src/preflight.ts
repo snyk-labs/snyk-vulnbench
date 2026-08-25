@@ -1,6 +1,6 @@
 import { execFileSync } from "child_process";
 import { styleText } from "node:util";
-import type { RunConfig, CommandRunConfig } from "./types.js";
+import type { RunConfig, CommandRunConfig, ModelRunConfig } from "./types.js";
 
 interface CheckResult {
   ok: boolean;
@@ -10,7 +10,8 @@ interface CheckResult {
 
 /**
  * Runs preflight health checks for the tools required by the selected configs.
- * Model configs need Claude Code CLI; command configs containing "snyk" need the Snyk CLI.
+ * Model configs need Claude Code CLI; Snyk command and MCP configs validate
+ * the credentials their configured Snyk process will use.
  * Prints a summary and exits non-zero if any required check fails.
  */
 export function runPreflight(configs: RunConfig[]): void {
@@ -18,6 +19,7 @@ export function runPreflight(configs: RunConfig[]): void {
   const needsSnyk = configs.some(
     (c) => c.type === "command" && (c as CommandRunConfig).command.startsWith("snyk"),
   );
+  const needsSnykMcp = configs.some(usesSnykMcp);
 
   const checks: CheckResult[] = [];
 
@@ -28,7 +30,11 @@ export function runPreflight(configs: RunConfig[]): void {
 
   if (needsSnyk) {
     checks.push(checkSnykInstalled());
-    checks.push(checkSnykAuth());
+    checks.push(checkSnykAuth("snyk", []));
+  }
+
+  if (needsSnykMcp) {
+    checks.push(checkSnykAuth("npx", ["-y", "snyk@latest"]));
   }
 
   printChecks(checks);
@@ -90,23 +96,25 @@ function checkSnykInstalled(): CheckResult {
   }
 }
 
-function checkSnykAuth(): CheckResult {
+function usesSnykMcp(config: RunConfig): boolean {
+  if (config.type === "command") return false;
+
+  return Object.entries((config as ModelRunConfig).mcpServers ?? {}).some(([name, server]) =>
+    name.toLowerCase() === "snyk"
+    || server.command.toLowerCase().includes("snyk")
+    || server.args?.some((arg) => arg.toLowerCase().includes("snyk")) === true
+  );
+}
+
+function checkSnykAuth(program: string, prefixArgs: string[]): CheckResult {
   try {
-    const token = run("snyk", ["config", "get", "api"]).trim();
-    if (token && token.length > 0 && !/no api token/i.test(token)) {
-      const masked = token.length > 8 ? token.slice(0, 4) + "…" + token.slice(-4) : "****";
-      return { ok: true, label: "Snyk API token", detail: `configured (${masked})` };
-    }
-    return {
-      ok: false,
-      label: "Snyk API token",
-      detail: "No API token set. Run: snyk auth  (or: snyk config set api=<TOKEN>)",
-    };
+    const identity = run(program, [...prefixArgs, "whoami"]).trim();
+    return { ok: true, label: "Snyk authentication", detail: identity || "authenticated" };
   } catch {
     return {
       ok: false,
-      label: "Snyk API token",
-      detail: "No API token set. Run: snyk auth  (or: snyk config set api=<TOKEN>)",
+      label: "Snyk authentication",
+      detail: "Authentication failed. Set a valid SNYK_TOKEN in the benchmark .env file.",
     };
   }
 }
@@ -118,6 +126,7 @@ function run(cmd: string, args: string[]): string {
     encoding: "utf-8",
     timeout: 15_000,
     stdio: ["ignore", "pipe", "pipe"],
+    env: process.env,
   });
 }
 
