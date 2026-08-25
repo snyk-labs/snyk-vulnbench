@@ -2,7 +2,7 @@
 name: benchmark-run
 description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
 license: MIT
-compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs, Snyk CLI authenticated for snyk-code config.
+compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
 metadata:
   author: snyk-vulnbench
   version: 1.0.0
@@ -21,7 +21,7 @@ Turn a natural-language benchmark request into the exact CLI command that runs i
 Read these two sources to build the current inventory:
 
 - **Task IDs** — list `evals/tasks/*.json` filenames. Each filename minus `.json` is the task ID (e.g. `js-project-tigerteam-find-vulns`).
-- **Config IDs** — read `evals/run-configs.json`. Each object's `id` field is a config ID.
+- **Config IDs** — read `evals/run-configs.json`. Each object's `id` field is a config ID. For model configs, also note `mcpServers` and `promptTemplateId`, because they define the available tools and any required tool-use guidance.
 
 This step is necessary because tasks and configs change over time — never hard-code the list.
 
@@ -60,6 +60,7 @@ When the user specifies a numeric range like "1 to 3" or "1-3", expand it into t
 | "sonnet high" or "sonnet 4.6 high" | `--config sonnet-4-6-high` |
 | "sonnet medium" or "sonnet 4.6 medium" | `--config sonnet-4-6-medium` |
 | "snyk" or "snyk code" | `--config snyk-code` |
+| "haiku with snyk MCP" or "haiku snyk" | `--config haiku-4-5-default-with-snyk-mcp` |
 | "opus and snyk" | `--config opus-4-6-high,opus-4-6-medium,snyk-code` |
 | "all models" or "all configs" | omit `--config` (runs all) |
 | (not mentioned) | omit `--config` (runs all) |
@@ -117,7 +118,8 @@ After the benchmark completes:
 
 1. Read the summary table from the command output.
 2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time.
-3. Note the results file path (printed at the end of output).
+3. For a model config with MCP servers, report `MCP status` and `MCP calls` from the console. In JSONL, verify `metrics.mcp.serverStatuses` and `metrics.mcp.toolStats`; a connected server with an empty `toolStats` was available but not invoked.
+4. Note the results file path (printed at the end of output).
 
 If the user wants a detailed report or writeup, suggest using the `benchmark-report-writer` skill.
 
@@ -210,7 +212,13 @@ Solution: Re-read `evals/run-configs.json` and use the correct `id` values. Show
 
 Error: `Preflight failed: N check(s) need attention`
 Cause: Claude Code CLI or Snyk CLI is not installed or not authenticated.
-Solution: Read the preflight output for which check failed. For Claude: run `claude auth login` or set `ANTHROPIC_API_KEY`. For Snyk: run `snyk auth` or `snyk config set api=<TOKEN>`. Alternatively, add `--skip-preflight` if the user wants to bypass checks.
+Solution: Read the preflight output for which check failed. For Claude: run `claude auth login` or set `ANTHROPIC_API_KEY`. For a Snyk command or MCP config, set a valid `SNYK_TOKEN` in the repository-root `.env`; the worker injects it into the run. Alternatively, add `--skip-preflight` only when the user explicitly wants to bypass checks.
+
+---
+
+Error: `MCP status` reports connected but `MCP calls` is `none`
+Cause: The MCP server started successfully, but the agent chose not to call it.
+Solution: Inspect the selected `promptTemplateId`. The default template preserves the task prompt; use a config with `"promptTemplateId": "snyk-mcp"` when measuring an explicitly Snyk-grounded review. Confirm the outcome in `metrics.mcp.toolStats`, not just the connection status.
 
 ---
 

@@ -88,6 +88,10 @@ pnpm run benchmark:v2:snyk
 
 Results are written to `results/benchmark-<timestamp>.jsonl`. See the [benchmark guide](docs/benchmark.md) for the pipeline and scoring model, and the [management guide](docs/benchmark-management.md) for adding tasks, fixtures, and configurations.
 
+### MCP-backed model runs
+
+Model configs can expose security tools through `mcpServers`. For Snyk MCP runs, put `SNYK_TOKEN` and `SNYK_CFG_ORG` in the ignored repository-root `.env`; the benchmark worker makes values declared there authoritative over inherited shell values. Results include concise `metrics.mcp` connection and tool-invocation summaries. See the [management guide](docs/benchmark-management.md#adding-an-mcp-server-config) for the run-config schema and prompt-template options.
+
 ## Repository map
 
 ```text

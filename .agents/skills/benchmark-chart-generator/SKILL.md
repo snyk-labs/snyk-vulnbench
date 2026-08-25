@@ -701,8 +701,9 @@ specs from aggregate rows: `"config-aggregate"` for the report headline and
 | `taskId`, `taskName` | string | Task identifier and display name |
 | `runConfigId`, `runConfigName` | string | Config identifier and display name |
 | `runConfigType` | `"model"` or `"command"` | Distinguishes AI agent runs from SAST tool runs |
-| `effort` | `"low"\|"medium"\|"high"\|"max"\|null` | Reasoning effort level. Null for command runs. |
+| `effort` | `"default"\|"low"\|"medium"\|"high"\|"max"\|null` | Reasoning effort level. `"default"` delegates to Claude Code; null is for command runs. |
 | `thinking` | `ThinkingConfig\|null` | Extended thinking config: `{type:"adaptive"}`, `{type:"enabled",budgetTokens:N}`, or `{type:"disabled"}`. Null for command runs. |
+| `promptTemplateId` | `"default"\|"snyk-mcp"\|null` | Resolved user-prompt template. Use it to distinguish unguided and explicitly MCP-grounded model runs. |
 | `score` | number (0-1) | Primary score named by `primaryMetric`: V1 F1, V2 attacker-reachable recall, or fix rate |
 | `primaryMetric` | string | Defines the top-level `score` semantics |
 | `timestamp` | string (ISO 8601) | When this run happened |
@@ -720,6 +721,7 @@ specs from aggregate rows: `"config-aggregate"` for the report headline and
 | `metrics.totalTurns` | number | API round-trips |
 | `metrics.toolStats` | object | Per-tool `{count, totalDurationMs, totalInputTokensEst, totalOutputTokensEst}` |
 | `metrics.filesScanned` | string[] | Unique file paths touched |
+| `metrics.mcp` | object | Configured/connected MCP servers, advertised-tool count, and aggregate MCP tool invocation counts without tool payloads |
 
 ### Find-vulns details (when `details.recall` exists)
 

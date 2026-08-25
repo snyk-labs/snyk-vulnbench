@@ -123,6 +123,14 @@ The Agent SDK works by spawning the `claude` CLI binary as a subprocess — it d
 
 Run `claude auth status` to see which is active. Either works; no special setup is needed beyond having the CLI authenticated.
 
+## MCP Configurations and Credentials
+
+Model run configs can declare `mcpServers` and an optional `promptTemplateId`. `"default"` preserves the task prompt; `"snyk-mcp"` requires exactly one `snyk_code_scan` before the agent completes its independent review.
+
+The harness runs the benchmark in an isolated worker. For every key declared in the ignored repository-root `.env`, the `.env` value overrides an inherited shell value; all other runtime variables, including `PATH`, `HOME`, and Claude OAuth configuration, are preserved. Put `SNYK_TOKEN` and `SNYK_CFG_ORG` there for Snyk MCP runs.
+
+`strictMcpConfig: true` ensures only MCP servers declared by the run config are exposed. Each model run records concise `metrics.mcp` JSONL telemetry: configured/connected servers, advertised-tool count, and aggregate MCP tool invocation counts—never raw MCP output.
+
 ## Running Benchmarks
 
 ```bash
