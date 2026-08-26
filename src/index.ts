@@ -1,5 +1,3 @@
-import { cpSync, mkdirSync, rmSync } from "fs";
-import { join } from "path";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 import {
@@ -16,13 +14,13 @@ import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
 import { DEFAULT_PROMPT_TEMPLATE_ID } from "./prompt-templates.js";
 import { getRunner } from "./runners/registry.js";
+import { createIsolatedWorkspace } from "./isolated-workspace.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
-const TMP_DIR = resolve(__dirname, "../.tmp-fixtures");
 
 // ─── CLI Argument Parsing ─────────────────────────────────────────────────────
 
@@ -127,22 +125,15 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     };
   }
 
-  let cwd = task.fixture;
-  let cleanupTmp = false;
-
-  if (!isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
-    // Work on a temp copy so we don't modify the original fixture
-    cwd = join(TMP_DIR, `${task.id}-${config.id}-${Date.now()}`);
-    mkdirSync(cwd, { recursive: true });
-    cpSync(task.fixture, cwd, { recursive: true });
-    cleanupTmp = true;
-  }
+  const workspace = createIsolatedWorkspace(task.fixture);
+  const cwd = workspace.projectDir;
 
   try {
     const { finalText, metrics, error } = await runner.run({
       task,
       config,
-      cwd: isCommand ? task.fixture : cwd,
+      cwd,
+      workspace,
     });
 
     if (error) {
@@ -167,13 +158,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       return { ...base, score, metrics, details };
     }
   } finally {
-    if (cleanupTmp) {
-      try {
-        rmSync(cwd, { recursive: true, force: true });
-      } catch {
-        // ignore cleanup errors
-      }
-    }
+    workspace.cleanup();
   }
 }
 
@@ -232,8 +217,6 @@ async function main() {
   if (!opts.skipPreflight) {
     runPreflight(configs);
   }
-
-  mkdirSync(TMP_DIR, { recursive: true });
 
   const results: EvalResult[] = [];
   let runIndex = 0;

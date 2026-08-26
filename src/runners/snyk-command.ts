@@ -14,7 +14,11 @@ export const snykCommandRunner: BenchmarkRunner = {
     return config.type === "command";
   },
   describe(config: RunConfig): string {
-    return `[sast] ${(config as CommandRunConfig).command}`;
+    const commandConfig = config as CommandRunConfig;
+    const invocation = commandConfig.executable
+      ? [commandConfig.executable, ...(commandConfig.args ?? [])].join(" ")
+      : commandConfig.command;
+    return `[sast] ${invocation}`;
   },
   run({ task, config, cwd }: RunnerContext) {
     return runCommandTask(task, config as CommandRunConfig, cwd);

@@ -265,10 +265,16 @@ export interface CommandRunConfig {
   type: "command";
   id: string;
   name: string;
-  /** e.g. "snyk code test {fixturePath} --json" */
-  command: string;
+  /** Executable invoked directly without a shell, e.g. "snyk". */
+  executable?: string;
+  /** Argument vector; `{fixturePath}` is substituted within each argument. */
+  args?: string[];
+  /** @deprecated Legacy space-delimited command. Prefer executable + args. */
+  command?: string;
   /** Parser key — must match an entry in the parser registry */
   parser: string;
+  /** Hard wall-clock deadline for the command. Defaults to ten minutes. */
+  timeoutMs?: number;
 }
 
 export type RunConfig = ModelRunConfig | CommandRunConfig;

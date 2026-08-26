@@ -56,7 +56,8 @@
     "type": "command",
     "id": "snyk-code",
     "name": "Snyk Code SAST",
-    "command": "snyk code test {fixturePath} --json",
+    "executable": "snyk",
+    "args": ["code", "test", "{fixturePath}", "--json"],
     "parser": "snyk-code"
   }
 ]

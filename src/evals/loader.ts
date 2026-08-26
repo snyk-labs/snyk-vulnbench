@@ -613,8 +613,13 @@ export function loadRunConfigs(): RunConfig[] {
       throw new Error(`Run config missing required fields "id" and "name": ${JSON.stringify(entry)}`);
     }
     if (entry.type === "command") {
-      if (!entry.command || !entry.parser) {
-        throw new Error(`Command config "${entry.id}" missing required fields: command, parser`);
+      if ((!entry.executable && !entry.command) || !entry.parser) {
+        throw new Error(
+          `Command config "${entry.id}" requires parser and either executable or command`,
+        );
+      }
+      if (entry.args !== undefined && !Array.isArray(entry.args)) {
+        throw new Error(`Command config "${entry.id}" field "args" must be an array`);
       }
       return entry as unknown as CommandRunConfig;
     } else {

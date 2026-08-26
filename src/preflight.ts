@@ -17,7 +17,12 @@ interface CheckResult {
 export function runPreflight(configs: RunConfig[]): void {
   const needsClaude = configs.some((c) => c.type !== "command");
   const needsSnyk = configs.some(
-    (c) => c.type === "command" && (c as CommandRunConfig).command.startsWith("snyk"),
+    (c) => {
+      if (c.type !== "command") return false;
+      const command = c as CommandRunConfig;
+      return command.executable === "snyk"
+        || command.command?.startsWith("snyk") === true;
+    },
   );
   const needsSnykMcp = configs.some(usesSnykMcp);
 

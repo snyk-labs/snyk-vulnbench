@@ -1,9 +1,6 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import type { EvalTask, CommandRunConfig, BenchmarkMetrics, RunOutput } from "./types.js";
 import { getParser } from "./parsers/index.js";
-
-const execFileAsync = promisify(execFile);
+import { executeProcess, ProcessExecutionError } from "./process-executor.js";
 
 /**
  * Runs a SAST or other CLI tool against the fixture path and returns findings
@@ -23,38 +20,48 @@ export async function runCommandTask(
   const parserKey = task.groundTruth === "attacker-reachable" && config.parser === "snyk-code"
     ? "snyk-code-attacker-reachable"
     : config.parser;
-  const parser = getParser(parserKey);
   const sessionStart = Date.now();
 
-  // Substitute {fixturePath} as a whole token — handles paths with spaces correctly
-  const parts = config.command.split(" ").map((part) =>
-    part === "{fixturePath}" ? fixturePath : part,
-  );
-  const [program, ...args] = parts;
-
-  let stdout: string;
+  const { program, args } = resolveCommand(config, fixturePath);
   try {
-    const result = await execFileAsync(program, args, {
+    const result = await executeProcess({
+      program,
+      args,
+      cwd: fixturePath,
       env: process.env,
-      maxBuffer: 10 * 1024 * 1024,
+      timeoutMs: config.timeoutMs ?? 10 * 60_000,
+      maxOutputBytes: 10 * 1024 * 1024,
     });
-    stdout = result.stdout;
-  } catch (err: any) {
-    // `snyk code test` exits non-zero when findings are found — this is expected.
-    // The SARIF JSON is on stdout; stderr has the CLI banner (suppressed by 2>/dev/null
-    // in manual use, but here we just ignore stderr and use stdout).
-    if (err.stdout) {
-      stdout = err.stdout;
-    } else {
-      // Genuine failure (command not found, permission error, etc.)
+    // Security scanners commonly return non-zero when findings exist. Preserve
+    // the prior behavior by accepting any exit status that produced parseable
+    // stdout, while treating empty non-zero runs as execution failures.
+    if (result.exitCode !== 0 && !result.stdout.trim()) {
       return {
         finalText: "",
         metrics: emptyMetrics(sessionStart),
-        error: err.message ?? String(err),
+        error: result.stderr.trim()
+          || `${program} exited with code ${result.exitCode}`,
       };
     }
+    return buildCommandOutput(result.stdout, parserKey, sessionStart);
+  } catch (error) {
+    const message = error instanceof ProcessExecutionError
+      ? `${error.message}${error.stderr.trim() ? `: ${error.stderr.trim()}` : ""}`
+      : String(error);
+    return {
+      finalText: "",
+      metrics: emptyMetrics(sessionStart),
+      error: message,
+    };
   }
+}
 
+function buildCommandOutput(
+  stdout: string,
+  parserKey: string,
+  sessionStart: number,
+): RunOutput {
+  const parser = getParser(parserKey);
   const findings = parser(stdout);
 
   // Format as FINDINGS_JSON block so the existing scorer works without changes
@@ -77,6 +84,30 @@ export async function runCommandTask(
       filesScanned,
     },
   };
+}
+
+export function resolveCommand(
+  config: CommandRunConfig,
+  fixturePath: string,
+): { program: string; args: string[] } {
+  if (config.executable) {
+    return {
+      program: config.executable,
+      args: (config.args ?? []).map((arg) =>
+        arg.replaceAll("{fixturePath}", fixturePath)
+      ),
+    };
+  }
+
+  if (!config.command) {
+    throw new Error(
+      `Command config "${config.id}" requires executable or legacy command`,
+    );
+  }
+  const [program, ...args] = config.command.split(" ").map((part) =>
+    part.replaceAll("{fixturePath}", fixturePath)
+  );
+  return { program, args };
 }
 
 function emptyMetrics(sessionStart: number): BenchmarkMetrics {

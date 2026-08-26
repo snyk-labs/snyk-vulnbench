@@ -3,6 +3,7 @@ import type {
   RunConfig,
   RunOutput,
 } from "../types.js";
+import type { IsolatedWorkspace } from "../isolated-workspace.js";
 
 export type RunnerKind = "model" | "command";
 
@@ -16,6 +17,7 @@ export interface RunnerContext {
   task: EvalTask;
   config: RunConfig;
   cwd: string;
+  workspace: IsolatedWorkspace;
 }
 
 /**
