@@ -7,6 +7,7 @@ import {
   primaryFindVulnsScore,
   scoreAttackerReachableFindVulns,
   scoreFindVulns,
+  scoreLocalizedFindVulns,
 } from "./scorer.js";
 import type { AggregatedConfigResult, AggregatedTaskResult, EvalResult, FindVulnsDetails, Vulnerability, VulnType } from "./types.js";
 
@@ -100,8 +101,16 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
     }
 
     const agentFindings = normalizeStoredFindings(result, result.details.agentFindings);
+    const usesLocalizedScoring =
+      task.groundTruth === "attacker-reachable"
+      && (
+        result.runnerId === "deepsec-cli"
+        || result.runConfigId.startsWith("deepsec-")
+      );
     const details = task.groundTruth === "attacker-reachable"
-      ? scoreAttackerReachableFindVulns(findingsOutput(agentFindings), task)
+      ? usesLocalizedScoring
+        ? scoreLocalizedFindVulns(findingsOutput(agentFindings), task)
+        : scoreAttackerReachableFindVulns(findingsOutput(agentFindings), task)
       : scoreFindVulns(findingsOutput(agentFindings), task);
     return {
       ...result,
@@ -109,7 +118,9 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
       fixtureMetadata: result.fixtureMetadata ?? task.fixtureMetadata,
       fixtureMetadataHash: result.fixtureMetadataHash ?? task.fixtureMetadataHash,
       primaryMetric: task.groundTruth === "attacker-reachable"
-        ? "attacker-reachable-vulnerability-recall"
+        ? usesLocalizedScoring
+          ? "localized-vulnerability-recall"
+          : "attacker-reachable-vulnerability-recall"
         : "f1",
       score: primaryFindVulnsScore(details, task.groundTruth),
       details,

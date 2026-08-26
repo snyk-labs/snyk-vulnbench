@@ -25,6 +25,7 @@ const RUNNERS_DIR = dirname(fileURLToPath(import.meta.url));
 
 export const deepSecCliRunner: BenchmarkRunner = {
   id: "deepsec-cli",
+  version: DEEPSEC_CLI_VERSION,
   kind: "command",
   capabilities: {
     findVulns: true,

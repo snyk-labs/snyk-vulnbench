@@ -2,16 +2,11 @@ import type {
   EvalTask,
   RunConfig,
   RunOutput,
+  RunnerCapabilities,
 } from "../types.js";
 import type { IsolatedWorkspace } from "../isolated-workspace.js";
 
 export type RunnerKind = "model" | "command";
-
-export interface RunnerCapabilities {
-  findVulns: boolean;
-  fixVulns: boolean;
-  mcp: boolean;
-}
 
 export interface RunnerContext {
   task: EvalTask;
@@ -27,6 +22,7 @@ export interface RunnerContext {
  */
 export interface BenchmarkRunner {
   readonly id: string;
+  readonly version?: string;
   readonly kind: RunnerKind;
   readonly capabilities: RunnerCapabilities;
   supports(config: RunConfig): boolean;

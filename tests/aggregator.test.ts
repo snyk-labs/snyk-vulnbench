@@ -100,6 +100,10 @@ function run(
     fixtureMetadataHash: "test-metadata-hash",
     runConfigId: "test-config",
     runConfigName: "Test config",
+    runnerId: "claude-code",
+    runnerVersion: null,
+    runnerCapabilities: { findVulns: true, fixVulns: true, mcp: true },
+    requestedModel: "claude-test",
     groundTruth,
     primaryMetric: groundTruth === "attacker-reachable"
       ? "attacker-reachable-vulnerability-recall"
@@ -191,5 +195,36 @@ test("task aggregation rejects mixed ground truth under one task id", () => {
       run("mixed-task", "attacker-reachable", 2, 0.5),
     ]),
     /mixes ground-truth generations/,
+  );
+});
+
+test("DeepSec localized recall stays distinct from V1 F1 in config aggregates", () => {
+  const v1 = {
+    ...run("deepsec-v1", "v1", 1, 0.5),
+    runConfigId: "deepsec",
+    runnerId: "deepsec-cli",
+    primaryMetric: "f1" as const,
+  };
+  const v2 = {
+    ...run("deepsec-v2", "attacker-reachable", 1, 0.75),
+    runConfigId: "deepsec",
+    runnerId: "deepsec-cli",
+    primaryMetric: "localized-vulnerability-recall" as const,
+  };
+
+  const aggregate = aggregateByConfig(
+    aggregateByTask([v1, v2]),
+    [v1, v2],
+  )[0];
+
+  assert.equal(aggregate.primaryMetric, null);
+  assert.equal(aggregate.score, null);
+  assert.equal(
+    aggregate.byGroundTruth["attacker-reachable"]?.primaryMetric,
+    "localized-vulnerability-recall",
+  );
+  assert.equal(
+    aggregate.byGroundTruth["attacker-reachable"]?.scoreSuite,
+    undefined,
   );
 });

@@ -31,11 +31,13 @@ import {
   structuredFindingsToFinalText,
 } from "./codex-schema.js";
 import { buildCodexMcpConfiguration } from "./codex-mcp.js";
+import { buildLandlockInvocation } from "../sandbox/landlock.js";
 
 const STRUCTURED_OUTPUT_INSTRUCTION = `For this Codex benchmark run, your final response must be a JSON object with one property named "findings". The value must be the complete findings array described by the benchmark instructions. Do not wrap the final JSON in Markdown.`;
 
 export const codexCliRunner: BenchmarkRunner = {
   id: "codex-cli",
+  version: CODEX_CLI_VERSION,
   kind: "model",
   capabilities: {
     findVulns: true,
@@ -127,15 +129,23 @@ export async function runCodexTask({
   );
 
   try {
-    const result = await executeProcess({
-      program: codexExecutable(),
+    const codexEnvironment = createCodexEnvironment(
+      workspace,
+      process.env,
+      mcpConfiguration.environmentNames,
+    );
+    const invocation = await buildLandlockInvocation(
+      workspace,
+      workspaceAccess,
+      codexExecutable(),
       args,
+      codexEnvironment,
+    );
+    const result = await executeProcess({
+      program: invocation.program,
+      args: invocation.args,
       cwd,
-      env: createCodexEnvironment(
-        workspace,
-        process.env,
-        mcpConfiguration.environmentNames,
-      ),
+      env: invocation.environment,
       stdin: prompt,
       timeoutMs: modelConfig.timeoutMs ?? 30 * 60_000,
       maxOutputBytes: 50 * 1024 * 1024,

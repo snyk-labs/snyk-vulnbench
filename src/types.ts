@@ -307,6 +307,12 @@ export interface DeepSecRunConfig {
 
 export type RunConfig = ModelRunConfig | CommandRunConfig | DeepSecRunConfig;
 
+export interface RunnerCapabilities {
+  findVulns: boolean;
+  fixVulns: boolean;
+  mcp: boolean;
+}
+
 export interface ToolCallRecord {
   tool: string;
   durationMs: number;
@@ -584,6 +590,11 @@ export interface EvalResult {
   fixtureMetadataHash: string;
   runConfigId: string;
   runConfigName: string;
+  /** Execution adapter independent of model/tool configuration identity. */
+  runnerId: string;
+  runnerVersion: string | null;
+  runnerCapabilities: RunnerCapabilities;
+  requestedModel: string | null;
   /** Ground-truth schema used to score this run. */
   groundTruth: GroundTruthKind;
   /** Defines the semantics of the top-level `score` field. */
@@ -616,6 +627,9 @@ export interface AggregatedTaskResult {
   fixtureMetadataHash: string;
   runConfigId: string;
   runConfigName: string;
+  runnerId: string;
+  runnerVersion: string | null;
+  requestedModel: string | null;
   runConfigType: "model" | "command";
   groundTruth: GroundTruthKind;
   primaryMetric: PrimaryMetricKind;
@@ -657,6 +671,9 @@ export interface AggregatedGroundTruthResult {
 export interface AggregatedConfigResult {
   runConfigId: string;
   runConfigName: string;
+  runnerId: string;
+  runnerVersion: string | null;
+  requestedModel: string | null;
   runConfigType: "model" | "command";
   /** Resolved user-prompt template used by this config. Null for command runs. */
   promptTemplateId: PromptTemplateId | null;

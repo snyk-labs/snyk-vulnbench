@@ -96,12 +96,22 @@ export function printResult(result: EvalResult): void {
   const totalKnown = findDetails
     ? findDetails.truePositives.length + findDetails.falseNegatives.length
     : 0;
-  const scoreContext = result.primaryMetric === "attacker-reachable-vulnerability-recall"
+  const isRecallHeadline =
+    result.primaryMetric === "attacker-reachable-vulnerability-recall"
+    || result.primaryMetric === "localized-vulnerability-recall";
+  const scoreContext = isRecallHeadline
     ? `(${findDetails?.truePositives.length ?? 0}/${totalKnown} known vulns found)`
     : undefined;
   console.log(metricLine(
     primaryMetricLabel(result.primaryMetric),
     coloredScore(result.score, scoreContext),
+  ));
+  console.log(metricLine(
+    "Runner",
+    [
+      `${result.runnerId}${result.runnerVersion ? ` ${result.runnerVersion}` : ""}`,
+      result.requestedModel,
+    ].filter(Boolean).join(" · "),
   ));
 
   if (result.effort) {
@@ -114,7 +124,7 @@ export function printResult(result: EvalResult): void {
 
   if (isFindVulns) {
     const d = findDetails!;
-    if (result.primaryMetric !== "attacker-reachable-vulnerability-recall") {
+    if (!isRecallHeadline) {
       console.log(metricLine("Recall", coloredScore(d.recall, `(${d.truePositives.length}/${totalKnown} known vulns found)`)));
     }
     console.log(metricLine("Precision", coloredScore(d.precision, `(${d.falsePositives.length} false positives)`)));
@@ -172,6 +182,12 @@ export function printResult(result: EvalResult): void {
       console.log(metricLine(
         "Cache",
         s("dim", `${m.totalCacheReadTokens.toLocaleString()} read + ${m.totalCacheCreationTokens.toLocaleString()} written  (${m.totalInputTokens.toLocaleString()} uncached)`),
+      ));
+    }
+    if ((m.totalReasoningOutputTokens ?? 0) > 0) {
+      console.log(metricLine(
+        "Reasoning",
+        `${m.totalReasoningOutputTokens!.toLocaleString()} output tokens`,
       ));
     }
   } else {

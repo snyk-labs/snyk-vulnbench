@@ -120,6 +120,14 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     fixtureMetadataHash: task.fixtureMetadataHash,
     runConfigId: config.id,
     runConfigName: config.name,
+    runnerId: runner.id,
+    runnerVersion: runner.version ?? null,
+    runnerCapabilities: runner.capabilities,
+    requestedModel: runner.id === "deepsec-cli"
+      ? (config as DeepSecRunConfig).model
+      : isCommand
+        ? null
+        : (config as ModelRunConfig).model,
     groundTruth: task.groundTruth,
     primaryMetric: primaryMetricForTask(task, runner.id),
     runConfigType,

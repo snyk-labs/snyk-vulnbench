@@ -480,6 +480,21 @@ Both `effort` and `thinking` are optional — when omitted they default to `"hig
 
 `promptTemplateId` is optional and defaults to `"default"`, which leaves the task's user prompt unchanged. Use `"snyk-mcp"` only for an MCP-backed run: it requires the agent to invoke `snyk_code_scan` once before completing its independent review.
 
+To use Codex CLI instead of the default Claude Code runner, set `runner` and an explicit timeout:
+
+```json
+{
+  "id": "codex-luna-high",
+  "name": "Codex GPT-5.6 Luna High",
+  "runner": "codex-cli",
+  "model": "gpt-5.6-luna",
+  "effort": "high",
+  "timeoutMs": 1800000
+}
+```
+
+Codex runs through the pinned native CLI, not a direct model call. The harness sends prompts on stdin and parses JSONL. On Linux, the full Codex/MCP process tree runs under an outer Landlock allowlist. Before any paid request, a model-free probe verifies that Codex can read the isolated project but cannot read a sibling path. Unsupported hosts fail closed.
+
 Verify with dry-run:
 ```bash
 pnpm run benchmark -- --dry-run
@@ -493,7 +508,7 @@ pnpm run benchmark -- --config haiku-4-5
 
 ### Adding an MCP server config
 
-MCP (Model Context Protocol) servers give the agent access to external tools — security scanners, static analysis engines, etc. This is the primary mechanism for comparing "bare" Claude vs Claude augmented with a security tool.
+MCP (Model Context Protocol) servers give general coding agents access to external tools. Both Claude Code and Codex CLI support declared MCP servers; DeepSec intentionally does not.
 
 ```json
 {
@@ -539,7 +554,7 @@ Another example — Snyk MCP with credentials read from the repository-root `.en
 
 The Agent SDK requires every tool the agent may call to be explicitly listed in `allowedTools`. MCP tools use the naming format `mcp__<server-name>__<tool-name>` — for example, a server named `"snyk"` exposing a `scan_file` tool becomes `mcp__snyk__scan_file`.
 
-**You do not need to list these manually.** The runner (`src/runner.ts`) automatically derives a wildcard entry for every MCP server in the config:
+**You do not need to list these manually.** The Claude runner derives an allowed-tool wildcard. The Codex runner replaces the effective MCP map with only declared servers, forwards exact `${NAME}` references by environment name, marks servers required, and relies on the same outer Landlock boundary inherited by the MCP subprocess.
 
 ```
 mcpServers: { "snyk": { ... } }
@@ -573,12 +588,13 @@ A **command config** runs a CLI security scanner directly against the fixture an
   "type": "command",
   "id": "snyk-code",
   "name": "Snyk Code SAST",
-  "command": "snyk code test {fixturePath} --json",
+  "executable": "snyk",
+  "args": ["code", "test", "{fixturePath}", "--json"],
   "parser": "snyk-code"
 }
 ```
 
-The `{fixturePath}` placeholder is substituted at runtime with the absolute path to the fixture directory. The `parser` value must match a key registered in `src/parsers/index.ts`.
+The `{fixturePath}` placeholder is substituted independently in each argv element with the isolated project path. Commands run with `shell: false`, bounded output, timeout handling, and process-group cleanup. The `parser` value must match a key registered in `src/parsers/index.ts`.
 
 **How it works end-to-end:**
 
@@ -614,6 +630,29 @@ pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config sonnet-4-6
 # Run SAST against all find-vulns tasks
 pnpm run benchmark -- --category find-vulns --config snyk-code
 ```
+
+### Adding a DeepSec security-harness config
+
+DeepSec is a dedicated run-config type because it orchestrates multiple CLI stages and exports durable findings rather than consuming the benchmark prompt:
+
+```json
+{
+  "type": "deepsec",
+  "id": "deepsec-codex-luna-high",
+  "name": "DeepSec + Codex GPT-5.6 Luna High",
+  "agent": "codex",
+  "model": "gpt-5.6-luna",
+  "thinkingLevel": "high",
+  "maxTurns": 30,
+  "batchSize": 5,
+  "concurrency": 1,
+  "timeoutMs": 2700000
+}
+```
+
+The adapter pins DeepSec 2.3.7, creates fresh state for every repetition, and runs `scan → process → export`. `OPEN_AI_API_KEY` from the root `.env` is exposed to the DeepSec child only as `OPENAI_API_KEY`. Do not add `mcpServers`: DeepSec controls its own agent toolset.
+
+DeepSec supports V1 and attacker-reachable tasks but uses different V2 evidence semantics. Since its export has file/line locations without source/sink labels, the primary V2 metric is `localized-vulnerability-recall` (type plus any matching curated flow location within ±2 lines), not endpoint-aware attacker-reachable recall. The two metrics are not aggregated together. DeepSec does not support fix-vulns tasks.
 
 ### Maintaining Snyk Code ruleId mappings
 
@@ -667,20 +706,22 @@ npm run report:serve -- public/2026-05-14-wpq2k
 
 ## Run Config JSON Reference
 
-Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"`.
+Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a DeepSec security-harness config.
 
 ### Model config fields (`type` absent or `"model"`)
 
 | Field | Required | Type | Description |
 |---|---|---|---|
 | `type` | No | `"model"` | Identifies this as a model config. Omitting it defaults to `"model"`. |
+| `runner` | No | `"claude-code"` \| `"codex-cli"` | Native coding-agent harness. Defaults to Claude Code. |
 | `id` | Yes | `string` | Unique identifier. Used in `--config` CLI filter. |
 | `name` | Yes | `string` | Human-readable label shown in console output and result files. |
-| `model` | Yes | `string` | Anthropic model ID, e.g. `"claude-opus-4-6"`, `"claude-sonnet-4-6"`, `"claude-haiku-4-5"`. |
-| `effort` | No | `"default"` \| `"low"` \| `"medium"` \| `"high"` \| `"max"` | Reasoning effort level. Defaults to `"high"` when omitted. `"default"` is a harness sentinel that omits the SDK effort option for models without configurable effort. Model availability varies. |
+| `model` | Yes | `string` | Model identifier accepted by the selected native runner. |
+| `effort` | No | `"default"` \| `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` \| `"max"` | Runner-native reasoning effort. Claude and Codex support different subsets. |
 | `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
 | `promptTemplateId` | No | `"default"` \| `"snyk-mcp"` | User-prompt augmentation. `"default"` preserves the task prompt; `"snyk-mcp"` requires one Snyk Code MCP scan before the independent review. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
+| `timeoutMs` | No | `number` | Parent-process wall-clock deadline for CLI-backed agents. |
 | `mcpServers` | No | `object` | Map of MCP server name → `MCPServerConfig`. Omit for a bare model run. |
 
 ### Command config fields (`type: "command"`)
@@ -690,10 +731,26 @@ Each entry in `evals/run-configs.json` is one of two shapes depending on `"type"
 | `type` | Yes | `"command"` | Identifies this as a SAST/CLI tool config. |
 | `id` | Yes | `string` | Unique identifier. Used in `--config` CLI filter. |
 | `name` | Yes | `string` | Human-readable label shown in console output and result files. |
-| `command` | Yes | `string` | Command template. Use `{fixturePath}` as a placeholder for the fixture directory path. |
+| `executable` | Yes | `string` | Executable launched directly without a shell. |
+| `args` | No | `string[]` | Argument vector. `{fixturePath}` is replaced in each argument. |
 | `parser` | Yes | `string` | Parser key from the registry in `src/parsers/index.ts` (e.g. `"snyk-code"`). |
+| `timeoutMs` | No | `number` | Wall-clock deadline. Defaults to ten minutes. |
 
 Command configs only support find-vulns tasks. They produce `"runConfigType": "command"` in JSONL output and have zeroed token/turn metrics (only `sessionDurationMs` and `filesScanned` are populated on raw run rows; aggregate rows also include `sessionDurationStdDevMs` when repetitions are used).
+
+### DeepSec config fields (`type: "deepsec"`)
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `type` | Yes | `"deepsec"` | Selects the DeepSec CLI adapter. |
+| `id` / `name` | Yes | `string` | Stable config identity and display label. |
+| `agent` | Yes | `"codex"` | DeepSec backend supported by this benchmark integration. |
+| `model` | Yes | `string` | Explicit OpenAI model slug. |
+| `thinkingLevel` | Yes | `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` | DeepSec reasoning control. |
+| `maxTurns` | No | `number` | Maximum turns per DeepSec batch. |
+| `batchSize` / `concurrency` | No | `number` | DeepSec processing controls. |
+| `limit` | No | `number` | Optional file cap for smoke testing. Omit for scored full runs. |
+| `timeoutMs` | No | `number` | Per-stage process deadline. |
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 

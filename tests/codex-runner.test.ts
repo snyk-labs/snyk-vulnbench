@@ -15,6 +15,7 @@ import {
   codexFindingsSchema,
   structuredFindingsToFinalText,
 } from "../src/runners/codex-schema.js";
+import { probeCodexContainment } from "../src/runners/codex-containment.js";
 
 test("Codex JSONL events produce reported usage and tool metrics", () => {
   const collector = new CodexEventCollector();
@@ -182,11 +183,27 @@ test("Codex JSONL collector records MCP invocation telemetry", () => {
   }]);
 });
 
-test("Codex permission profile denies root and scopes workspace access", () => {
+test("Codex uses its legacy write sandbox inside the outer Landlock boundary", () => {
   const args = codexPermissionConfig("read").join(" ");
-  assert.match(args, /":root"="deny"/);
-  assert.match(args, /":workspace_roots"=\{"\."="read"\}/);
-  assert.match(args, /network=\{enabled=false\}/);
+  assert.match(args, /--sandbox read-only/);
+  assert.match(args, /features\.use_legacy_landlock=true/);
+  assert.match(args, /OPEN_AI_API_KEY/);
+});
+
+test("Landlock containment reads the project and denies its sibling", async () => {
+  const source = mkdtempSync(join(tmpdir(), "codex-containment-project-"));
+  writeFileSync(join(source, "app.js"), "console.log('ok');\n");
+  const workspace = createIsolatedWorkspace(source);
+  try {
+    const result = await probeCodexContainment(workspace, "read");
+    assert.deepEqual(result, {
+      ok: true,
+      detail: "workspace readable; sibling path denied",
+    });
+  } finally {
+    workspace.cleanup();
+    rmSync(source, { recursive: true, force: true });
+  }
 });
 
 test("model config validation rejects unknown runners", () => {

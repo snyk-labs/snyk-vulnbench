@@ -135,6 +135,10 @@ export function aggregateByTask(results: EvalResult[]): AggregatedTaskResult[] {
       fixtureMetadataHash: first.fixtureMetadataHash,
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
+      runnerId: first.runnerId
+        ?? (first.runConfigType === "model" ? "claude-code" : "command"),
+      runnerVersion: first.runnerVersion ?? null,
+      requestedModel: first.requestedModel ?? null,
       runConfigType: first.runConfigType,
       groundTruth: first.groundTruth,
       primaryMetric: first.primaryMetric,
@@ -233,6 +237,10 @@ export function aggregateByConfig(
     aggregated.push({
       runConfigId: first.runConfigId,
       runConfigName: first.runConfigName,
+      runnerId: first.runnerId
+        ?? (first.runConfigType === "model" ? "claude-code" : "command"),
+      runnerVersion: first.runnerVersion ?? null,
+      requestedModel: first.requestedModel ?? null,
       runConfigType: first.runConfigType,
       promptTemplateId: first.promptTemplateId,
       groundTruths,

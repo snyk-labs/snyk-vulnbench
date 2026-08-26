@@ -1,9 +1,4 @@
 import type { MCPServerConfig } from "../types.js";
-import {
-  CODEX_MCP_PERMISSION_PROFILE,
-  codexExecutable,
-  codexMcpPermissionConfig,
-} from "./codex-config.js";
 
 const ENV_REFERENCE = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/;
 const SAFE_SERVER_NAME = /^[A-Za-z0-9_-]+$/;
@@ -47,17 +42,9 @@ export function buildCodexMcpConfiguration(
       }
     }
 
-    const sandboxArgs = [
-      "sandbox",
-      "-C", projectDir,
-      "-P", CODEX_MCP_PERMISSION_PROFILE,
-      ...codexMcpPermissionConfig(),
-      server.command,
-      ...(server.args ?? []),
-    ];
     const fields = [
-      `command=${JSON.stringify(codexExecutable())}`,
-      `args=${JSON.stringify(sandboxArgs)}`,
+      `command=${JSON.stringify(server.command)}`,
+      `args=${JSON.stringify(server.args ?? [])}`,
       `cwd=${JSON.stringify(projectDir)}`,
       `env_vars=${JSON.stringify(envVars)}`,
       `env=${tomlStringMap(literalEnv)}`,

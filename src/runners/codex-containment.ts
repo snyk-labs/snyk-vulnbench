@@ -7,11 +7,9 @@ import { randomUUID } from "node:crypto";
 import type { IsolatedWorkspace } from "../isolated-workspace.js";
 import { executeProcess } from "../process-executor.js";
 import {
-  CODEX_PERMISSION_PROFILE,
-  codexExecutable,
-  codexPermissionConfig,
   createCodexEnvironment,
 } from "./codex-config.js";
+import { buildLandlockInvocation } from "../sandbox/landlock.js";
 
 export interface CodexContainmentResult {
   ok: boolean;
@@ -35,22 +33,24 @@ export async function probeCodexContainment(
   writeFileSync(outsidePath, outsideValue, { mode: 0o600 });
 
   try {
-    const result = await executeProcess({
-      program: codexExecutable(),
-      args: [
-        "sandbox",
-        "-C", workspace.projectDir,
-        "-P", CODEX_PERMISSION_PROFILE,
-        ...codexPermissionConfig(workspaceAccess),
-        "sh",
+    const invocation = await buildLandlockInvocation(
+      workspace,
+      workspaceAccess,
+      "sh",
+      [
         "-c",
         'inside="$(cat "$1")" || exit 20; if cat "$2" >/dev/null 2>&1; then exit 21; fi; printf "%s" "$inside"',
         "containment-probe",
         insidePath,
         outsidePath,
       ],
+      createCodexEnvironment(workspace),
+    );
+    const result = await executeProcess({
+      program: invocation.program,
+      args: invocation.args,
       cwd: workspace.projectDir,
-      env: createCodexEnvironment(workspace),
+      env: invocation.environment,
       timeoutMs: 15_000,
       maxOutputBytes: 256 * 1024,
     });

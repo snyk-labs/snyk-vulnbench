@@ -82,16 +82,13 @@ flowchart TD
 
     subgraph LOOP["② For each Task × Config pair..."]
         E[/"For every combination\nof task + config"/] --> F
-        F{task.type?}
-        F -->|fix-vulns| G["Copy fixture to\ntemp directory\n(protect original)"]
-        F -->|find-vulns| H["Use fixture\ndirectory directly\n(read-only)"]
+        F["Create isolated OS-temp workspace"] --> G["Copy only fixture/project\n(no answer key or metadata)"]
         G --> I
-        H --> I
     end
 
     subgraph AGENT["③ Run Agent Session"]
-        I["runTask(task, config, cwd)"] --> J
-        J["Launch Claude Code via\nAgent SDK query()"] --> K
+        I["Resolve runner adapter"] --> J
+        J["Launch Claude, Codex,\nSnyk, or DeepSec"] --> K
 
         subgraph HOOKS["Hooks fire on every tool call"]
             K --> L["PreToolUse hook\nrecord start time"]
@@ -357,33 +354,47 @@ Key design decisions baked into the task definition:
 
 **Location:** `evals/run-configs.json` — a JSON array loaded at startup by `src/evals/loader.ts`
 
-A `RunConfig` is a discriminated union — either a **model config** (runs Claude via the Agent SDK) or a **command config** (runs a CLI tool like Snyk directly). Both produce the same `RunOutput` shape and go through the same scorer, so results are directly comparable in the summary table.
+A `RunConfig` selects both a participant and its native harness. The runner registry currently supports Claude Code, Codex CLI, Snyk Code, and DeepSec. Every adapter returns the same `RunOutput` boundary; the scorer then selects the metric appropriate to the task and the evidence the runner can report.
 
 ```typescript
-// Model-based: runs the Agent SDK with a specified Claude model
+// General coding agent: Claude Code by default, or Codex CLI explicitly.
 interface ModelRunConfig {
-  type?: "model";      // optional — omitting it defaults to model
+  type?: "model";
+  runner?: "claude-code" | "codex-cli";
   id: string;
   name: string;
-  model: string;                           // e.g. "claude-opus-4-6"
-  effort?: EffortLevel;                    // "default" | "low" | "medium" | "high" | "max"
-  thinking?: ThinkingConfig;               // defaults to { type: "adaptive" }
-  promptTemplateId?: PromptTemplateId;     // defaults to "default"
-  mcpServers?: Record<string, MCPServer>;  // optional: MCP tool servers
+  model: string;
+  effort?: EffortLevel;
+  thinking?: ThinkingConfig; // Claude only
+  promptTemplateId?: PromptTemplateId;
+  mcpServers?: Record<string, MCPServer>;
   maxTurns?: number;
+  timeoutMs?: number;        // CLI-backed wall-clock deadline
 }
 
-// EffortLevel = "default" | "low" | "medium" | "high" | "max"
-// PromptTemplateId = "default" | "snyk-mcp"
-// ThinkingConfig = { type: "adaptive" } | { type: "enabled"; budgetTokens?: number } | { type: "disabled" }
-
-// Command-based: runs a CLI tool (SAST scanner, etc.)
+// Generic scanner command.
 interface CommandRunConfig {
   type: "command";
   id: string;
   name: string;
-  command: string;   // template — {fixturePath} is substituted at runtime
-  parser: string;    // key into parser registry (src/parsers/index.ts)
+  executable: string;
+  args: string[]; // {fixturePath} is substituted per argument
+  parser: string;
+  timeoutMs?: number;
+}
+
+// Opinionated security harness.
+interface DeepSecRunConfig {
+  type: "deepsec";
+  id: string;
+  name: string;
+  agent: "codex";
+  model: string;
+  thinkingLevel: "minimal" | "low" | "medium" | "high" | "xhigh";
+  maxTurns?: number;
+  batchSize?: number;
+  concurrency?: number;
+  timeoutMs?: number;
 }
 ```
 
@@ -395,10 +406,11 @@ Example comparisons enabled by this design:
 |---|---|
 | `opus-4-6` vs `sonnet-4-6` | Raw model quality difference |
 | `sonnet-4-6` vs `sonnet-4-6-with-snyk-mcp` | Value of an MCP-connected security tool |
+| `sonnet-4-6` vs `codex-luna-high` | Claude Code harness vs Codex CLI |
 | `sonnet-4-6` vs `snyk-code` | LLM agent vs classic SAST |
-| `opus-4-6` vs `snyk-code` | Best model vs best SAST |
+| `codex-luna-high` vs `deepsec-codex-luna-high` | General coding agent vs opinionated security harness on an OpenAI model |
 
-**Command configs are find-vulns only.** SAST tools produce findings but don't edit code, so they are automatically skipped (with an error result) if paired with a fix-vulns task.
+**Snyk and DeepSec are find-only.** They are skipped with an error result for fix-vulns tasks. Codex CLI and Claude Code support both find and fix tasks.
 
 **Adding a model config with an MCP server:**
 ```json
@@ -465,7 +477,8 @@ Both values are recorded in every JSONL result (`effort` and `thinking` fields o
   "type": "command",
   "id": "snyk-code",
   "name": "Snyk Code SAST",
-  "command": "snyk code test {fixturePath} --json",
+  "executable": "snyk",
+  "args": ["code", "test", "{fixturePath}", "--json"],
   "parser": "snyk-code"
 }
 ```
@@ -478,9 +491,18 @@ For how Snyk (and any command config) output is turned into findings and matched
 
 ### Runner — The Agent Session
 
-**Location:** `src/runner.ts`
+**Locations:** `src/runners/registry.ts`, `src/runners/*`, `src/runner.ts`, and `src/command-runner.ts`
 
-The runner is the bridge between your benchmark harness and the actual Claude Code agent. It calls `query()` from `@anthropic-ai/claude-agent-sdk` and instruments it to collect metrics.
+`src/index.ts` resolves each config through the runner registry. Adapters declare find/fix/MCP capabilities, describe themselves for dry-runs, and normalize their native output to `RunOutput`.
+
+- **Claude Code** uses the Anthropic Agent SDK and its hook stream.
+- **Codex CLI** spawns pinned `codex exec`, sends the prompt on stdin, constrains find output with JSON Schema, and parses JSONL events.
+- **Snyk Code** executes a structured argv command and parses SARIF.
+- **DeepSec** executes a pinned `scan → process → export` pipeline and reads its documented state for usage metrics.
+
+Every run gets a fresh OS-temp workspace containing only `fixture/project`. Ground truth and fixture metadata are never copied. Claude retains its SDK deny-read policy. On Linux, Codex compiles a small Landlock allowlist helper and launches the entire CLI/MCP process tree through it; only system runtime paths, pinned dependencies, the isolated project, and per-run state are visible. A model-free probe must read an in-workspace sentinel and fail to read a sibling sentinel before any paid request. Codex's own read-only/workspace-write sandbox remains enabled inside that outer boundary.
+
+The following sequence describes the Claude adapter specifically:
 
 ```mermaid
 sequenceDiagram
@@ -555,6 +577,7 @@ interface BenchmarkMetrics {
   sessionDurationMs: number;        // wall-clock ms from first query() call to ResultMessage
   totalInputTokens: number;         // non-cached input tokens (the "uncacheable" residual)
   totalOutputTokens: number;        // output tokens generated across all turns
+  totalReasoningOutputTokens?: number; // Codex reasoning tokens when reported
   totalCacheReadTokens: number;     // tokens served from prompt cache across all turns
   totalCacheCreationTokens: number; // tokens written into prompt cache across all turns
   totalLogicalInputTokens: number;  // input + cache_read + cache_creation — the actual context size
@@ -575,8 +598,17 @@ interface BenchmarkMetrics {
     advertisedToolCount: number;
     toolStats: Record<string, { count: number; totalDurationMs: number }>;
   };
+  runner?: {
+    id: string;
+    version?: string;
+    sessionId?: string;
+    tokenSource: "reported" | "estimated" | "unavailable";
+    toolSource: "reported" | "estimated" | "unavailable";
+  };
 }
 ```
+
+Metric availability is runner-specific and recorded rather than guessed. Claude reports SDK totals and cost; Codex reports token/reasoning totals but no authoritative cost; DeepSec reports the token, cost, turn, and session fields persisted in `analysisHistory`; Snyk has no model-token metrics.
 
 Each entry in `toolCalls`:
 ```typescript
@@ -712,10 +744,15 @@ interface EvalResult {
   taskName: string;        // e.g. "JS App: Find Vulnerabilities"
   runConfigId: string;     // e.g. "opus-4-6"
   runConfigName: string;   // e.g. "Claude Opus 4.6 (no MCP)"
+  runnerId: string;        // "claude-code" | "codex-cli" | "command" | "deepsec-cli"
+  runnerVersion: string | null;
+  requestedModel: string | null;
+  runnerCapabilities: { findVulns: boolean; fixVulns: boolean; mcp: boolean };
   groundTruth: "v1" | "attacker-reachable";
-  primaryMetric: "f1" | "attacker-reachable-vulnerability-recall" | "fix-rate";
-  runConfigType: "model" | "command"; // distinguishes Agent SDK runs from SAST tool runs
-  effort: EffortLevel | null;      // "default" | "low" | "medium" | "high" | "max" — null for command runs
+  primaryMetric: "f1" | "attacker-reachable-vulnerability-recall"
+    | "localized-vulnerability-recall" | "fix-rate";
+  runConfigType: "model" | "command"; // compatibility classification
+  effort: EffortLevel | null;
   thinking: ThinkingConfig | null; // { type: "adaptive" } etc. — null for command runs
   promptTemplateId: PromptTemplateId | null;
   score: number;           // 0.0–1.0
@@ -743,6 +780,7 @@ For **find-vulns**:
   bySeverity: Record<Severity, BreakdownEntry>; // per-severity precision/recall/F1
   matchDiagnostics?: AttackerReachableScoringDiagnostics; // rich V2-only candidate evidence
   scoreSuite?: AttackerReachableScoreSuite; // complementary V2-only quality metrics
+  localizedScore?: F1Metric & { lineTolerance: number }; // DeepSec V2 evidence
 }
 
 // Where:
@@ -750,7 +788,7 @@ For **find-vulns**:
 // BreakdownEntry = { total: number; found: number; precision: number; recall: number; f1: number }
 ```
 
-V2 `matchDiagnostics` deliberately retains all reported-finding × ground-truth candidate comparisons, not only the winning match. It includes normalized and canonical type comparisons, every ground-truth × reported location comparison, path-match mode, signed/absolute line deltas, endpoint evidence, candidate eligibility and selection state, plus finding- and vulnerability-centric outcomes. This makes later reporting and scorer analysis possible without reconstructing decisions from source ground truth. V1 rows omit this field. V2 rows also include `scoreSuite`, which records secondary F1 and complementary flow-quality metrics alongside the recall headline.
+Endpoint-aware V2 rows use `matchDiagnostics` and `scoreSuite`. DeepSec cannot export source/sink roles, so its V2 rows instead use `localizedScore`: a one-to-one true positive requires a compatible type plus any exported file/line overlapping any curated flow location within ±2 lines. Its `localized-vulnerability-recall` headline is deliberately distinct and is never averaged with endpoint-aware attacker-reachable recall.
 
 For **fix-vulns**:
 ```typescript
@@ -777,13 +815,14 @@ pnpm run benchmark -- --task js-project-tigerteam-find-vulns --config opus-4-6
 - 1 task × 1 config = 1 run
 
 **Step 2 — Prepare the working directory (`index.ts`)**
-- `task.type === "find-vulns"` → no copy needed
-- Sets `cwd = fixtures/js-project-tigerteam/project/` (the agent will start here)
+- Creates a fresh `vulnbench-run-*` directory under the OS temp directory
+- Copies only `fixtures/js-project-tigerteam/project/` into its `project/` child
+- Keeps runner state and output in sibling directories; the fixture answer key is absent
 
-**Step 3 — Run the agent (`runner.ts`)**
+**Step 3 — Run the selected adapter**
 - Calls `query({ prompt: "Audit all files...", options: { cwd, model: "claude-opus-4-6", hooks: [...] } })`
 - The Agent SDK spawns the Claude Code CLI as a subprocess
-- The agent starts in `fixtures/js-project-tigerteam/project/` and begins reading `app.js`
+- The agent starts in the isolated project copy and begins reading `app.js`
 - The `PreToolUse` hook fires before each tool call, recording its start time
 - The `PostToolUse` hook fires after, recording tool name + duration
 - Each `AssistantMessage` from the stream contributes its `usage.input_tokens` and `usage.output_tokens` to running totals
@@ -1046,15 +1085,15 @@ Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an 
 
 #### 1. Where the run is dispatched
 
-**`src/index.ts`** — If `config.type === "command"`, the harness calls `runCommandTask` from `src/command-runner.ts` instead of `runTask` from `src/runner.ts`. The fixture path passed in is the task’s `fixture` directory (same as for find-vulns agents). Command configs are skipped with an error when paired with fix-vulns tasks (see [RunConfig](#runconfig--who-does-it)).
+**`src/index.ts`** resolves the config through `src/runners/registry.ts`; the command adapter calls `runCommandTask`. Like every runner, it receives the isolated project copy rather than the source fixture directory. Command configs are skipped with an error when paired with fix-vulns tasks.
 
 #### 2. Command execution and stdout
 
 **`src/command-runner.ts`**
 
-- Substitutes the token `{fixturePath}` in the config’s `command` string with the actual fixture directory path (split on spaces; paths with spaces are handled because substitution replaces a whole token).
-- Runs `execFile(program, args, …)` with a large `maxBuffer` so big SARIF payloads fit.
-- **`snyk code test` exits non-zero when issues are found** — that is expected. On failure, if `err.stdout` is present, the runner treats it as success and uses that stdout (the JSON/SARIF body). If there is no stdout, it returns an `error` result.
+- Substitutes `{fixturePath}` independently in each configured argv element.
+- Uses `spawn` with `shell: false`, bounded stdout/stderr, a wall-clock timeout, and process-group termination.
+- **`snyk code test` exits non-zero when issues are found** — that is expected. A non-zero result with stdout is parsed; a non-zero result without stdout is an execution error.
 
 #### 3. Parser: SARIF → `FindingRecord[]`
 
@@ -1117,6 +1156,18 @@ The SARIF → **`VulnType`** step is **`mapRuleId()`** in **`src/parsers/snyk-co
 
 Operational checklist, example `jq` invocations, and the distinction between “**new `VulnType`**” vs “**existing type, new Snyk id**” live in **`docs/benchmark-management.md`** → [Maintaining Snyk Code ruleId mappings](./benchmark-management.md#maintaining-snyk-code-ruleid-mappings).
 
+### DeepSec and localized V2 scoring
+
+The `deepsec-cli` adapter generates a minimal ephemeral DeepSec config, then runs pinned DeepSec 2.3.7 through `scan`, `process`, and `export --format json --out`. It does not pass the benchmark prompt: this intentionally measures DeepSec's opinionated security workflow rather than a customizable general coding agent.
+
+DeepSec exports `vulnSlug`, `filePath`, and `lineNumbers`, but not source/sink roles. Therefore:
+
+- V1 uses the normal type-only F1 scorer.
+- V2 uses `localized-vulnerability-recall`: type plus at least one exported location matching any ground-truth flow location within ±2 lines.
+- `localizedScore` stores TP/FP/FN, precision, recall, F1, and tolerance.
+- localized recall is never macro-averaged with endpoint-aware attacker-reachable recall.
+- DeepSec does not support fix tasks or MCP run variants.
+
 ---
 
 ## Aggregation and Headline Scores
@@ -1148,7 +1199,7 @@ flowchart LR
 | **Per-fixture** | All runs of the same (task, config) pair across repetitions | Arithmetic mean of each metric across the N repetitions, plus score and runtime standard deviation across those repetitions |
 | **Per-config** | All fixture-level scores for a given config | Arithmetic mean (macro-average) across fixtures, plus score and runtime standard deviation across repetition-level headline values |
 
-The per-config level produces one headline only when all selected tasks share the same `primaryMetric`. V1 charts headline F1; V2 charts headline Attacker-Reachable Vulnerability Recall. Mixed-metric selections have no combined quality headline.
+The per-config level produces one headline only when all selected tasks share the same `primaryMetric`. V1 charts headline F1; endpoint-aware V2 charts attacker-reachable recall; DeepSec V2 charts localized recall. Mixed-metric selections have no combined quality headline.
 
 **Example with 3 fixtures, 2 configs, 3 repetitions:**
 - 18 raw `EvalResult` objects (per-run level)
