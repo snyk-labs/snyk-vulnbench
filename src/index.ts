@@ -90,7 +90,9 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const runConfigType = runner.kind;
 
   const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
-  const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
+  const thinking: ThinkingConfig | null = runner.id === "claude-code"
+    ? (config as ModelRunConfig).thinking ?? { type: "adaptive" }
+    : null;
   const promptTemplateId = isCommand
     ? null
     : (config as ModelRunConfig).promptTemplateId ?? DEFAULT_PROMPT_TEMPLATE_ID;

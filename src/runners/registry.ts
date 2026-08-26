@@ -1,10 +1,12 @@
 import type { RunConfig } from "../types.js";
 import { claudeCodeRunner } from "./claude-code.js";
+import { codexCliRunner } from "./codex-cli.js";
 import { snykCommandRunner } from "./snyk-command.js";
 import type { BenchmarkRunner } from "./types.js";
 
 const RUNNERS: BenchmarkRunner[] = [
   claudeCodeRunner,
+  codexCliRunner,
   snykCommandRunner,
 ];
 

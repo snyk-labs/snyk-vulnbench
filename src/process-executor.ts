@@ -12,6 +12,7 @@ export interface ProcessExecutionOptions {
   timeoutMs: number;
   maxOutputBytes?: number;
   terminationGraceMs?: number;
+  onStdoutChunk?: (chunk: string, receivedAt: number) => void;
 }
 
 export interface ProcessExecutionResult {
@@ -81,8 +82,13 @@ export function executeProcess(
         terminate();
         return;
       }
-      if (target === "stdout") stdout += chunk.toString("utf8");
-      else stderr += chunk.toString("utf8");
+      const text = chunk.toString("utf8");
+      if (target === "stdout") {
+        stdout += text;
+        options.onStdoutChunk?.(text, Date.now());
+      } else {
+        stderr += text;
+      }
     };
 
     child.stdout.on("data", (chunk: Buffer) => capture("stdout", chunk));

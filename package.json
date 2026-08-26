@@ -24,6 +24,7 @@
     "jsonc-parser": "^3.3.1"
   },
   "devDependencies": {
+    "@openai/codex": "0.149.1",
     "@types/node": "^24.0.0",
     "serve": "14.2.6",
     "tsx": "^4.19.0",

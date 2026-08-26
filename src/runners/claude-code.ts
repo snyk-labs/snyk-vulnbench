@@ -12,7 +12,8 @@ export const claudeCodeRunner: BenchmarkRunner = {
     mcp: true,
   },
   supports(config: RunConfig): boolean {
-    return config.type !== "command";
+    return config.type !== "command"
+      && (config.runner === undefined || config.runner === "claude-code");
   },
   describe(config: RunConfig): string {
     const modelConfig = config as ModelRunConfig;

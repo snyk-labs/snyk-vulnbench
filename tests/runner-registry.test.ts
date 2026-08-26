@@ -35,9 +35,26 @@ test("command configs resolve to the command runner", () => {
   assert.match(runner.describe(config), /snyk code test/);
 });
 
+test("Codex configs resolve to the Codex CLI runner", () => {
+  const config: ModelRunConfig = {
+    id: "codex",
+    name: "Codex",
+    runner: "codex-cli",
+    model: "gpt-5.6-luna",
+    effort: "high",
+  };
+
+  const runner = getRunner(config);
+
+  assert.equal(runner.id, "codex-cli");
+  assert.equal(runner.kind, "model");
+  assert.equal(runner.capabilities.fixVulns, true);
+  assert.match(runner.describe(config), /gpt-5.6-luna via Codex CLI/);
+});
+
 test("runner registry has one adapter for each legacy config kind", () => {
   assert.deepEqual(
     getRegisteredRunners().map((runner) => runner.id),
-    ["claude-code", "command"],
+    ["claude-code", "codex-cli", "command"],
   );
 });

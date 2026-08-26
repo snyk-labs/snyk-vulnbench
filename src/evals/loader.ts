@@ -632,6 +632,13 @@ export function validateModelRunConfig(entry: Record<string, unknown>): ModelRun
   if (!entry.model) {
     throw new Error(`Model config "${entry.id}" missing required field: model`);
   }
+  if (
+    entry.runner !== undefined
+    && entry.runner !== "claude-code"
+    && entry.runner !== "codex-cli"
+  ) {
+    throw new Error(`Model config "${entry.id}" has unknown runner "${entry.runner}"`);
+  }
   if (entry.promptTemplateId !== undefined && !isPromptTemplateId(entry.promptTemplateId)) {
     throw new Error(`Model config "${entry.id}" has unknown promptTemplateId "${entry.promptTemplateId}"`);
   }

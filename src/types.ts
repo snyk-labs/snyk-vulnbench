@@ -240,9 +240,13 @@ export type ThinkingConfig =
   | { type: "enabled"; budgetTokens?: number }
   | { type: "disabled" };
 
-/** Standard agent run using the Claude Agent SDK. */
+export type AgentRunnerId = "claude-code" | "codex-cli";
+
+/** Standard coding-agent run using a native agent harness. */
 export interface ModelRunConfig {
   type?: "model";
+  /** Defaults to claude-code for backward compatibility. */
+  runner?: AgentRunnerId;
   id: string;
   name: string;
   model: string;
@@ -254,6 +258,8 @@ export interface ModelRunConfig {
   promptTemplateId?: PromptTemplateId;
   mcpServers?: Record<string, MCPServerConfig>;
   maxTurns?: number;
+  /** Parent-process wall-clock deadline for CLI-backed agents. */
+  timeoutMs?: number;
 }
 
 /**
@@ -303,6 +309,8 @@ export interface BenchmarkMetrics {
   sessionDurationMs: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  /** Reasoning output tokens when the runner exposes them. */
+  totalReasoningOutputTokens?: number;
   /** Tokens served from the prompt cache (billed at reduced rate but still consumed) */
   totalCacheReadTokens: number;
   /** Tokens written into the prompt cache on this session */
@@ -319,6 +327,14 @@ export interface BenchmarkMetrics {
   filesScanned: string[];
   /** MCP connection, availability, and invocation telemetry. */
   mcp: McpTelemetry;
+  /** Runner identity and provenance when exposed by the adapter. */
+  runner?: {
+    id: string;
+    version?: string;
+    sessionId?: string;
+    tokenSource: "reported" | "estimated" | "unavailable";
+    toolSource: "reported" | "estimated" | "unavailable";
+  };
 }
 
 export interface RunOutput {
