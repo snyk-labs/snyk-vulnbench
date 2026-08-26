@@ -43,7 +43,9 @@ export const codexCliRunner: BenchmarkRunner = {
     mcp: true,
   },
   supports(config: RunConfig): boolean {
-    return config.type !== "command" && config.runner === "codex-cli";
+    return config.type !== "command"
+      && config.type !== "deepsec"
+      && config.runner === "codex-cli";
   },
   describe(config: RunConfig): string {
     const modelConfig = config as ModelRunConfig;

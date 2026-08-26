@@ -5,6 +5,7 @@ import {
   primaryFindVulnsScore,
   scoreAttackerReachableFindVulns,
   scoreFindVulns,
+  scoreLocalizedFindVulns,
 } from "../src/scorer.js";
 import {
   EVAL_CATEGORIES,
@@ -460,4 +461,25 @@ test("malformed V2 findings produce false negatives instead of throwing", () => 
     details.matchDiagnostics?.vulnerabilityOutcomes[0].failureReason,
     "no-reported-findings",
   );
+});
+
+test("localized scoring matches any ground-truth flow location without endpoint coercion", () => {
+  const task = attackerTask([
+    attackerVuln("flow", "sql-injection", [
+      { file: "src/route.ts", line: 10, type: "source" },
+      { file: "src/service.ts", line: 20 },
+      { file: "src/db.ts", line: 30, type: "sink" },
+    ]),
+  ]);
+  const reported = output([
+    finding("sql-injection", [{ file: "src/db.ts", line: 31 }]),
+  ]);
+
+  const localized = scoreLocalizedFindVulns(reported, task);
+  const endpointAware = scoreAttackerReachableFindVulns(reported, task);
+
+  assert.equal(localized.recall, 1);
+  assert.equal(localized.localizedScore?.f1, 1);
+  assert.equal(localized.localizedScore?.lineTolerance, 2);
+  assert.equal(endpointAware.recall, 0);
 });

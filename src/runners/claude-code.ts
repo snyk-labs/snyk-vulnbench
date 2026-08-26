@@ -13,6 +13,7 @@ export const claudeCodeRunner: BenchmarkRunner = {
   },
   supports(config: RunConfig): boolean {
     return config.type !== "command"
+      && config.type !== "deepsec"
       && (config.runner === undefined || config.runner === "claude-code");
   },
   describe(config: RunConfig): string {

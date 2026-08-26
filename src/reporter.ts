@@ -57,6 +57,9 @@ function primaryMetricLabel(metric: PrimaryMetricKind): string {
   if (metric === "attacker-reachable-vulnerability-recall") {
     return "AR vuln recall";
   }
+  if (metric === "localized-vulnerability-recall") {
+    return "Localized recall";
+  }
   if (metric === "fix-rate") return "Fix rate";
   return "F1";
 }

@@ -32,6 +32,7 @@ export type GroundTruthKind = "v1" | "attacker-reachable";
 export type PrimaryMetricKind =
   | "f1"
   | "attacker-reachable-vulnerability-recall"
+  | "localized-vulnerability-recall"
   | "fix-rate";
 
 export type FixtureOrigin = "real-repository" | "benchmark-created" | "synthetic" | "unknown";
@@ -233,7 +234,14 @@ export interface MCPServerConfig {
  * Code chooses the model's native default. It is useful for models that do not
  * expose configurable effort levels.
  */
-export type EffortLevel = "default" | "low" | "medium" | "high" | "max";
+export type EffortLevel =
+  | "default"
+  | "minimal"
+  | "low"
+  | "medium"
+  | "high"
+  | "xhigh"
+  | "max";
 
 export type ThinkingConfig =
   | { type: "adaptive" }
@@ -283,7 +291,21 @@ export interface CommandRunConfig {
   timeoutMs?: number;
 }
 
-export type RunConfig = ModelRunConfig | CommandRunConfig;
+export interface DeepSecRunConfig {
+  type: "deepsec";
+  id: string;
+  name: string;
+  agent: "codex";
+  model: string;
+  thinkingLevel: "minimal" | "low" | "medium" | "high" | "xhigh";
+  maxTurns?: number;
+  batchSize?: number;
+  concurrency?: number;
+  limit?: number;
+  timeoutMs?: number;
+}
+
+export type RunConfig = ModelRunConfig | CommandRunConfig | DeepSecRunConfig;
 
 export interface ToolCallRecord {
   tool: string;
@@ -544,6 +566,8 @@ export interface FindVulnsDetails {
   matchDiagnostics?: AttackerReachableScoringDiagnostics;
   /** Present for VulnBench 2.0 runs; the headline precision/recall remain unchanged. */
   scoreSuite?: AttackerReachableScoreSuite;
+  /** Present for scanners that report locations without endpoint roles. */
+  localizedScore?: F1Metric & { lineTolerance: number };
 }
 
 export interface FixVulnsDetails {

@@ -80,6 +80,18 @@
     }
   },
   {
+    "type": "deepsec",
+    "id": "deepsec-codex-luna-high",
+    "name": "DeepSec + Codex GPT-5.6 Luna High",
+    "agent": "codex",
+    "model": "gpt-5.6-luna",
+    "thinkingLevel": "high",
+    "maxTurns": 30,
+    "batchSize": 5,
+    "concurrency": 1,
+    "timeoutMs": 2700000
+  },
+  {
     "type": "command",
     "id": "snyk-code",
     "name": "Snyk Code SAST",

@@ -5,6 +5,10 @@ import {
   CODEX_CLI_VERSION,
   codexExecutable,
 } from "./runners/codex-config.js";
+import {
+  DEEPSEC_CLI_VERSION,
+  deepSecExecutable,
+} from "./runners/deepsec-cli.js";
 
 interface CheckResult {
   ok: boolean;
@@ -20,11 +24,18 @@ interface CheckResult {
  */
 export function runPreflight(configs: RunConfig[]): void {
   const needsClaude = configs.some(
-    (c) => c.type !== "command" && c.runner !== "codex-cli",
+    (c) =>
+      c.type !== "command"
+      && c.type !== "deepsec"
+      && c.runner !== "codex-cli",
   );
   const needsCodex = configs.some(
-    (c) => c.type !== "command" && c.runner === "codex-cli",
+    (c) =>
+      c.type !== "command"
+      && c.type !== "deepsec"
+      && c.runner === "codex-cli",
   );
+  const needsDeepSec = configs.some((c) => c.type === "deepsec");
   const needsSnyk = configs.some(
     (c) => {
       if (c.type !== "command") return false;
@@ -45,6 +56,11 @@ export function runPreflight(configs: RunConfig[]): void {
   if (needsCodex) {
     checks.push(checkCodexInstalled());
     checks.push(checkCodexAuth());
+  }
+
+  if (needsDeepSec) {
+    checks.push(checkDeepSecInstalled());
+    checks.push(checkDeepSecAuth());
   }
 
   if (needsSnyk) {
@@ -150,6 +166,39 @@ function checkCodexAuth(): CheckResult {
   }
 }
 
+function checkDeepSecInstalled(): CheckResult {
+  try {
+    const version = run(deepSecExecutable(), ["--version"]).trim();
+    const ok = version === DEEPSEC_CLI_VERSION;
+    return {
+      ok,
+      label: "DeepSec CLI",
+      detail: ok
+        ? version
+        : `Expected ${DEEPSEC_CLI_VERSION}, got ${version || "unknown"}`,
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "DeepSec CLI",
+      detail: "Pinned CLI unavailable. Run: pnpm install",
+    };
+  }
+}
+
+function checkDeepSecAuth(): CheckResult {
+  const ok = Boolean(
+    process.env.OPENAI_API_KEY
+    || process.env.OPEN_AI_API_KEY
+    || process.env.CODEX_API_KEY,
+  );
+  return {
+    ok,
+    label: "DeepSec OpenAI authentication",
+    detail: ok ? "API key available" : "Set OPEN_AI_API_KEY",
+  };
+}
+
 function checkSnykInstalled(): CheckResult {
   try {
     const version = run("snyk", ["--version"]).trim();
@@ -164,7 +213,7 @@ function checkSnykInstalled(): CheckResult {
 }
 
 function usesSnykMcp(config: RunConfig): boolean {
-  if (config.type === "command") return false;
+  if (config.type === "command" || config.type === "deepsec") return false;
 
   return Object.entries((config as ModelRunConfig).mcpServers ?? {}).some(([name, server]) =>
     name.toLowerCase() === "snyk"

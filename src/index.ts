@@ -3,6 +3,7 @@ import { dirname, resolve } from "path";
 import {
   scoreFindVulns,
   scoreAttackerReachableFindVulns,
+  scoreLocalizedFindVulns,
   primaryFindVulnsScore,
   scoreFixVulns,
   fixVulnsScore,
@@ -17,7 +18,7 @@ import { getRunner } from "./runners/registry.js";
 import { createIsolatedWorkspace } from "./isolated-workspace.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, DeepSecRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -76,8 +77,17 @@ function emptyFindVulnsDetails(task: EvalTask): FindVulnsDetails {
   return { agentFindings: [], truePositives: [], falsePositives: [], falseNegatives, precision: 0, recall: 0, byType, bySeverity };
 }
 
-function primaryMetricForTask(task: EvalTask): PrimaryMetricKind {
+function primaryMetricForTask(
+  task: EvalTask,
+  runnerId: string,
+): PrimaryMetricKind {
   if (task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) return "fix-rate";
+  if (
+    runnerId === "deepsec-cli"
+    && task.groundTruth === "attacker-reachable"
+  ) {
+    return "localized-vulnerability-recall";
+  }
   return task.groundTruth === "attacker-reachable"
     ? "attacker-reachable-vulnerability-recall"
     : "f1";
@@ -89,7 +99,11 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const isCommand = runner.kind === "command";
   const runConfigType = runner.kind;
 
-  const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
+  const effort: EffortLevel | null = runner.id === "deepsec-cli"
+    ? (config as DeepSecRunConfig).thinkingLevel
+    : isCommand
+      ? null
+      : (config as ModelRunConfig).effort ?? "high";
   const thinking: ThinkingConfig | null = runner.id === "claude-code"
     ? (config as ModelRunConfig).thinking ?? { type: "adaptive" }
     : null;
@@ -107,7 +121,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     runConfigId: config.id,
     runConfigName: config.name,
     groundTruth: task.groundTruth,
-    primaryMetric: primaryMetricForTask(task),
+    primaryMetric: primaryMetricForTask(task, runner.id),
     runConfigType,
     effort,
     thinking,
@@ -123,7 +137,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       score: 0,
       metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [], mcp: { configuredServers: [], serverStatuses: [], advertisedToolCount: 0, toolStats: {} } },
       details: emptyFindVulnsDetails(task),
-      error: `Command config "${config.id}" does not support fix-vulns tasks`,
+      error: `Runner "${runner.id}" does not support fix-vulns tasks`,
     };
   }
 
@@ -150,7 +164,9 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
     if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.LLM_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.APP_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS.id) {
       const details = task.groundTruth === "attacker-reachable"
-        ? scoreAttackerReachableFindVulns(finalText, task)
+        ? runner.id === "deepsec-cli"
+          ? scoreLocalizedFindVulns(finalText, task)
+          : scoreAttackerReachableFindVulns(finalText, task)
         : scoreFindVulns(finalText, task);
       const score = primaryFindVulnsScore(details, task.groundTruth);
       return { ...base, score, metrics, details };

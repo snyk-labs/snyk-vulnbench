@@ -9,6 +9,7 @@ import { isPromptTemplateId } from "../prompt-templates.js";
 import type {
   AttackerReachableVulnerability,
   CommandRunConfig,
+  DeepSecRunConfig,
   EvalCategoryId,
   EvalTask,
   FileLocation,
@@ -612,7 +613,9 @@ export function loadRunConfigs(): RunConfig[] {
     if (!entry.id || !entry.name) {
       throw new Error(`Run config missing required fields "id" and "name": ${JSON.stringify(entry)}`);
     }
-    if (entry.type === "command") {
+    if (entry.type === "deepsec") {
+      return validateDeepSecRunConfig(entry);
+    } else if (entry.type === "command") {
       if ((!entry.executable && !entry.command) || !entry.parser) {
         throw new Error(
           `Command config "${entry.id}" requires parser and either executable or command`,
@@ -626,6 +629,34 @@ export function loadRunConfigs(): RunConfig[] {
       return validateModelRunConfig(entry);
     }
   });
+}
+
+export function validateDeepSecRunConfig(
+  entry: Record<string, unknown>,
+): DeepSecRunConfig {
+  if (entry.agent !== "codex") {
+    throw new Error(
+      `DeepSec config "${entry.id}" currently requires agent "codex"`,
+    );
+  }
+  if (typeof entry.model !== "string" || entry.model.length === 0) {
+    throw new Error(`DeepSec config "${entry.id}" missing required field: model`);
+  }
+  if (
+    entry.thinkingLevel !== "minimal"
+    && entry.thinkingLevel !== "low"
+    && entry.thinkingLevel !== "medium"
+    && entry.thinkingLevel !== "high"
+    && entry.thinkingLevel !== "xhigh"
+  ) {
+    throw new Error(
+      `DeepSec config "${entry.id}" has invalid thinkingLevel "${entry.thinkingLevel}"`,
+    );
+  }
+  if (entry.mcpServers !== undefined) {
+    throw new Error(`DeepSec config "${entry.id}" does not support MCP servers`);
+  }
+  return entry as unknown as DeepSecRunConfig;
 }
 
 export function validateModelRunConfig(entry: Record<string, unknown>): ModelRunConfig {

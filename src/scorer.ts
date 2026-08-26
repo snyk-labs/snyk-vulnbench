@@ -235,6 +235,102 @@ export function scoreAttackerReachableFindVulns(
   };
 }
 
+/**
+ * Location-aware scorer for scanners that report file/line evidence without
+ * source/sink roles. A one-to-one match requires a compatible vulnerability
+ * type and any reported location overlapping any curated flow location.
+ */
+export function scoreLocalizedFindVulns(
+  agentOutput: string,
+  task: EvalTask,
+): FindVulnsDetails {
+  const agentFindings = parseAttackerReachableFindings(agentOutput);
+  const knownVulns = task.knownVulns.map((vulnerability) => {
+    if (!isAttackerReachableVulnerability(vulnerability)) {
+      throw new Error(
+        `Task "${task.id}" uses localized scoring with non-attacker-reachable ground truth`,
+      );
+    }
+    return vulnerability;
+  });
+  const truePositives: VulnMatch[] = [];
+  const matchedKnownIds = new Set<string>();
+  const matchedFindingIdxs = new Set<number>();
+
+  for (let findingIndex = 0; findingIndex < agentFindings.length; findingIndex++) {
+    const found = agentFindings[findingIndex];
+    const candidates = knownVulns
+      .filter((known) =>
+        !matchedKnownIds.has(known.id)
+        && typesMatch(known, found)
+      )
+      .map((known) => ({
+        known,
+        locationMatches: buildLocationComparisons(
+          known.filesRelated,
+          found.filesRelated,
+          ATTACKER_REACHABLE_LINE_TOLERANCE,
+        ).filter((comparison) => comparison.locationMatched).length,
+      }))
+      .filter((candidate) => candidate.locationMatches > 0)
+      .sort((a, b) =>
+        b.locationMatches - a.locationMatches
+        || a.known.id.localeCompare(b.known.id)
+      );
+    const selected = candidates[0]?.known;
+    if (!selected) continue;
+
+    truePositives.push({
+      id: selected.id,
+      type: selected.type,
+      severity: selected.severity,
+    });
+    matchedKnownIds.add(selected.id);
+    matchedFindingIdxs.add(findingIndex);
+  }
+
+  const falsePositives = agentFindings.filter(
+    (_, index) => !matchedFindingIdxs.has(index),
+  );
+  const falseNegatives = knownVulns
+    .filter((known) => !matchedKnownIds.has(known.id))
+    .map((known) => ({
+      id: known.id,
+      type: known.type,
+      severity: known.severity,
+    }));
+  const localized = f1Metric(
+    truePositives.length,
+    falsePositives.length,
+    falseNegatives.length,
+  );
+
+  return {
+    agentFindings,
+    truePositives,
+    falsePositives,
+    falseNegatives,
+    precision: localized.precision,
+    recall: localized.recall,
+    byType: computeBreakdown(
+      knownVulns,
+      truePositives,
+      falsePositives,
+      (vulnerability) => vulnerability.type,
+    ),
+    bySeverity: computeBreakdown(
+      knownVulns,
+      truePositives,
+      falsePositives,
+      (vulnerability) => vulnerability.severity,
+    ),
+    localizedScore: {
+      ...localized,
+      lineTolerance: ATTACKER_REACHABLE_LINE_TOLERANCE,
+    },
+  };
+}
+
 export function findVulnsScore(details: FindVulnsDetails): number {
   const { precision, recall } = details;
   if (precision + recall === 0) return 0;

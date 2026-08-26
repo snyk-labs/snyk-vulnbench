@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getRegisteredRunners, getRunner } from "../src/runners/registry.js";
-import type { CommandRunConfig, ModelRunConfig } from "../src/types.js";
+import type {
+  CommandRunConfig,
+  DeepSecRunConfig,
+  ModelRunConfig,
+} from "../src/types.js";
 
 test("legacy model configs resolve to the Claude Code runner", () => {
   const config: ModelRunConfig = {
@@ -52,9 +56,27 @@ test("Codex configs resolve to the Codex CLI runner", () => {
   assert.match(runner.describe(config), /gpt-5.6-luna via Codex CLI/);
 });
 
+test("DeepSec configs resolve to the security harness runner", () => {
+  const config: DeepSecRunConfig = {
+    type: "deepsec",
+    id: "deepsec",
+    name: "DeepSec",
+    agent: "codex",
+    model: "gpt-5.6-luna",
+    thinkingLevel: "high",
+  };
+
+  const runner = getRunner(config);
+
+  assert.equal(runner.id, "deepsec-cli");
+  assert.equal(runner.kind, "command");
+  assert.equal(runner.capabilities.fixVulns, false);
+  assert.match(runner.describe(config), /DeepSec 2.3.7/);
+});
+
 test("runner registry has one adapter for each legacy config kind", () => {
   assert.deepEqual(
     getRegisteredRunners().map((runner) => runner.id),
-    ["claude-code", "codex-cli", "command"],
+    ["claude-code", "codex-cli", "deepsec-cli", "command"],
   );
 });

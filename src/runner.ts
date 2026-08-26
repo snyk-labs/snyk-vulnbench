@@ -116,7 +116,14 @@ export async function runTask(
   const lastUsagePerSession = new Map<string | null, string>();
 
   try {
-    const effort = config.effort === "default" ? undefined : config.effort ?? "high";
+    if (config.effort === "minimal" || config.effort === "xhigh") {
+      throw new Error(
+        `Claude Code runner does not support effort "${config.effort}"`,
+      );
+    }
+    const effort = config.effort === "default"
+      ? undefined
+      : config.effort ?? "high";
     const thinking = config.thinking ?? { type: "adaptive" as const };
     const benchmarkEnv = process.env;
     const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
