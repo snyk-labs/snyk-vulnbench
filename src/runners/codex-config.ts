@@ -5,6 +5,7 @@ import type { IsolatedWorkspace } from "../isolated-workspace.js";
 
 export const CODEX_CLI_VERSION = "0.149.1";
 export const CODEX_PERMISSION_PROFILE = "vulnbench-workspace";
+export const CODEX_MCP_PERMISSION_PROFILE = "vulnbench-mcp";
 const RUNNERS_DIR = dirname(fileURLToPath(import.meta.url));
 
 export function codexExecutable(): string {
@@ -17,11 +18,27 @@ export function codexExecutable(): string {
 export function codexPermissionConfig(
   workspaceAccess: "read" | "write",
 ): string[] {
-  const profile = JSON.stringify(CODEX_PERMISSION_PROFILE);
+  return namedPermissionConfig(
+    CODEX_PERMISSION_PROFILE,
+    workspaceAccess,
+    false,
+  );
+}
+
+export function codexMcpPermissionConfig(): string[] {
+  return namedPermissionConfig(CODEX_MCP_PERMISSION_PROFILE, "read", true);
+}
+
+function namedPermissionConfig(
+  profileName: string,
+  workspaceAccess: "read" | "write",
+  networkEnabled: boolean,
+): string[] {
+  const profile = JSON.stringify(profileName);
   const permissions =
     `{filesystem={":root"="deny",":minimal"="read",`
     + `":workspace_roots"={"."="${workspaceAccess}"}},`
-    + `network={enabled=false}}`;
+    + `network={enabled=${networkEnabled}}}`;
   const shellEnvironment =
     `{inherit="core",ignore_default_excludes=false,`
     + `exclude=["*KEY*","*TOKEN*","*SECRET*","*PASSWORD*",`
@@ -29,7 +46,7 @@ export function codexPermissionConfig(
 
   return [
     "-c", `default_permissions=${profile}`,
-    "-c", `permissions.${CODEX_PERMISSION_PROFILE}=${permissions}`,
+    "-c", `permissions.${profileName}=${permissions}`,
     "-c", 'approval_policy="never"',
     "-c", "project_root_markers=[]",
     "-c", `shell_environment_policy=${shellEnvironment}`,
@@ -41,13 +58,20 @@ export function codexPermissionConfig(
 export function createCodexEnvironment(
   workspace: IsolatedWorkspace,
   source: NodeJS.ProcessEnv = process.env,
+  extraEnvironmentNames: Iterable<string> = [],
 ): NodeJS.ProcessEnv {
-  const codexHome = resolve(workspace.stateDir, "codex-home");
+  const apiKey = source.CODEX_API_KEY
+    ?? source.OPEN_AI_API_KEY
+    ?? source.OPENAI_API_KEY;
+  const codexHome = apiKey
+    ? resolve(workspace.stateDir, "codex-home")
+    : source.CODEX_HOME
+      ?? (source.HOME
+        ? resolve(source.HOME, ".codex")
+        : resolve(workspace.stateDir, "codex-home"));
   mkdirSync(codexHome, { recursive: true });
 
-  const environment: NodeJS.ProcessEnv = {
-    CODEX_HOME: codexHome,
-  };
+  const environment: NodeJS.ProcessEnv = { CODEX_HOME: codexHome };
   const exactNames = [
     "PATH",
     "HOME",
@@ -73,9 +97,9 @@ export function createCodexEnvironment(
     if (name.startsWith("LC_") && value !== undefined) environment[name] = value;
   }
 
-  const apiKey = source.CODEX_API_KEY
-    ?? source.OPEN_AI_API_KEY
-    ?? source.OPENAI_API_KEY;
   if (apiKey) environment.CODEX_API_KEY = apiKey;
+  for (const name of extraEnvironmentNames) {
+    if (source[name] !== undefined) environment[name] = source[name];
+  }
   return environment;
 }

@@ -1,6 +1,10 @@
 import { execFileSync } from "child_process";
 import { styleText } from "node:util";
 import type { RunConfig, CommandRunConfig, ModelRunConfig } from "./types.js";
+import {
+  CODEX_CLI_VERSION,
+  codexExecutable,
+} from "./runners/codex-config.js";
 
 interface CheckResult {
   ok: boolean;
@@ -10,12 +14,17 @@ interface CheckResult {
 
 /**
  * Runs preflight health checks for the tools required by the selected configs.
- * Model configs need Claude Code CLI; Snyk command and MCP configs validate
- * the credentials their configured Snyk process will use.
+ * Each selected native harness and security integration validates its binary
+ * and authentication before paid benchmark work starts.
  * Prints a summary and exits non-zero if any required check fails.
  */
 export function runPreflight(configs: RunConfig[]): void {
-  const needsClaude = configs.some((c) => c.type !== "command");
+  const needsClaude = configs.some(
+    (c) => c.type !== "command" && c.runner !== "codex-cli",
+  );
+  const needsCodex = configs.some(
+    (c) => c.type !== "command" && c.runner === "codex-cli",
+  );
   const needsSnyk = configs.some(
     (c) => {
       if (c.type !== "command") return false;
@@ -31,6 +40,11 @@ export function runPreflight(configs: RunConfig[]): void {
   if (needsClaude) {
     checks.push(checkClaudeInstalled());
     checks.push(checkClaudeAuth());
+  }
+
+  if (needsCodex) {
+    checks.push(checkCodexInstalled());
+    checks.push(checkCodexAuth());
   }
 
   if (needsSnyk) {
@@ -85,6 +99,54 @@ function checkClaudeAuth(): CheckResult {
     return { ok: false, label: "Claude Code auth", detail: failMsg };
   } catch {
     return { ok: false, label: "Claude Code auth", detail: failMsg };
+  }
+}
+
+function checkCodexInstalled(): CheckResult {
+  try {
+    const version = run(codexExecutable(), ["--version"]).trim();
+    const ok = version.includes(CODEX_CLI_VERSION);
+    return {
+      ok,
+      label: "Codex CLI",
+      detail: ok
+        ? version
+        : `Expected ${CODEX_CLI_VERSION}, got ${version || "unknown"}`,
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "Codex CLI",
+      detail: `Pinned CLI unavailable. Run: pnpm install`,
+    };
+  }
+}
+
+function checkCodexAuth(): CheckResult {
+  if (
+    process.env.CODEX_API_KEY
+    || process.env.OPEN_AI_API_KEY
+    || process.env.OPENAI_API_KEY
+  ) {
+    return {
+      ok: true,
+      label: "Codex authentication",
+      detail: "API key available",
+    };
+  }
+  try {
+    const status = run(codexExecutable(), ["login", "status"]).trim();
+    return {
+      ok: true,
+      label: "Codex authentication",
+      detail: status.split("\n").filter(Boolean)[0] ?? "authenticated",
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "Codex authentication",
+      detail: "Set OPEN_AI_API_KEY or run: pnpm exec codex login",
+    };
   }
 }
 

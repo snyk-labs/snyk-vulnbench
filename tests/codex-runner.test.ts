@@ -10,6 +10,7 @@ import {
   codexPermissionConfig,
   createCodexEnvironment,
 } from "../src/runners/codex-config.js";
+import { buildCodexMcpConfiguration } from "../src/runners/codex-mcp.js";
 import {
   codexFindingsSchema,
   structuredFindingsToFinalText,
@@ -106,6 +107,79 @@ test("Codex child environment maps the dedicated key without retaining its alias
     workspace.cleanup();
     rmSync(source, { recursive: true, force: true });
   }
+});
+
+test("Codex MCP config forwards referenced secrets without embedding values", () => {
+  const config = buildCodexMcpConfiguration({
+    Snyk: {
+      command: "npx",
+      args: ["-y", "snyk@latest", "mcp", "-t", "stdio"],
+      env: {
+        SNYK_TOKEN: "${SNYK_TOKEN}",
+        SNYK_CFG_ORG: "${SNYK_CFG_ORG}",
+      },
+    },
+  }, "/tmp/project");
+  const rendered = config.configArgs.join(" ");
+
+  assert.deepEqual(config.serverNames, ["Snyk"]);
+  assert.deepEqual(
+    [...config.environmentNames].sort(),
+    ["SNYK_CFG_ORG", "SNYK_TOKEN"],
+  );
+  assert.match(rendered, /env_vars=\["SNYK_TOKEN","SNYK_CFG_ORG"\]/);
+  assert.doesNotMatch(rendered, /secret-value/);
+  assert.match(rendered, /required=true/);
+});
+
+test("Codex MCP config rejects renamed secret references", () => {
+  assert.throws(
+    () => buildCodexMcpConfiguration({
+      Snyk: {
+        command: "snyk",
+        env: { SNYK_TOKEN: "${OTHER_TOKEN}" },
+      },
+    }, "/tmp/project"),
+    /must reference the same variable name/,
+  );
+});
+
+test("Codex JSONL collector records MCP invocation telemetry", () => {
+  const collector = new CodexEventCollector(["Snyk"]);
+  collector.feed([
+    JSON.stringify({
+      type: "item.started",
+      item: {
+        id: "mcp-1",
+        type: "mcp_tool_call",
+        server: "Snyk",
+        tool: "snyk_code_scan",
+        arguments: { path: "." },
+        status: "in_progress",
+      },
+    }),
+    JSON.stringify({
+      type: "item.completed",
+      item: {
+        id: "mcp-1",
+        type: "mcp_tool_call",
+        server: "Snyk",
+        tool: "snyk_code_scan",
+        arguments: { path: "." },
+        result: { content: [] },
+        status: "completed",
+      },
+    }),
+  ].join("\n"), 100);
+  collector.finish(120);
+
+  const metrics = collector.metrics(Date.now());
+  assert.deepEqual(metrics.mcp.configuredServers, ["Snyk"]);
+  assert.equal(metrics.mcp.toolStats.mcp__Snyk__snyk_code_scan.count, 1);
+  assert.deepEqual(metrics.mcp.serverStatuses, [{
+    name: "Snyk",
+    status: "connected",
+  }]);
 });
 
 test("Codex permission profile denies root and scopes workspace access", () => {

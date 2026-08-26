@@ -30,6 +30,7 @@ import {
   codexFindingsSchema,
   structuredFindingsToFinalText,
 } from "./codex-schema.js";
+import { buildCodexMcpConfiguration } from "./codex-mcp.js";
 
 const STRUCTURED_OUTPUT_INSTRUCTION = `For this Codex benchmark run, your final response must be a JSON object with one property named "findings". The value must be the complete findings array described by the benchmark instructions. Do not wrap the final JSON in Markdown.`;
 
@@ -39,7 +40,7 @@ export const codexCliRunner: BenchmarkRunner = {
   capabilities: {
     findVulns: true,
     fixVulns: true,
-    mcp: false,
+    mcp: true,
   },
   supports(config: RunConfig): boolean {
     return config.type !== "command" && config.runner === "codex-cli";
@@ -63,7 +64,21 @@ export async function runCodexTask({
   const sessionStart = Date.now();
   const isFix = task.category.id === EVAL_CATEGORIES.FIX_VULNS.id;
   const workspaceAccess = isFix ? "write" : "read";
-  const collector = new CodexEventCollector();
+  let mcpConfiguration;
+  try {
+    mcpConfiguration = buildCodexMcpConfiguration(
+      modelConfig.mcpServers,
+      cwd,
+    );
+  } catch (error) {
+    const collector = new CodexEventCollector();
+    return {
+      finalText: "",
+      metrics: collector.metrics(sessionStart),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+  const collector = new CodexEventCollector(mcpConfiguration.serverNames);
 
   const containment = await probeCodexContainment(workspace, workspaceAccess);
   if (!containment.ok) {
@@ -88,6 +103,7 @@ export async function runCodexTask({
     "--model", modelConfig.model,
     "--output-last-message", finalOutputPath,
     ...codexPermissionConfig(workspaceAccess),
+    ...mcpConfiguration.configArgs,
     "-c", `model_reasoning_effort=${JSON.stringify(modelConfig.effort ?? "high")}`,
     "-c", `developer_instructions=${JSON.stringify(buildDeveloperInstructions(task.systemPrompt, !isFix))}`,
   ];
@@ -113,7 +129,11 @@ export async function runCodexTask({
       program: codexExecutable(),
       args,
       cwd,
-      env: createCodexEnvironment(workspace),
+      env: createCodexEnvironment(
+        workspace,
+        process.env,
+        mcpConfiguration.environmentNames,
+      ),
       stdin: prompt,
       timeoutMs: modelConfig.timeoutMs ?? 30 * 60_000,
       maxOutputBytes: 50 * 1024 * 1024,
@@ -184,6 +204,8 @@ export class CodexEventCollector {
   private readonly runningItems = new Map<string, TimedItem>();
   private readonly toolCalls: ToolCallRecord[] = [];
   private readonly filesScanned = new Set<string>();
+  private readonly mcpToolStats: McpTelemetry["toolStats"] = {};
+  private readonly mcpServerStatuses = new Map<string, string>();
   private usage = {
     input_tokens: 0,
     cached_input_tokens: 0,
@@ -195,6 +217,8 @@ export class CodexEventCollector {
   private threadId: string | undefined;
   finalMessage = "";
   terminalError = "";
+
+  constructor(private readonly configuredMcpServers: string[] = []) {}
 
   feed(chunk: string, receivedAt: number): void {
     this.buffer += chunk;
@@ -229,10 +253,11 @@ export class CodexEventCollector {
       toolStats[call.tool] = stats;
     }
     const mcp: McpTelemetry = {
-      configuredServers: [],
-      serverStatuses: [],
+      configuredServers: this.configuredMcpServers,
+      serverStatuses: [...this.mcpServerStatuses]
+        .map(([name, status]) => ({ name, status })),
       advertisedToolCount: 0,
-      toolStats: {},
+      toolStats: this.mcpToolStats,
     };
     return {
       sessionDurationMs: Date.now() - sessionStart,
@@ -311,17 +336,45 @@ export class CodexEventCollector {
         if (typeof path === "string") this.filesScanned.add(path);
       }
     }
-    if (item.type === "command_execution" || item.type === "file_change") {
+    if (
+      item.type === "command_execution"
+      || item.type === "file_change"
+      || item.type === "mcp_tool_call"
+    ) {
       const started = itemId ? this.runningItems.get(itemId) : undefined;
-      const tool = item.type === "command_execution" ? "Command" : "FileChange";
+      const server = typeof item.server === "string" ? item.server : "unknown";
+      const mcpTool = typeof item.tool === "string" ? item.tool : "unknown";
+      const tool = item.type === "command_execution"
+        ? "Command"
+        : item.type === "file_change"
+          ? "FileChange"
+          : `mcp__${server}__${mcpTool}`;
+      const durationMs = started
+        ? Math.max(0, receivedAt - started.startedAt)
+        : 0;
       this.toolCalls.push({
         tool,
-        durationMs: started ? Math.max(0, receivedAt - started.startedAt) : 0,
+        durationMs,
         inputTokensEst: estimateTokens(
-          item.command ?? item.changes ?? started?.item,
+          item.command ?? item.changes ?? item.arguments ?? started?.item,
         ),
-        outputTokensEst: estimateTokens(item.aggregated_output),
+        outputTokensEst: estimateTokens(
+          item.aggregated_output ?? item.result ?? item.error,
+        ),
       });
+      if (item.type === "mcp_tool_call") {
+        const stats = this.mcpToolStats[tool] ?? {
+          count: 0,
+          totalDurationMs: 0,
+        };
+        stats.count++;
+        stats.totalDurationMs += durationMs;
+        this.mcpToolStats[tool] = stats;
+        this.mcpServerStatuses.set(
+          server,
+          item.status === "failed" ? "failed" : "connected",
+        );
+      }
       if (itemId) this.runningItems.delete(itemId);
     }
   }
