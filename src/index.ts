@@ -2,8 +2,6 @@ import { cpSync, mkdirSync, rmSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { runTask } from "./runner.js";
-import { runCommandTask } from "./command-runner.js";
 import {
   scoreFindVulns,
   scoreAttackerReachableFindVulns,
@@ -17,9 +15,10 @@ import { runPreflight } from "./preflight.js";
 import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
 import { DEFAULT_PROMPT_TEMPLATE_ID } from "./prompt-templates.js";
+import { getRunner } from "./runners/registry.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, CommandRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -88,8 +87,9 @@ function primaryMetricForTask(task: EvalTask): PrimaryMetricKind {
 
 async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const timestamp = new Date().toISOString();
-  const isCommand = config.type === "command";
-  const runConfigType: "model" | "command" = isCommand ? "command" : "model";
+  const runner = getRunner(config);
+  const isCommand = runner.kind === "command";
+  const runConfigType = runner.kind;
 
   const effort: EffortLevel | null = isCommand ? null : (config as ModelRunConfig).effort ?? "high";
   const thinking: ThinkingConfig | null = isCommand ? null : (config as ModelRunConfig).thinking ?? { type: "adaptive" };
@@ -117,8 +117,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     totalRepetitions: 1,
   };
 
-  // Command configs (SAST tools) only produce findings — they can't fix code
-  if (isCommand && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
+  if (!runner.capabilities.fixVulns && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
     return {
       ...base,
       score: 0,
@@ -140,9 +139,11 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   }
 
   try {
-    const { finalText, metrics, error } = isCommand
-      ? await runCommandTask(task, config as CommandRunConfig, task.fixture)
-      : await runTask(task, config as ModelRunConfig, cwd);
+    const { finalText, metrics, error } = await runner.run({
+      task,
+      config,
+      cwd: isCommand ? task.fixture : cwd,
+    });
 
     if (error) {
       return {
@@ -218,16 +219,7 @@ async function main() {
     for (let i = 0; i < configs.length; i++) {
       const c = configs[i];
       const connector = i === configs.length - 1 ? "└─" : "├─";
-      let label: string;
-      if (c.type === "command") {
-        label = `[sast] ${(c as CommandRunConfig).command}`;
-      } else {
-        const mc = c as ModelRunConfig;
-        const effortTag = mc.effort ?? "high";
-        const thinkingTag = mc.thinking ? mc.thinking.type : "adaptive";
-        const promptTag = mc.promptTemplateId ?? DEFAULT_PROMPT_TEMPLATE_ID;
-        label = `${mc.model} (effort: ${effortTag}, thinking: ${thinkingTag}, prompt: ${promptTag})`;
-      }
+      const label = getRunner(c).describe(c);
       console.log(`  ${styleText("dim", connector)} ${c.id}: ${label}`);
     }
   }
