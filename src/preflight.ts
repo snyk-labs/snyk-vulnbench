@@ -6,6 +6,10 @@ import {
   codexExecutable,
 } from "./runners/codex-config.js";
 import {
+  CODEX_SECURITY_VERSION,
+  codexSecurityExecutable,
+} from "./runners/codex-security-cli.js";
+import {
   DEEPSEC_CLI_VERSION,
   deepSecExecutable,
 } from "./runners/deepsec-cli.js";
@@ -27,14 +31,17 @@ export function runPreflight(configs: RunConfig[]): void {
     (c) =>
       c.type !== "command"
       && c.type !== "deepsec"
+      && c.type !== "codex-security"
       && c.runner !== "codex-cli",
   );
   const needsCodex = configs.some(
     (c) =>
       c.type !== "command"
       && c.type !== "deepsec"
+      && c.type !== "codex-security"
       && c.runner === "codex-cli",
   );
+  const needsCodexSecurity = configs.some((c) => c.type === "codex-security");
   const needsDeepSec = configs.some((c) => c.type === "deepsec");
   const needsSnyk = configs.some(
     (c) => {
@@ -61,6 +68,13 @@ export function runPreflight(configs: RunConfig[]): void {
   if (needsDeepSec) {
     checks.push(checkDeepSecInstalled());
     checks.push(checkDeepSecAuth());
+  }
+
+  if (needsCodexSecurity) {
+    checks.push(checkCodexSecurityInstalled());
+    checks.push(checkCodexSecurityPlugin());
+    checks.push(checkCodexSecurityPython());
+    checks.push(checkCodexSecurityAuth());
   }
 
   if (needsSnyk) {
@@ -199,6 +213,86 @@ function checkDeepSecAuth(): CheckResult {
   };
 }
 
+function checkCodexSecurityInstalled(): CheckResult {
+  try {
+    const version = run(codexSecurityExecutable(), ["--version"]).trim();
+    const ok = version === CODEX_SECURITY_VERSION;
+    return {
+      ok,
+      label: "Codex Security CLI",
+      detail: ok
+        ? version
+        : `Expected ${CODEX_SECURITY_VERSION}, got ${version || "unknown"}`,
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "Codex Security CLI",
+      detail: "Pinned CLI unavailable. Run: pnpm install",
+    };
+  }
+}
+
+function checkCodexSecurityPlugin(): CheckResult {
+  try {
+    const info = JSON.parse(
+      run(codexSecurityExecutable(), ["info", "--json"]),
+    ) as Record<string, unknown>;
+    const pluginVersion = String(
+      info.bundledPluginVersion
+      ?? info.pluginVersion
+      ?? (info.plugin as Record<string, unknown> | undefined)?.version
+      ?? "unknown",
+    );
+    return {
+      ok: pluginVersion !== "unknown",
+      label: "Codex Security plugin",
+      detail: `v${pluginVersion}`,
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "Codex Security plugin",
+      detail: "Bundled plugin metadata unavailable",
+    };
+  }
+}
+
+function checkCodexSecurityPython(): CheckResult {
+  const executable = process.env.PYTHON ?? "python3";
+  try {
+    const version = run(executable, ["--version"]).trim();
+    const match = version.match(/Python\s+(\d+)\.(\d+)/);
+    const ok = Boolean(
+      match
+      && (
+        Number(match[1]) > 3
+        || (Number(match[1]) === 3 && Number(match[2]) >= 10)
+      ),
+    );
+    return {
+      ok,
+      label: "Codex Security Python",
+      detail: ok ? version : `Requires Python 3.10+, got ${version || "unknown"}`,
+    };
+  } catch {
+    return {
+      ok: false,
+      label: "Codex Security Python",
+      detail: "Python 3.10+ not found",
+    };
+  }
+}
+
+function checkCodexSecurityAuth(): CheckResult {
+  const ok = Boolean(process.env.OPENAI_API_KEY);
+  return {
+    ok,
+    label: "Codex Security authentication",
+    detail: ok ? "OPENAI_API_KEY available" : "Set OPENAI_API_KEY in the benchmark .env file",
+  };
+}
+
 function checkSnykInstalled(): CheckResult {
   try {
     const version = run("snyk", ["--version"]).trim();
@@ -213,7 +307,11 @@ function checkSnykInstalled(): CheckResult {
 }
 
 function usesSnykMcp(config: RunConfig): boolean {
-  if (config.type === "command" || config.type === "deepsec") return false;
+  if (
+    config.type === "command"
+    || config.type === "deepsec"
+    || config.type === "codex-security"
+  ) return false;
 
   return Object.entries((config as ModelRunConfig).mcpServers ?? {}).some(([name, server]) =>
     name.toLowerCase() === "snyk"

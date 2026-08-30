@@ -323,7 +323,23 @@ export interface DeepSecRunConfig {
   timeoutMs?: number;
 }
 
-export type RunConfig = ModelRunConfig | CommandRunConfig | DeepSecRunConfig;
+export interface CodexSecurityRunConfig {
+  type: "codex-security";
+  id: string;
+  name: string;
+  model: string;
+  effort: Exclude<EffortLevel, "default">;
+  mode?: "standard";
+  auth?: "api-key";
+  maxCostUsd?: number;
+  timeoutMs?: number;
+}
+
+export type RunConfig =
+  | ModelRunConfig
+  | CommandRunConfig
+  | DeepSecRunConfig
+  | CodexSecurityRunConfig;
 
 export interface RunnerCapabilities {
   findVulns: boolean;

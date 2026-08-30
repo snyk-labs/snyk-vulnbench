@@ -11,6 +11,7 @@ import {
 } from "../prompt-templates.js";
 import type {
   AttackerReachableVulnerability,
+  CodexSecurityRunConfig,
   CommandRunConfig,
   DeepSecRunConfig,
   EvalCategoryId,
@@ -618,12 +619,56 @@ export function loadRunConfigs(): RunConfig[] {
     }
     if (entry.type === "deepsec") {
       return validateDeepSecRunConfig(entry);
+    } else if (entry.type === "codex-security") {
+      return validateCodexSecurityRunConfig(entry);
     } else if (entry.type === "command") {
       return validateCommandRunConfig(entry);
     } else {
       return validateModelRunConfig(entry);
     }
   });
+}
+
+export function validateCodexSecurityRunConfig(
+  entry: Record<string, unknown>,
+): CodexSecurityRunConfig {
+  if (typeof entry.model !== "string" || entry.model.length === 0) {
+    throw new Error(`Codex Security config "${entry.id}" missing required field: model`);
+  }
+  if (
+    entry.effort !== "minimal"
+    && entry.effort !== "low"
+    && entry.effort !== "medium"
+    && entry.effort !== "high"
+    && entry.effort !== "xhigh"
+    && entry.effort !== "max"
+  ) {
+    throw new Error(
+      `Codex Security config "${entry.id}" has invalid effort "${entry.effort}"`,
+    );
+  }
+  if (entry.mode !== undefined && entry.mode !== "standard") {
+    throw new Error(`Codex Security config "${entry.id}" only supports mode "standard"`);
+  }
+  if (entry.auth !== undefined && entry.auth !== "api-key") {
+    throw new Error(`Codex Security config "${entry.id}" only supports auth "api-key"`);
+  }
+  if (
+    entry.maxCostUsd !== undefined
+    && (
+      typeof entry.maxCostUsd !== "number"
+      || !Number.isFinite(entry.maxCostUsd)
+      || entry.maxCostUsd <= 0
+    )
+  ) {
+    throw new Error(`Codex Security config "${entry.id}" maxCostUsd must be positive`);
+  }
+  for (const field of ["mcpServers", "promptTemplateId", "runner"] as const) {
+    if (entry[field] !== undefined) {
+      throw new Error(`Codex Security config "${entry.id}" does not support ${field}`);
+    }
+  }
+  return entry as unknown as CodexSecurityRunConfig;
 }
 
 export function validateCommandRunConfig(

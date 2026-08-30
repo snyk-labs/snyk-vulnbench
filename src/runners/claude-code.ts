@@ -14,6 +14,7 @@ export const claudeCodeRunner: BenchmarkRunner = {
   supports(config: RunConfig): boolean {
     return config.type !== "command"
       && config.type !== "deepsec"
+      && config.type !== "codex-security"
       && (config.runner === undefined || config.runner === "claude-code");
   },
   describe(config: RunConfig): string {
