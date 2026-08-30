@@ -127,7 +127,7 @@ The Agent SDK works by spawning the `claude` CLI binary as a subprocess — it d
 
 Run `claude auth status` to see which is active. Either works; no special setup is needed beyond having the CLI authenticated.
 
-Codex Security runs noninteractively with the canonical `OPENAI_API_KEY` from the ignored repository-root `.env`. Its child environment deliberately omits `OPEN_AI_API_KEY`, `CODEX_API_KEY`, and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
+Codex Security runs noninteractively with the canonical `OPENAI_API_KEY` from the ignored repository-root `.env`. Its child environment deliberately omits alternative key aliases and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
 
 ## MCP Configurations and Credentials
 

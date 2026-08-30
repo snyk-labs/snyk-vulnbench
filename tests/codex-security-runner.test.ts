@@ -60,13 +60,11 @@ test("Codex Security environment exposes only canonical OpenAI authentication", 
       PATH: "/usr/bin",
       HOME: "/home/test",
       OPENAI_API_KEY: "canonical-key",
-      OPEN_AI_API_KEY: "legacy-key",
       CODEX_API_KEY: "codex-key",
       SNYK_TOKEN: "must-not-leak",
     });
 
     assert.equal(environment.OPENAI_API_KEY, "canonical-key");
-    assert.equal(environment.OPEN_AI_API_KEY, undefined);
     assert.equal(environment.CODEX_API_KEY, undefined);
     assert.equal(environment.SNYK_TOKEN, undefined);
     assert.match(environment.CODEX_HOME ?? "", /codex-home$/);

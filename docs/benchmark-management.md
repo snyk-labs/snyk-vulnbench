@@ -672,7 +672,7 @@ Codex Security is a separate find-only participant rather than a prompt template
 }
 ```
 
-Set `OPENAI_API_KEY` in the ignored root `.env`. The benchmark child receives only that canonical key name; `OPEN_AI_API_KEY`, `CODEX_API_KEY`, and unrelated credentials are not forwarded. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and authentication before a scan.
+Set `OPENAI_API_KEY` in the ignored root `.env`. The benchmark child receives only that canonical key name; alternative key aliases and unrelated credentials are not forwarded. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and authentication before a scan.
 
 `maxCostUsd` is a high fail-safe ceiling, not a target budget: standard Sol xhigh scans can exceed small limits during threat modeling before they seal any findings. Use the reported `metrics.totalCostUsd` to track actual spend.
 

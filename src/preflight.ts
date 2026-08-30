@@ -154,9 +154,8 @@ function checkCodexInstalled(): CheckResult {
 
 function checkCodexAuth(): CheckResult {
   if (
-    process.env.CODEX_API_KEY
-    || process.env.OPEN_AI_API_KEY
-    || process.env.OPENAI_API_KEY
+    process.env.OPENAI_API_KEY
+    || process.env.CODEX_API_KEY
   ) {
     return {
       ok: true,
@@ -175,7 +174,7 @@ function checkCodexAuth(): CheckResult {
     return {
       ok: false,
       label: "Codex authentication",
-      detail: "Set OPEN_AI_API_KEY or run: pnpm exec codex login",
+      detail: "Set OPENAI_API_KEY or run: pnpm exec codex login",
     };
   }
 }
@@ -203,13 +202,12 @@ function checkDeepSecInstalled(): CheckResult {
 function checkDeepSecAuth(): CheckResult {
   const ok = Boolean(
     process.env.OPENAI_API_KEY
-    || process.env.OPEN_AI_API_KEY
     || process.env.CODEX_API_KEY,
   );
   return {
     ok,
     label: "DeepSec OpenAI authentication",
-    detail: ok ? "API key available" : "Set OPEN_AI_API_KEY",
+    detail: ok ? "API key available" : "Set OPENAI_API_KEY",
   };
 }
 

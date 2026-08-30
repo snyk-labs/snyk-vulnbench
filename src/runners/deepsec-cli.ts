@@ -207,7 +207,6 @@ function createDeepSecEnvironment(
     if (source[name] !== undefined) environment[name] = source[name];
   }
   const apiKey = source.OPENAI_API_KEY
-    ?? source.OPEN_AI_API_KEY
     ?? source.CODEX_API_KEY;
   if (apiKey) environment.OPENAI_API_KEY = apiKey;
   return environment;

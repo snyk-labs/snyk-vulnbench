@@ -19,7 +19,7 @@ export function codexPermissionConfig(
   const shellEnvironment =
     `{inherit="core",ignore_default_excludes=false,`
     + `exclude=["*KEY*","*TOKEN*","*SECRET*","*PASSWORD*",`
-    + `"OPEN_AI_API_KEY","OPENAI_API_KEY","CODEX_API_KEY"]}`;
+    + `"OPENAI_API_KEY","CODEX_API_KEY"]}`;
 
   return [
     "--sandbox", workspaceAccess === "write" ? "workspace-write" : "read-only",
@@ -37,9 +37,8 @@ export function createCodexEnvironment(
   source: NodeJS.ProcessEnv = process.env,
   extraEnvironmentNames: Iterable<string> = [],
 ): NodeJS.ProcessEnv {
-  const apiKey = source.CODEX_API_KEY
-    ?? source.OPEN_AI_API_KEY
-    ?? source.OPENAI_API_KEY;
+  const apiKey = source.OPENAI_API_KEY
+    ?? source.CODEX_API_KEY;
   const codexHome = apiKey
     ? resolve(workspace.stateDir, "codex-home")
     : source.CODEX_HOME

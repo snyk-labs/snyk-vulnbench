@@ -92,7 +92,7 @@ test("Codex V2 output schema requires flow locations", () => {
   assert.ok(schema.properties.findings.items.required.includes("filesRelated"));
 });
 
-test("Codex child environment maps the dedicated key without retaining its alias", () => {
+test("Codex child environment maps the canonical key to its native key", () => {
   const source = mkdtempSync(join(tmpdir(), "codex-env-project-"));
   writeFileSync(join(source, "app.js"), "console.log('ok');\n");
   const workspace = createIsolatedWorkspace(source);
@@ -100,11 +100,11 @@ test("Codex child environment maps the dedicated key without retaining its alias
     const environment = createCodexEnvironment(workspace, {
       PATH: "/usr/bin",
       HOME: "/home/test",
-      OPEN_AI_API_KEY: "dedicated-key",
+      OPENAI_API_KEY: "canonical-key",
       SNYK_TOKEN: "must-not-leak",
     });
-    assert.equal(environment.CODEX_API_KEY, "dedicated-key");
-    assert.equal(environment.OPEN_AI_API_KEY, undefined);
+    assert.equal(environment.CODEX_API_KEY, "canonical-key");
+    assert.equal(environment.OPENAI_API_KEY, undefined);
     assert.equal(environment.SNYK_TOKEN, undefined);
   } finally {
     workspace.cleanup();
@@ -189,7 +189,7 @@ test("Codex uses its legacy write sandbox inside the outer Landlock boundary", (
   const args = codexPermissionConfig("read").join(" ");
   assert.match(args, /--sandbox read-only/);
   assert.match(args, /features\.use_legacy_landlock=true/);
-  assert.match(args, /OPEN_AI_API_KEY/);
+  assert.match(args, /OPENAI_API_KEY/);
 });
 
 test("Landlock containment reads the project and denies its sibling", async () => {
