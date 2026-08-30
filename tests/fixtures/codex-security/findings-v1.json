@@ -1,0 +1,83 @@
+{
+  "documentType": "codex-security.findings",
+  "schemaVersion": "1.0",
+  "scanId": "scan-test-1",
+  "findings": [
+    {
+      "findingId": "finding-sqli",
+      "occurrenceId": "occurrence-sqli",
+      "ruleId": "sql-injection",
+      "identity": { "anchor": "db-query" },
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "fingerprint-sqli"
+      },
+      "title": "SQL injection in user lookup",
+      "summary": "Attacker-controlled user ID reaches an unparameterized query.",
+      "severity": { "level": "high" },
+      "confidence": { "level": "high", "rationale": "Direct source-to-sink flow." },
+      "taxonomy": { "category": "Injection", "cwe": ["CWE-89"] },
+      "locations": [
+        { "path": "routes/users.js", "startLine": 12, "role": "entrypoint" },
+        { "path": "db/users.js", "startLine": 31, "role": "root_control" }
+      ],
+      "codeEvidence": [
+        {
+          "id": "evidence-query",
+          "label": "Raw query",
+          "path": "db/users.js",
+          "startLine": 31,
+          "role": "evidence",
+          "code": "db.raw(query)",
+          "explanation": "The query is not parameterized."
+        }
+      ],
+      "attackPath": {
+        "impact": { "rationale": "An attacker can read or modify database records." }
+      },
+      "remediation": "Use a parameterized query.",
+      "provenance": { "source": "codex-security" }
+    },
+    {
+      "findingId": "finding-xss",
+      "occurrenceId": "occurrence-xss",
+      "ruleId": "custom-web-output",
+      "identity": { "anchor": "html-response" },
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "fingerprint-xss"
+      },
+      "title": "Unescaped HTML response",
+      "summary": "A request value is rendered without HTML escaping.",
+      "severity": { "level": "medium" },
+      "confidence": { "level": "high", "rationale": "The response is reachable." },
+      "taxonomy": { "category": "Web output", "cwe": ["CWE-79"] },
+      "locations": [
+        { "path": "app.js", "startLine": 20, "role": "source" },
+        { "path": "app.js", "startLine": 24, "role": "sink" }
+      ],
+      "remediation": "Escape untrusted HTML.",
+      "provenance": { "source": "codex-security" }
+    },
+    {
+      "findingId": "finding-unknown",
+      "occurrenceId": "occurrence-unknown",
+      "ruleId": "custom-observation",
+      "identity": { "anchor": "diagnostic" },
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "fingerprint-unknown"
+      },
+      "title": "Diagnostic observation",
+      "summary": "An informational issue with an unknown category.",
+      "severity": { "level": "informational" },
+      "confidence": { "level": "medium", "rationale": "Review recommended." },
+      "taxonomy": { "category": "Unmapped category", "cwe": [] },
+      "locations": [
+        { "path": "app.js", "startLine": 3, "role": "evidence" }
+      ],
+      "remediation": "Review the diagnostic.",
+      "provenance": { "source": "codex-security" }
+    }
+  ]
+}
