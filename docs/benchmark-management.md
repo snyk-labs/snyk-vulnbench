@@ -650,9 +650,35 @@ DeepSec is a dedicated run-config type because it orchestrates multiple CLI stag
 }
 ```
 
-The adapter pins DeepSec 2.3.7, creates fresh state for every repetition, and runs `scan → process → export`. `OPEN_AI_API_KEY` from the root `.env` is exposed to the DeepSec child only as `OPENAI_API_KEY`. Do not add `mcpServers`: DeepSec controls its own agent toolset.
+The adapter pins DeepSec 2.3.7, creates fresh state for every repetition, and runs `scan → process → export`. Put the canonical `OPENAI_API_KEY` in the root `.env`; the isolated worker makes that value authoritative and exposes it to the DeepSec child only as `OPENAI_API_KEY`. Do not add `mcpServers`: DeepSec controls its own agent toolset.
 
 DeepSec supports V1 and attacker-reachable tasks but uses different V2 evidence semantics. Since its export has file/line locations without source/sink labels, the primary V2 metric is `localized-vulnerability-recall` (type plus any matching curated flow location within ±2 lines), not endpoint-aware attacker-reachable recall. The two metrics are not aggregated together. DeepSec does not support fix-vulns tasks.
+
+### Adding a Codex Security harness config
+
+Codex Security is a separate find-only participant rather than a prompt template for the general Codex runner. The adapter pins both `@openai/codex-security` and its Codex dependency, then runs a standard full-repository scan:
+
+```json
+{
+  "type": "codex-security",
+  "id": "codex-security-sol-xhigh",
+  "name": "Codex Security GPT-5.6 Sol XHigh",
+  "model": "gpt-5.6-sol",
+  "effort": "xhigh",
+  "mode": "standard",
+  "auth": "api-key",
+  "maxCostUsd": 2,
+  "timeoutMs": 2700000
+}
+```
+
+Set `OPENAI_API_KEY` in the ignored root `.env`. The benchmark child receives only that canonical key name; `OPEN_AI_API_KEY`, `CODEX_API_KEY`, and unrelated credentials are not forwarded. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and authentication before a scan.
+
+Every run uses a new Git snapshot and private Codex homes under the temporary state directory. The CLI and all descendants run inside the same outer Landlock boundary as the general Codex runner: the copied project is read-only, scanner state/output are writable, and sibling paths such as fixture ground truth are denied. A model-free dry run completes before the paid scan.
+
+The adapter consumes only the current scan's sealed `findings` document. V1 uses type-only F1. V2 maps documented Codex Security location roles conservatively to source/sink endpoints and uses attacker-reachable recall; unknown or evidence-only roles remain unlabelled rather than being guessed. JSONL stores coverage completeness, deferred/excluded counts, target and scan identity, package/plugin versions, parser mapping diagnostics, and reported usage/cost. Sealed partial scans are scored with `coverage: partial`; runs without a valid sealed result fail.
+
+Codex Security does not accept benchmark prompts, MCP servers, deep mode, ChatGPT auth, patching, publication, or fix-vulns tasks in this baseline integration. Its package evolves quickly, so update the exact dependency pin, runner version constant, frozen parser fixtures, and documentation together.
 
 ### Maintaining Snyk Code ruleId mappings
 
@@ -706,7 +732,7 @@ npm run report:serve -- public/2026-05-14-wpq2k
 
 ## Run Config JSON Reference
 
-Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a DeepSec security-harness config.
+Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
 
 ### Model config fields (`type` absent or `"model"`)
 
@@ -751,6 +777,19 @@ Command configs only support find-vulns tasks. They produce `"runConfigType": "c
 | `batchSize` / `concurrency` | No | `number` | DeepSec processing controls. |
 | `limit` | No | `number` | Optional file cap for smoke testing. Omit for scored full runs. |
 | `timeoutMs` | No | `number` | Per-stage process deadline. |
+
+### Codex Security config fields (`type: "codex-security"`)
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `type` | Yes | `"codex-security"` | Selects the dedicated Codex Security CLI adapter. |
+| `id` / `name` | Yes | `string` | Stable config identity and display label. |
+| `model` | Yes | `string` | Explicit OpenAI model slug. |
+| `effort` | Yes | `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` \| `"max"` | Codex Security reasoning effort. |
+| `mode` | No | `"standard"` | Full-repository standard mode; deep mode is intentionally excluded. |
+| `auth` | No | `"api-key"` | Noninteractive canonical `OPENAI_API_KEY` authentication. |
+| `maxCostUsd` | No | positive `number` | Estimated scan-cost ceiling; in-flight requests may finish above it. |
+| `timeoutMs` | No | `number` | Parent-process deadline for dry run and scan execution. |
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 

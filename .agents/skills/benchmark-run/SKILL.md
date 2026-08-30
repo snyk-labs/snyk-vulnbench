@@ -1,8 +1,8 @@
 ---
 name: benchmark-run
-description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
+description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run with Codex Security", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
 license: MIT
-compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
+compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Codex Security requires canonical `OPENAI_API_KEY` plus Python 3.10+. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
 metadata:
   author: snyk-vulnbench
   version: 1.0.0
@@ -61,6 +61,7 @@ When the user specifies a numeric range like "1 to 3" or "1-3", expand it into t
 | "sonnet medium" or "sonnet 4.6 medium" | `--config sonnet-4-6-medium` |
 | "snyk" or "snyk code" | `--config snyk-code` |
 | "haiku with snyk MCP" or "haiku snyk" | `--config haiku-4-5-default-with-snyk-mcp` |
+| "codex security" or "codex security sol" | `--config codex-security-sol-xhigh` |
 | "opus and snyk" | `--config opus-4-6-high,opus-4-6-medium,snyk-code` |
 | "all models" or "all configs" | omit `--config` (runs all) |
 | (not mentioned) | omit `--config` (runs all) |
@@ -119,7 +120,8 @@ After the benchmark completes:
 1. Read the summary table from the command output.
 2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time.
 3. For a model config with MCP servers, report `MCP status` and `MCP calls` from the console. In JSONL, verify `metrics.mcp.serverStatuses` and `metrics.mcp.toolStats`; a connected server with an empty `toolStats` was available but not invoked.
-4. Note the results file path (printed at the end of output).
+4. For Codex Security, report package/plugin versions, coverage completeness, deferred/excluded counts, model/effort, tokens, estimated cost, and whether V2 endpoint evidence was present. Treat partial coverage as a scored but qualified result.
+5. Note the results file path (printed at the end of output).
 
 If the user wants a detailed report or writeup, suggest using the `benchmark-report-writer` skill.
 

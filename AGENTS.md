@@ -19,6 +19,7 @@ Benchmarking framework that runs AI coding agents (primarily Claude Code via the
 - **Runtime**: TypeScript + Node 24, pnpm
 - **Agent SDK**: `@anthropic-ai/claude-agent-sdk` (TypeScript) — wraps Claude Code CLI
 - **Anthropic SDK**: `@anthropic-ai/sdk` — for token counting and direct API calls (scoring, judging)
+- **Codex Security**: pinned `@openai/codex-security` CLI — dedicated full-repository security harness
 - **Claude Code CLI**: available at `/home/node/.local/bin/claude`
 
 ## Architecture
@@ -27,6 +28,7 @@ Benchmarking framework that runs AI coding agents (primarily Claude Code via the
 src/
   types.ts          # Core interfaces + EVAL_CATEGORIES constant
   runner.ts         # Agent SDK wrapper — runs a task and collects metrics
+  runners/          # Claude, Codex, Codex Security, DeepSec, and command adapters
   scorer.ts         # Scoring logic per eval category
   reporter.ts       # Output to console table + JSONL
   evals/
@@ -105,6 +107,8 @@ From the chat-summary.txt context:
 - Snyk Code automatically uses the rich SARIF code-flow parser for V2 tasks while retaining the V1 parser for existing tasks
 - Every V2 JSONL run stores all candidate type/location comparisons, source-and-sink/sink-only/source-only evidence classes, explicit ranks, line offsets, and structured finding/vulnerability outcomes under `details.matchDiagnostics`
 - The V2 headline is **Attacker-Reachable Vulnerability Recall**; precision and all F1 variants remain secondary metrics
+- Codex Security consumes sealed current-scan findings and conservatively maps documented location roles to endpoint evidence; its coverage and parser decisions are stored under `metrics.codexSecurity`
+- DeepSec lacks endpoint roles and therefore retains the distinct localized-recall headline
 
 ### fix-vulns
 - Agent runs on a temp copy of the fixture directory (to avoid permanent changes)
@@ -123,6 +127,8 @@ The Agent SDK works by spawning the `claude` CLI binary as a subprocess — it d
 
 Run `claude auth status` to see which is active. Either works; no special setup is needed beyond having the CLI authenticated.
 
+Codex Security runs noninteractively with the canonical `OPENAI_API_KEY` from the ignored repository-root `.env`. Its child environment deliberately omits `OPEN_AI_API_KEY`, `CODEX_API_KEY`, and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
+
 ## MCP Configurations and Credentials
 
 Model run configs can declare `mcpServers` and an optional `promptTemplateId`. `"default"` preserves the task prompt; `"snyk-mcp"` requires exactly one `snyk_code_scan` before the agent completes its independent review.
@@ -138,6 +144,7 @@ pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:v2                   # all attacker-reachable V2 tasks
 pnpm run benchmark:v2:snyk              # V2 tasks with Snyk Code only
+pnpm benchmark -- --category attacker-reachable-find-vulns --config codex-security-sol-xhigh
 pnpm run benchmark:fix                  # only fix-vulns tasks
 pnpm benchmark -- --config opus-only    # specific run config
 pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task

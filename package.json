@@ -12,6 +12,7 @@
     "benchmark:find:js-1-2-with-snyk": "tsx src/index.ts --task js-project-tigerteam-find-vulns,js-project-shadowfox-find-vulns --config sonnet-4-6-high,sonnet-4-6-medium,snyk-code --repetitions 1",
     "benchmark:v2": "tsx src/index.ts --category attacker-reachable-find-vulns --repetitions 1",
     "benchmark:v2:snyk": "tsx src/index.ts --category attacker-reachable-find-vulns --config snyk-code --repetitions 1",
+    "benchmark:v2:codex-security": "tsx src/index.ts --category attacker-reachable-find-vulns --config codex-security-sol-xhigh --repetitions 1",
     "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
     "test": "tsx --test tests/*.test.ts",
     "report:serve": "serve",

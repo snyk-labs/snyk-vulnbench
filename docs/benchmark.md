@@ -88,7 +88,7 @@ flowchart TD
 
     subgraph AGENT["③ Run Agent Session"]
         I["Resolve runner adapter"] --> J
-        J["Launch Claude, Codex,\nSnyk, or DeepSec"] --> K
+        J["Launch Claude, Codex,\nCodex Security, Snyk, or DeepSec"] --> K
 
         subgraph HOOKS["Hooks fire on every tool call"]
             K --> L["PreToolUse hook\nrecord start time"]
@@ -354,7 +354,7 @@ Key design decisions baked into the task definition:
 
 **Location:** `evals/run-configs.json` — a JSON array loaded at startup by `src/evals/loader.ts`
 
-A `RunConfig` selects both a participant and its native harness. The runner registry currently supports Claude Code, Codex CLI, Snyk Code, and DeepSec. Every adapter returns the same `RunOutput` boundary; the scorer then selects the metric appropriate to the task and the evidence the runner can report.
+A `RunConfig` selects both a participant and its native harness. The runner registry currently supports Claude Code, Codex CLI, Codex Security, Snyk Code, and DeepSec. Every adapter returns the same `RunOutput` boundary; the scorer then selects the metric appropriate to the task and the evidence the runner can report.
 
 ```typescript
 // General coding agent: Claude Code by default, or Codex CLI explicitly.
@@ -396,6 +396,18 @@ interface DeepSecRunConfig {
   concurrency?: number;
   timeoutMs?: number;
 }
+
+interface CodexSecurityRunConfig {
+  type: "codex-security";
+  id: string;
+  name: string;
+  model: string;
+  effort: "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+  mode?: "standard";
+  auth?: "api-key";
+  maxCostUsd?: number;
+  timeoutMs?: number;
+}
 ```
 
 The separation of `EvalTask` and `RunConfig` is the key architectural decision that makes this a *benchmark* rather than a one-off script. It lets you answer: **"Does this task get a better score with a different model, tool setup, or scanning approach?"**
@@ -409,8 +421,9 @@ Example comparisons enabled by this design:
 | `sonnet-4-6` vs `codex-luna-high` | Claude Code harness vs Codex CLI |
 | `sonnet-4-6` vs `snyk-code` | LLM agent vs classic SAST |
 | `codex-luna-high` vs `deepsec-codex-luna-high` | General coding agent vs opinionated security harness on an OpenAI model |
+| `codex-luna-high` vs `codex-security-sol-xhigh` | General Codex agent vs OpenAI's dedicated security harness |
 
-**Snyk and DeepSec are find-only.** They are skipped with an error result for fix-vulns tasks. Codex CLI and Claude Code support both find and fix tasks.
+**Snyk, DeepSec, and Codex Security are find-only.** They are skipped with an error result for fix-vulns tasks. Codex CLI and Claude Code support both find and fix tasks.
 
 **Adding a model config with an MCP server:**
 ```json
@@ -497,6 +510,7 @@ For how Snyk (and any command config) output is turned into findings and matched
 
 - **Claude Code** uses the Anthropic Agent SDK and its hook stream.
 - **Codex CLI** spawns pinned `codex exec`, sends the prompt on stdin, constrains find output with JSON Schema, and parses JSONL events.
+- **Codex Security** runs its pinned, bundled security plugin as a standard full-repository scan under outer Landlock containment and consumes sealed findings/coverage JSON.
 - **Snyk Code** executes a structured argv command and parses SARIF.
 - **DeepSec** executes a pinned `scan → process → export` pipeline and reads its documented state for usage metrics.
 
@@ -610,7 +624,7 @@ interface BenchmarkMetrics {
 }
 ```
 
-Metric availability is runner-specific and recorded rather than guessed. Claude reports SDK totals and cost; Codex reports token/reasoning totals but no authoritative cost; DeepSec reports the token, cost, turn, and session fields persisted in `analysisHistory`; Snyk has no model-token metrics.
+Metric availability is runner-specific and recorded rather than guessed. Claude reports SDK totals and cost; Codex reports token/reasoning totals but no authoritative cost; Codex Security reports sealed scan usage, estimated cost, coverage, and package/plugin provenance; DeepSec reports the token, cost, turn, and session fields persisted in `analysisHistory`; Snyk has no model-token metrics.
 
 Each entry in `toolCalls`:
 ```typescript
@@ -1169,6 +1183,23 @@ DeepSec exports `vulnSlug`, `filePath`, and `lineNumbers`, but not source/sink r
 - `localizedScore` stores TP/FP/FN, precision, recall, F1, and tolerance.
 - localized recall is never macro-averaged with endpoint-aware attacker-reachable recall.
 - DeepSec does not support fix tasks or MCP run variants.
+
+### Codex Security and endpoint-aware V2 scoring
+
+The `codex-security-cli` adapter invokes pinned `@openai/codex-security` in standard, report-only, full-repository mode. This is the same opinionated scanner distributed through the Codex Security plugin, exposed through a repeatable CLI contract rather than probabilistic plugin invocation by the general Codex agent.
+
+Before any paid request, the adapter creates a Git snapshot, proves Landlock containment, and runs the scanner's model-free dry run. The paid process receives a reduced environment with only canonical `OPENAI_API_KEY`; Codex homes, scanner history, temporary files, and output all live in the disposable run workspace. The original fixture and its answer keys are never exposed.
+
+The parser consumes only the sealed current-scan `findings` document. It maps rule/category/CWE identifiers to conservative vulnerability types and maps documented `entrypoint`/`source` roles to sources and `sink`/`root_control`/`concrete_implementation` roles to sinks. Unknown roles remain intermediate evidence. Therefore V2 uses the standard attacker-reachable scorer and produces the same endpoint diagnostics and score suite as other endpoint-capable participants.
+
+Raw run metrics additionally retain:
+
+- package and bundled-plugin versions, scan/thread identity, and target revision/digest;
+- coverage completeness, reviewed surfaces, deferred work, explicit exclusions, and follow-up counts;
+- parser type/role mapping decisions and skipped findings;
+- reported input/cache/output/reasoning tokens and estimated cost.
+
+A sealed partial scan is scored and labeled `coverage: partial`; a missing, unsealed, or incompatible findings/coverage contract is a run error. Codex Security is find-only and intentionally excludes deep mode, custom prompts, scan history, patching, publication, and MCP variants from the baseline configuration.
 
 ---
 
@@ -2046,6 +2077,7 @@ No source code changes required — the benchmark uses a directory-scanning load
 - **New eval task:** drop a JSON file in `evals/tasks/<id>.json` with `id`, `name`, `category`, `fixture`, and optional `groundTruth` fields
 - **New model config:** append a `ModelRunConfig` entry to `evals/run-configs.json` (or omit `"type"` — it defaults to model)
 - **New SAST config:** append a `CommandRunConfig` entry with `"type": "command"`, `"command"`, and `"parser"` fields
+- **New security harness:** use a dedicated typed config such as `"type": "deepsec"` or `"type": "codex-security"`; do not model these as prompts for general agents
 - **New SAST parser:** add a file to `src/parsers/` and register it in `src/parsers/index.ts`
 - **Snyk `ruleId` → benchmark `type`:** when fixtures, Snyk versions, or comparisons suggest missing mappings, update **`mapRuleId()`** in **`src/parsers/snyk-code.ts`** (see [When to update `mapRuleId` (Snyk)](#when-to-update-mapruleid-snyk) and [`docs/benchmark-management.md`](./benchmark-management.md#maintaining-snyk-code-ruleid-mappings))
 
