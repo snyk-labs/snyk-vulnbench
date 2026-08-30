@@ -21,7 +21,7 @@ import {
 } from "./isolated-workspace.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, DeepSecRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -107,6 +107,8 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
   const effort: EffortLevel | null = runner.id === "deepsec-cli"
     ? (config as DeepSecRunConfig).thinkingLevel
+    : runner.id === "codex-security-cli"
+      ? (config as CodexSecurityRunConfig).effort
     : isCommand
       ? null
       : (config as ModelRunConfig).effort ?? "high";
@@ -131,6 +133,8 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     runnerCapabilities: runner.capabilities,
     requestedModel: runner.id === "deepsec-cli"
       ? (config as DeepSecRunConfig).model
+      : runner.id === "codex-security-cli"
+        ? (config as CodexSecurityRunConfig).model
       : isCommand
         ? null
         : (config as ModelRunConfig).model,

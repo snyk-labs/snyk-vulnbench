@@ -8,7 +8,9 @@ import { executeProcess, type ProcessExecutionResult } from "../process-executor
 import { buildLandlockInvocation } from "../sandbox/landlock.js";
 import type {
   BenchmarkMetrics,
+  CodexSecurityParserDiagnostics,
   CodexSecurityRunConfig,
+  CodexSecurityTelemetry,
   FindingRecord,
   RunConfig,
   RunOutput,
@@ -52,6 +54,8 @@ export async function runCodexSecurityTask({
   const sessionStart = Date.now();
   const toolCalls: ToolCallRecord[] = [];
   let findings: FindingRecord[] = [];
+  let scanOutput: Record<string, unknown> | undefined;
+  let parserDiagnostics: CodexSecurityParserDiagnostics | undefined;
 
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -100,6 +104,7 @@ export async function runCodexSecurityTask({
     }
 
     const output = parseScanOutput(scan.stdout);
+    scanOutput = output;
     const manifest = asRecord(output.manifest);
     const scanMetadata = asRecord(manifest.scan);
     if (scanMetadata.status !== "completed") {
@@ -109,17 +114,33 @@ export async function runCodexSecurityTask({
     }
     const parsed = parseCodexSecurityFindings(output.findings, task.groundTruth);
     findings = parsed.findings;
+    parserDiagnostics = parsed.diagnostics;
+    const telemetry = codexSecurityTelemetry(output, parserDiagnostics);
 
     return {
       finalText: serializeFindingsToFinalText(findings),
       findings,
-      metrics: basicMetrics(sessionStart, toolCalls, findings),
+      metrics: collectCodexSecurityMetrics(
+        sessionStart,
+        toolCalls,
+        findings,
+        output,
+        telemetry,
+      ),
     };
   } catch (error) {
     return {
       finalText: "",
       ...(findings.length > 0 && { findings }),
-      metrics: basicMetrics(sessionStart, toolCalls, findings),
+      metrics: collectCodexSecurityMetrics(
+        sessionStart,
+        toolCalls,
+        findings,
+        scanOutput,
+        parserDiagnostics && scanOutput
+          ? codexSecurityTelemetry(scanOutput, parserDiagnostics)
+          : undefined,
+      ),
       error: error instanceof Error ? error.message : String(error),
     };
   }
@@ -235,10 +256,12 @@ function parseScanOutput(stdout: string): Record<string, unknown> {
   }
 }
 
-function basicMetrics(
+export function collectCodexSecurityMetrics(
   sessionStart: number,
   toolCalls: ToolCallRecord[],
   findings: FindingRecord[],
+  output?: Record<string, unknown>,
+  telemetry?: CodexSecurityTelemetry,
 ): BenchmarkMetrics {
   const toolStats: BenchmarkMetrics["toolStats"] = {};
   for (const call of toolCalls) {
@@ -249,15 +272,32 @@ function basicMetrics(
       totalOutputTokensEst: call.outputTokensEst,
     };
   }
+  const turn = asRecord(output?.turn ?? output?.turnResult);
+  const usage = asRecord(turn.usage);
+  const inputTokens = numberValue(usage.input_tokens);
+  const outputTokens = numberValue(usage.output_tokens);
+  const cacheReadTokens = numberValue(usage.cached_input_tokens);
+  const cacheCreationTokens = numberValue(usage.cache_write_input_tokens);
+  const reasoningOutputTokens = numberValue(usage.reasoning_output_tokens);
+  const hasReportedUsage = Object.values(usage).some((value) =>
+    typeof value === "number"
+  );
+  const cost = asRecord(output?.cost);
+  const threadId = stringValue(output?.threadId);
+
   return {
     sessionDurationMs: Date.now() - sessionStart,
-    totalInputTokens: 0,
-    totalOutputTokens: 0,
-    totalCacheReadTokens: 0,
-    totalCacheCreationTokens: 0,
-    totalLogicalInputTokens: 0,
-    totalCostUsd: null,
-    totalTurns: 0,
+    totalInputTokens: inputTokens,
+    totalOutputTokens: outputTokens,
+    ...(reasoningOutputTokens > 0 && {
+      totalReasoningOutputTokens: reasoningOutputTokens,
+    }),
+    totalCacheReadTokens: cacheReadTokens,
+    totalCacheCreationTokens: cacheCreationTokens,
+    totalLogicalInputTokens:
+      inputTokens + cacheReadTokens + cacheCreationTokens,
+    totalCostUsd: nullableNumber(cost.estimatedUsd),
+    totalTurns: turn.id || turn.status ? 1 : 0,
     toolCalls,
     toolStats,
     filesScanned: [...new Set(findings.flatMap((finding) =>
@@ -270,12 +310,82 @@ function basicMetrics(
       advertisedToolCount: 0,
       toolStats: {},
     },
+    ...(telemetry && { codexSecurity: telemetry }),
     runner: {
       id: "codex-security-cli",
       version: CODEX_SECURITY_VERSION,
-      tokenSource: "unavailable",
+      ...(threadId && { sessionId: threadId }),
+      tokenSource: hasReportedUsage ? "reported" : "unavailable",
       toolSource: "reported",
     },
+  };
+}
+
+export function codexSecurityTelemetry(
+  output: Record<string, unknown>,
+  parser: CodexSecurityParserDiagnostics,
+): CodexSecurityTelemetry {
+  const manifest = asRecord(output.manifest);
+  const scan = asRecord(manifest.scan);
+  const producer = asRecord(scan.producer);
+  const target = asRecord(scan.target);
+  const coverage = asRecord(output.coverage);
+  if (
+    coverage.documentType !== "codex-security.coverage"
+    || coverage.schemaVersion !== "1.0"
+  ) {
+    throw new Error("Codex Security returned an unsupported coverage contract");
+  }
+  const completeness = coverage.completeness;
+  if (
+    completeness !== "complete"
+    && completeness !== "partial"
+    && completeness !== "unknown"
+  ) {
+    throw new Error(
+      `Codex Security returned invalid coverage completeness "${String(completeness)}"`,
+    );
+  }
+  const surfaces = arrayValue(coverage.surfaces);
+
+  return {
+    packageVersion: CODEX_SECURITY_VERSION,
+    pluginVersion: stringValue(output.pluginVersion)
+      ?? stringValue(producer.version)
+      ?? "unknown",
+    scanId: parser.scanId,
+    ...(stringValue(output.threadId) && {
+      threadId: stringValue(output.threadId),
+    }),
+    target: {
+      kind: stringValue(target.kind) ?? "unknown",
+      ...(stringValue(target.targetId) && {
+        targetId: stringValue(target.targetId),
+      }),
+      ...(stringValue(target.revision) && {
+        revision: stringValue(target.revision),
+      }),
+      ...(stringValue(target.snapshotDigest) && {
+        snapshotDigest: stringValue(target.snapshotDigest),
+      }),
+    },
+    coverage: {
+      completeness,
+      mode: stringValue(coverage.mode) ?? "unknown",
+      surfaceCount: surfaces.length,
+      deferredCount: arrayValue(coverage.deferred).length,
+      explicitExclusionCount: arrayValue(coverage.explicitExclusions).length,
+      needsFollowUpCount: surfaces.filter((surface) =>
+        asRecord(surface).disposition === "needs_follow_up"
+      ).length,
+    },
+    parser,
+    ...(positiveInteger(output.workerCount) !== undefined && {
+      workerCount: positiveInteger(output.workerCount),
+    }),
+    ...(positiveInteger(output.subagentCount) !== undefined && {
+      subagentCount: positiveInteger(output.subagentCount),
+    }),
   };
 }
 
@@ -301,4 +411,26 @@ function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
+}
+
+function arrayValue(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function numberValue(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function nullableNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function positiveInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }

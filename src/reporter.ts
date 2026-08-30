@@ -121,6 +121,13 @@ export function printResult(result: EvalResult): void {
   if (result.promptTemplateId) {
     console.log(metricLine("Prompt", result.promptTemplateId));
   }
+  if (m.codexSecurity) {
+    console.log(metricLine("Plugin", `Codex Security ${m.codexSecurity.pluginVersion}`));
+    console.log(metricLine(
+      "Coverage",
+      `${m.codexSecurity.coverage.completeness}  (${m.codexSecurity.coverage.deferredCount} deferred, ${m.codexSecurity.coverage.explicitExclusionCount} excluded)`,
+    ));
+  }
 
   if (isFindVulns) {
     const d = findDetails!;

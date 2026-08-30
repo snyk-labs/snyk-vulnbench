@@ -113,6 +113,60 @@ export interface FindingRecord {
   codeFlowCrossService?: "yes" | "no";
 }
 
+export interface CodexSecurityTypeMappingDiagnostic {
+  findingIndex: number;
+  findingId?: string;
+  ruleId: string;
+  category: string;
+  cwe: string[];
+  resolvedType: VulnType;
+  mappingSource: "ruleId" | "category" | "cwe" | "fallback";
+}
+
+export interface CodexSecurityRoleMappingDiagnostic {
+  findingIndex: number;
+  originalRole?: string;
+  mappedEndpoint?: "source" | "sink";
+  file: string;
+  line: number;
+}
+
+export interface CodexSecurityParserDiagnostics {
+  schemaVersion: "codex-security-parser-diagnostics-1";
+  documentType: string;
+  documentSchemaVersion: string;
+  scanId: string;
+  findingCount: number;
+  informationalCount: number;
+  typeMappings: CodexSecurityTypeMappingDiagnostic[];
+  roleMappings: CodexSecurityRoleMappingDiagnostic[];
+  skippedFindings: Array<{ findingIndex: number; reason: string }>;
+}
+
+export interface CodexSecurityTelemetry {
+  packageVersion: string;
+  pluginVersion: string;
+  scanId: string;
+  threadId?: string;
+  target: {
+    kind: string;
+    targetId?: string;
+    revision?: string;
+    snapshotDigest?: string;
+  };
+  coverage: {
+    completeness: "complete" | "partial" | "unknown";
+    mode: string;
+    surfaceCount: number;
+    deferredCount: number;
+    explicitExclusionCount: number;
+    needsFollowUpCount: number;
+  };
+  parser: CodexSecurityParserDiagnostics;
+  workerCount?: number;
+  subagentCount?: number;
+}
+
 export interface EvalCategory {
   readonly id: string;
   readonly name: string;
@@ -389,6 +443,8 @@ export interface BenchmarkMetrics {
   filesScanned: string[];
   /** MCP connection, availability, and invocation telemetry. */
   mcp: McpTelemetry;
+  /** Codex Security scan contract and coverage diagnostics. */
+  codexSecurity?: CodexSecurityTelemetry;
   /** Runner identity and provenance when exposed by the adapter. */
   runner?: {
     id: string;
