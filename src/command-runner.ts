@@ -1,4 +1,5 @@
 import type { EvalTask, CommandRunConfig, BenchmarkMetrics, RunOutput } from "./types.js";
+import { serializeFindingsToFinalText } from "./findings-output.js";
 import { getParser } from "./parsers/index.js";
 import { executeProcess, ProcessExecutionError } from "./process-executor.js";
 
@@ -56,7 +57,7 @@ export async function runCommandTask(
   }
 }
 
-function buildCommandOutput(
+export function buildCommandOutput(
   stdout: string,
   parserKey: string,
   sessionStart: number,
@@ -64,8 +65,7 @@ function buildCommandOutput(
   const parser = getParser(parserKey);
   const findings = parser(stdout);
 
-  // Format as FINDINGS_JSON block so the existing scorer works without changes
-  const finalText = `FINDINGS_JSON:\n\`\`\`json\n${JSON.stringify(findings, null, 2)}\n\`\`\``;
+  const finalText = serializeFindingsToFinalText(findings);
 
   // Unique file paths from findings — meaningful proxy for "what the tool scanned"
   const filesScanned = [
@@ -79,6 +79,7 @@ function buildCommandOutput(
 
   return {
     finalText,
+    findings,
     metrics: {
       ...emptyMetrics(sessionStart),
       filesScanned,

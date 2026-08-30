@@ -1,24 +1,8 @@
 import { parseSnykCodeOutput } from "./snyk-code.js";
 import { parseSnykCodeAttackerReachableOutput } from "./snyk-code-attacker-reachable.js";
-import type { FileLocation } from "../types.js";
+import type { FindingRecord } from "../types.js";
 
-/**
- * A parsed finding from a SAST tool — matches the fields expected by the
- * scorer's FINDINGS_JSON parser. No `id` needed; the scorer generates synthetic IDs.
- */
-export interface FindingRecord {
-  type: string;
-  typeAliases?: string[];
-  file?: string;
-  line?: number;
-  filesRelated?: FileLocation[];
-  severity: string;
-  description: string;
-  vulnerabilityImpact?: string;
-  codeFlowMultiLine?: "yes" | "no";
-  codeFlowCrossFile?: "yes" | "no";
-  codeFlowCrossService?: "yes" | "no";
-}
+export type { FindingRecord } from "../types.js";
 
 export type ParserFn = (stdout: string) => FindingRecord[];
 

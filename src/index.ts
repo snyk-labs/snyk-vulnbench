@@ -15,13 +15,17 @@ import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
 import { DEFAULT_PROMPT_TEMPLATE_ID } from "./prompt-templates.js";
 import { getRunner } from "./runners/registry.js";
-import { createIsolatedWorkspace } from "./isolated-workspace.js";
+import {
+  createIsolatedWorkspace,
+  prepareSecurityReviewGitWorkspace,
+} from "./isolated-workspace.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, DeepSecRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
+const AGENT_TRACE_DIR_ENV = "VULNBENCH_AGENT_TRACE_DIR";
 
 // ─── CLI Argument Parsing ─────────────────────────────────────────────────────
 
@@ -36,7 +40,8 @@ function parseArgs() {
     repetitions: number;
     dryRun: boolean;
     skipPreflight: boolean;
-  } = { repetitions: 1, dryRun: false, skipPreflight: false };
+    traceAgent: boolean;
+  } = { repetitions: 1, dryRun: false, skipPreflight: false, traceAgent: false };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--category" && args[i + 1]) {
@@ -58,6 +63,7 @@ function parseArgs() {
     }
     else if (args[i] === "--dry-run") opts.dryRun = true;
     else if (args[i] === "--skip-preflight") opts.skipPreflight = true;
+    else if (args[i] === "--trace-agent") opts.traceAgent = true;
   }
   return opts;
 }
@@ -153,7 +159,13 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   const cwd = workspace.projectDir;
 
   try {
-    const { finalText, metrics, error } = await runner.run({
+    if (
+      "promptTemplateId" in config
+      && config.promptTemplateId === "security-review"
+    ) {
+      prepareSecurityReviewGitWorkspace(cwd);
+    }
+    const { finalText, findings, metrics, error } = await runner.run({
       task,
       config,
       cwd,
@@ -171,11 +183,12 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     }
 
     if (task.category.id === EVAL_CATEGORIES.FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.LLM_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.APP_FIND_VULNS.id || task.category.id === EVAL_CATEGORIES.ATTACKER_REACHABLE_FIND_VULNS.id) {
+      const findingsInput = findings ?? finalText;
       const details = task.groundTruth === "attacker-reachable"
         ? runner.id === "deepsec-cli"
-          ? scoreLocalizedFindVulns(finalText, task)
-          : scoreAttackerReachableFindVulns(finalText, task)
-        : scoreFindVulns(finalText, task);
+          ? scoreLocalizedFindVulns(findingsInput, task)
+          : scoreAttackerReachableFindVulns(findingsInput, task)
+        : scoreFindVulns(findingsInput, task);
       const score = primaryFindVulnsScore(details, task.groundTruth);
       return { ...base, score, metrics, details };
     } else {
@@ -192,6 +205,17 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
 async function main() {
   const opts = parseArgs();
+  if (opts.traceAgent) {
+    const traceRunId = new Date().toISOString().replace(/[:.]/g, "-");
+    process.env[AGENT_TRACE_DIR_ENV] = resolve(
+      RESULTS_DIR,
+      "agent-traces",
+      traceRunId,
+    );
+    console.log(`Agent tracing enabled: ${process.env[AGENT_TRACE_DIR_ENV]}`);
+  } else {
+    delete process.env[AGENT_TRACE_DIR_ENV];
+  }
 
   const EVAL_TASKS = loadEvalTasks();
   const DEFAULT_RUN_CONFIGS = loadRunConfigs();

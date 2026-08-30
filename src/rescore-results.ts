@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join, parse as parsePath } from "path";
 import { aggregateByConfig, aggregateByTask } from "./aggregator.js";
 import { loadEvalTasks } from "./evals/loader.js";
+import { serializeFindingsToFinalText } from "./findings-output.js";
 import { printSummaryTable } from "./reporter.js";
 import {
   primaryFindVulnsScore,
@@ -73,10 +74,6 @@ function isFindVulnsResult(result: EvalResult): result is EvalResult & { details
   return "agentFindings" in result.details;
 }
 
-function findingsOutput(agentFindings: Vulnerability[]): string {
-  return `FINDINGS_JSON:\n\`\`\`json\n${JSON.stringify(agentFindings, null, 2)}\n\`\`\``;
-}
-
 function normalizeStoredFindings(result: EvalResult, agentFindings: Vulnerability[]): Vulnerability[] {
   if (result.runConfigId !== "snyk-code") return agentFindings;
 
@@ -109,9 +106,9 @@ function rescoreRuns(results: EvalResult[]): EvalResult[] {
       );
     const details = task.groundTruth === "attacker-reachable"
       ? usesLocalizedScoring
-        ? scoreLocalizedFindVulns(findingsOutput(agentFindings), task)
-        : scoreAttackerReachableFindVulns(findingsOutput(agentFindings), task)
-      : scoreFindVulns(findingsOutput(agentFindings), task);
+        ? scoreLocalizedFindVulns(serializeFindingsToFinalText(agentFindings), task)
+        : scoreAttackerReachableFindVulns(serializeFindingsToFinalText(agentFindings), task)
+      : scoreFindVulns(serializeFindingsToFinalText(agentFindings), task);
     return {
       ...result,
       fixtureId: result.fixtureId ?? task.fixtureId,

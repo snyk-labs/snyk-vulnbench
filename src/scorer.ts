@@ -26,6 +26,7 @@ import type {
   F1Metric,
   FullFlowOverlapMetric,
   FileLocation,
+  FindingRecord,
   GroundTruthKind,
 } from "./types.js";
 
@@ -41,8 +42,13 @@ const anthropic = new Anthropic();
  *   [{ "type": "...", "file": "...", "line": 42, "severity": "...", "description": "..." }]
  *   ```
  */
-export function scoreFindVulns(agentOutput: string, task: EvalTask): FindVulnsDetails {
-  const agentFindings = parseFindings(agentOutput);
+export type FindingsInput = string | readonly FindingRecord[];
+
+export function scoreFindVulns(
+  findingsInput: FindingsInput,
+  task: EvalTask,
+): FindVulnsDetails {
+  const agentFindings = parseFindings(findingsInput);
   const knownVulns = task.knownVulns;
 
   const truePositives: VulnMatch[] = [];
@@ -82,10 +88,10 @@ export const ATTACKER_REACHABLE_LINE_TOLERANCE = 2;
  * enough distinct source-to-sink locations to count as a true positive.
  */
 export function scoreAttackerReachableFindVulns(
-  agentOutput: string,
+  findingsInput: FindingsInput,
   task: EvalTask,
 ): FindVulnsDetails {
-  const agentFindings = parseAttackerReachableFindings(agentOutput);
+  const agentFindings = parseAttackerReachableFindings(findingsInput);
   const knownVulns = task.knownVulns.map((vulnerability) => {
     if (!isAttackerReachableVulnerability(vulnerability)) {
       throw new Error(
@@ -241,10 +247,10 @@ export function scoreAttackerReachableFindVulns(
  * type and any reported location overlapping any curated flow location.
  */
 export function scoreLocalizedFindVulns(
-  agentOutput: string,
+  findingsInput: FindingsInput,
   task: EvalTask,
 ): FindVulnsDetails {
-  const agentFindings = parseAttackerReachableFindings(agentOutput);
+  const agentFindings = parseAttackerReachableFindings(findingsInput);
   const knownVulns = task.knownVulns.map((vulnerability) => {
     if (!isAttackerReachableVulnerability(vulnerability)) {
       throw new Error(
@@ -682,7 +688,11 @@ export function fixVulnsScore(details: FixVulnsDetails): number {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function parseFindings(output: string): Vulnerability[] {
+function parseFindings(input: FindingsInput): Vulnerability[] {
+  if (typeof input !== "string") {
+    return normalizeFindings([...input]);
+  }
+  const output = input;
   // Look for a JSON block after FINDINGS_JSON: marker
   const marker = /FINDINGS_JSON:\s*```(?:json)?\s*([\s\S]*?)```/i;
   const match = output.match(marker);
@@ -703,7 +713,13 @@ function parseFindings(output: string): Vulnerability[] {
   }
 }
 
-function parseAttackerReachableFindings(output: string): AttackerReachableVulnerability[] {
+function parseAttackerReachableFindings(
+  input: FindingsInput,
+): AttackerReachableVulnerability[] {
+  if (typeof input !== "string") {
+    return normalizeAttackerReachableFindings([...input]);
+  }
+  const output = input;
   const marker = /FINDINGS_JSON:\s*```(?:json)?\s*([\s\S]*?)```/i;
   const markerMatch = output.match(marker);
   const json = markerMatch?.[1] ?? extractFirstJsonArray(output);

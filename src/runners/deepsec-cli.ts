@@ -10,6 +10,7 @@ import {
   executeProcess,
   type ProcessExecutionResult,
 } from "../process-executor.js";
+import { serializeFindingsToFinalText } from "../findings-output.js";
 import type {
   BenchmarkMetrics,
   DeepSecRunConfig,
@@ -104,7 +105,8 @@ export async function runDeepSecTask({
     }
     const findings = parseDeepSecExport(readFileSync(exportPath, "utf8"));
     return {
-      finalText: findingsToFinalText(findings),
+      finalText: serializeFindingsToFinalText(findings),
+      findings,
       metrics: collectDeepSecMetrics(
         sessionStart,
         dataDir,
@@ -294,10 +296,6 @@ function normalizeDeepSecSeverity(value: unknown): Severity {
     default:
       return "medium";
   }
-}
-
-function findingsToFinalText(findings: NormalizedDeepSecFinding[]): string {
-  return `FINDINGS_JSON:\n\`\`\`json\n${JSON.stringify(findings, null, 2)}\n\`\`\``;
 }
 
 function recordStage(

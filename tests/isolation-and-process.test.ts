@@ -9,9 +9,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { resolveCommand } from "../src/command-runner.js";
-import { createIsolatedWorkspace } from "../src/isolated-workspace.js";
+import {
+  createIsolatedWorkspace,
+  prepareSecurityReviewGitWorkspace,
+} from "../src/isolated-workspace.js";
 import {
   executeProcess,
   ProcessExecutionError,
@@ -47,6 +51,27 @@ test("isolated workspace cleanup is idempotent", () => {
   workspace.cleanup();
   assert.equal(existsSync(workspace.rootDir), false);
   rmSync(source, { recursive: true, force: true });
+});
+
+test("security review workspace exposes the whole project as a branch change", () => {
+  const source = mkdtempSync(join(tmpdir(), "vulnbench-project-"));
+  writeFileSync(join(source, "app.js"), "console.log('review me');\n");
+  const workspace = createIsolatedWorkspace(source);
+
+  try {
+    prepareSecurityReviewGitWorkspace(workspace.projectDir);
+    const git = (args: string[]) =>
+      execFileSync("git", args, {
+        cwd: workspace.projectDir,
+        encoding: "utf8",
+      }).trim();
+
+    assert.match(git(["log", "--oneline", "origin/HEAD..."]), /VulnBench fixture snapshot/);
+    assert.equal(git(["diff", "--name-only", "origin/HEAD...HEAD"]), "app.js");
+  } finally {
+    workspace.cleanup();
+    rmSync(source, { recursive: true, force: true });
+  }
 });
 
 test("structured command resolution preserves argument boundaries", () => {

@@ -27,9 +27,10 @@ import {
 } from "./codex-config.js";
 import { probeCodexContainment } from "./codex-containment.js";
 import {
-  codexFindingsSchema,
-  structuredFindingsToFinalText,
-} from "./codex-schema.js";
+  extractFindingsEnvelope,
+  findingsOutputSchema,
+  serializeFindingsToFinalText,
+} from "../findings-output.js";
 import { buildCodexMcpConfiguration } from "./codex-mcp.js";
 import { buildLandlockInvocation } from "../sandbox/landlock.js";
 
@@ -116,7 +117,7 @@ export async function runCodexTask({
     const schemaPath = join(workspace.outputDir, "codex-findings.schema.json");
     writeFileSync(
       schemaPath,
-      `${JSON.stringify(codexFindingsSchema(task.groundTruth), null, 2)}\n`,
+      `${JSON.stringify(findingsOutputSchema(task.groundTruth), null, 2)}\n`,
       { mode: 0o600 },
     );
     args.push("--output-schema", schemaPath);
@@ -174,11 +175,15 @@ export async function runCodexTask({
       };
     }
 
-    const finalText = isFix
-      ? rawFinal
-      : structuredFindingsToFinalText(rawFinal);
+    const findings = isFix
+      ? undefined
+      : extractFindingsEnvelope(rawFinal, task.groundTruth);
+    const finalText = findings
+      ? serializeFindingsToFinalText(findings)
+      : rawFinal;
     return {
       finalText,
+      ...(findings && { findings }),
       metrics: collector.metrics(sessionStart),
     };
   } catch (error) {

@@ -478,7 +478,7 @@ Append an entry to the array:
 
 Both `effort` and `thinking` are optional — when omitted they default to `"high"` and `{ "type": "adaptive" }` respectively. Set `"effort": "default"` to omit the Agent SDK effort option and let Claude Code choose the model's native behavior; use this for models without configurable effort. Both values are captured in the JSONL result file for every run, enabling post-hoc comparisons across effort levels.
 
-`promptTemplateId` is optional and defaults to `"default"`, which leaves the task's user prompt unchanged. Use `"snyk-mcp"` only for an MCP-backed run: it requires the agent to invoke `snyk_code_scan` once before completing its independent review.
+`promptTemplateId` is optional and defaults to `"default"`, which leaves the task's user prompt unchanged. Templates may append instructions or replace the user prompt while preserving the task's system prompt. Use `"snyk-mcp"` only for an MCP-backed run. `"security-review"` is Claude Code-only and replaces the user prompt with `/security-review`; incompatible runner/template combinations are rejected during config loading. Because that built-in command reviews a Git branch diff, the harness prepares its temporary fixture copy with an empty `origin/HEAD` baseline and commits the whole project as the branch change; fixture sources remain untouched.
 
 To use Codex CLI instead of the default Claude Code runner, set `runner` and an explicit timeout:
 
@@ -600,8 +600,8 @@ The `{fixturePath}` placeholder is substituted independently in each argv elemen
 
 1. The benchmark runner executes the command with `{fixturePath}` replaced
 2. stdout is passed to the named parser function, which maps the tool's JSON output to the common `FindingRecord[]` format
-3. Those findings are serialised as a `FINDINGS_JSON:` block — the same format model runs produce
-4. The existing scorer runs: precision/recall/F1 against the fixture's ground-truth JSON
+3. Those structured findings are passed directly to the scorer; a shared `FINDINGS_JSON` serialization is retained for compatibility and diagnostics
+4. The scorer normalizes the records and calculates precision/recall/F1 against the fixture's ground-truth JSON
 5. The result lands in the JSONL file with `"runConfigType": "command"` so you can filter SAST vs model rows
 
 When the task uses attacker-reachable ground truth, the existing `snyk-code` config automatically dispatches to the separately registered `snyk-code-attacker-reachable` parser. That parser retains `codeFlows` as `filesRelated`, includes driver rule names as type aliases, derives multi-line/cross-file flags, and feeds the V2 location-aware scorer. V1 tasks continue to use the original parser and type-only scorer.
@@ -719,7 +719,7 @@ Each entry in `evals/run-configs.json` is a general coding-agent config, a gener
 | `model` | Yes | `string` | Model identifier accepted by the selected native runner. |
 | `effort` | No | `"default"` \| `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` \| `"max"` | Runner-native reasoning effort. Claude and Codex support different subsets. |
 | `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
-| `promptTemplateId` | No | `"default"` \| `"snyk-mcp"` | User-prompt augmentation. `"default"` preserves the task prompt; `"snyk-mcp"` requires one Snyk Code MCP scan before the independent review. |
+| `promptTemplateId` | No | `"default"` \| `"snyk-mcp"` \| `"security-review"` | User-prompt selection. `"default"` preserves the task prompt, `"snyk-mcp"` appends a required Snyk Code MCP scan, and Claude-only `"security-review"` replaces the user prompt with `/security-review`. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
 | `timeoutMs` | No | `number` | Parent-process wall-clock deadline for CLI-backed agents. |
 | `mcpServers` | No | `object` | Map of MCP server name → `MCPServerConfig`. Omit for a bare model run. |
@@ -753,6 +753,8 @@ Command configs only support find-vulns tasks. They produce `"runConfigType": "c
 | `timeoutMs` | No | `number` | Per-stage process deadline. |
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
+
+For one-off Claude Code diagnostics, pass `--trace-agent`. This opt-in flag writes bounded JSONL traces under `results/agent-traces/`, including the resolved prompts, SDK initialization and slash-command inventory, visible assistant messages, tool calls/results, and Claude Code debug stderr. Credential-shaped fields are redacted and thinking blocks are deliberately omitted, but source code and model-visible tool output are retained; treat traces as sensitive development artifacts. Normal benchmark runs do not create them.
 
 ### MCPServerConfig fields
 

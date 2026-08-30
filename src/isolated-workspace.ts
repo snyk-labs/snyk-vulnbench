@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 
 export interface IsolatedWorkspace {
   rootDir: string;
@@ -36,4 +37,39 @@ export function createIsolatedWorkspace(projectSource: string): IsolatedWorkspac
       rmSync(rootDir, { recursive: true, force: true });
     },
   };
+}
+
+/**
+ * Makes every copied project file appear as a branch change so Claude Code's
+ * built-in /security-review command can review a fixture as a whole.
+ */
+export function prepareSecurityReviewGitWorkspace(projectDir: string): void {
+  rmSync(join(projectDir, ".git"), { recursive: true, force: true });
+
+  const git = (args: string[]): string =>
+    execFileSync("git", args, {
+      cwd: projectDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+
+  git(["init", "--initial-branch=main"]);
+  git([
+    "-c", "user.name=VulnBench",
+    "-c", "user.email=vulnbench@localhost",
+    "-c", "commit.gpgSign=false",
+    "commit", "--allow-empty", "-m", "VulnBench empty baseline",
+  ]);
+  const baselineCommit = git(["rev-parse", "HEAD"]);
+
+  git(["remote", "add", "origin", "."]);
+  git(["update-ref", "refs/remotes/origin/main", baselineCommit]);
+  git(["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+  git(["add", "--all", "--force"]);
+  git([
+    "-c", "user.name=VulnBench",
+    "-c", "user.email=vulnbench@localhost",
+    "-c", "commit.gpgSign=false",
+    "commit", "--allow-empty", "-m", "VulnBench fixture snapshot",
+  ]);
 }

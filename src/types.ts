@@ -95,6 +95,24 @@ export interface AttackerReachableVulnerability extends Vulnerability {
   codeFlowCrossService?: "yes" | "no";
 }
 
+/**
+ * Canonical pre-scorer finding produced by model, scanner, and security-harness
+ * adapters. Scorers normalize these records and assign synthetic IDs.
+ */
+export interface FindingRecord {
+  type: string;
+  typeAliases?: string[];
+  file?: string;
+  line?: number | null;
+  filesRelated?: FileLocation[];
+  severity: string;
+  description: string;
+  vulnerabilityImpact?: string;
+  codeFlowMultiLine?: "yes" | "no";
+  codeFlowCrossFile?: "yes" | "no";
+  codeFlowCrossService?: "yes" | "no";
+}
+
 export interface EvalCategory {
   readonly id: string;
   readonly name: string;
@@ -367,6 +385,8 @@ export interface BenchmarkMetrics {
 
 export interface RunOutput {
   finalText: string;
+  /** Canonical findings for find tasks. Text-only runners may omit this. */
+  findings?: FindingRecord[];
   metrics: BenchmarkMetrics;
   error?: string;
 }

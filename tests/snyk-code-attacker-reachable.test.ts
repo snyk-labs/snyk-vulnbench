@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { buildCommandOutput } from "../src/command-runner.js";
 import { parseSnykCodeAttackerReachableOutput } from "../src/parsers/snyk-code-attacker-reachable.js";
 import { parseSnykCodeOutput } from "../src/parsers/snyk-code.js";
 
@@ -109,4 +110,16 @@ test("rich parser handles invalid, empty, and location-free SARIF", () => {
   assert.deepEqual(withoutLocations[0]?.filesRelated, []);
   assert.equal(withoutLocations[0]?.codeFlowMultiLine, "no");
   assert.equal(withoutLocations[0]?.codeFlowCrossFile, "no");
+});
+
+test("command output returns structured rich findings", () => {
+  const output = buildCommandOutput(
+    sarif,
+    "snyk-code-attacker-reachable",
+    Date.now(),
+  );
+
+  assert.equal(output.findings?.[0].type, "path-traversal");
+  assert.equal(output.findings?.[0].filesRelated?.[0].type, "source");
+  assert.match(output.finalText, /^FINDINGS_JSON:/);
 });

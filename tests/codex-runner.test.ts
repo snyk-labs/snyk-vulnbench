@@ -12,9 +12,10 @@ import {
 } from "../src/runners/codex-config.js";
 import { buildCodexMcpConfiguration } from "../src/runners/codex-mcp.js";
 import {
-  codexFindingsSchema,
-  structuredFindingsToFinalText,
-} from "../src/runners/codex-schema.js";
+  extractFindingsEnvelope,
+  findingsOutputSchema,
+  serializeFindingsToFinalText,
+} from "../src/findings-output.js";
 import { probeCodexContainment } from "../src/runners/codex-containment.js";
 
 test("Codex JSONL events produce reported usage and tool metrics", () => {
@@ -64,7 +65,7 @@ test("Codex JSONL events produce reported usage and tool metrics", () => {
 });
 
 test("Codex structured findings are normalized to scorer input", () => {
-  const finalText = structuredFindingsToFinalText(JSON.stringify({
+  const findings = extractFindingsEnvelope(JSON.stringify({
     findings: [{
       type: "xss",
       file: "app.js",
@@ -72,18 +73,19 @@ test("Codex structured findings are normalized to scorer input", () => {
       severity: "high",
       description: "unsafe output",
     }],
-  }));
+  }), "v1");
+  const finalText = serializeFindingsToFinalText(findings);
 
   assert.match(finalText, /^FINDINGS_JSON:/);
   assert.match(finalText, /"type": "xss"/);
   assert.throws(
-    () => structuredFindingsToFinalText("{}"),
+    () => extractFindingsEnvelope("{}", "v1"),
     /findings array/,
   );
 });
 
 test("Codex V2 output schema requires flow locations", () => {
-  const schema = codexFindingsSchema("attacker-reachable") as {
+  const schema = findingsOutputSchema("attacker-reachable") as {
     properties: { findings: { items: { required: string[] } } };
   };
 

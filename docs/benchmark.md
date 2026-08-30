@@ -493,7 +493,7 @@ For how Snyk (and any command config) output is turned into findings and matched
 
 **Locations:** `src/runners/registry.ts`, `src/runners/*`, `src/runner.ts`, and `src/command-runner.ts`
 
-`src/index.ts` resolves each config through the runner registry. Adapters declare find/fix/MCP capabilities, describe themselves for dry-runs, and normalize their native output to `RunOutput`.
+`src/index.ts` resolves each config through the runner registry. Adapters declare find/fix/MCP capabilities, describe themselves for dry-runs, and normalize find-task output to the shared `FindingRecord[]` contract on `RunOutput.findings`. `finalText` remains available for fix-task prose and legacy text-only fallback parsing.
 
 - **Claude Code** uses the Anthropic Agent SDK and its hook stream.
 - **Codex CLI** spawns pinned `codex exec`, sends the prompt on stdin, constrains find output with JSON Schema, and parses JSONL events.
@@ -531,8 +531,8 @@ sequenceDiagram
 
     API-->>CC: stop_reason = "end_turn"
     CC-->>SDK: ResultMessage
-    SDK-->>R: ResultMessage (final result text)
-    R-->>I: { finalText, metrics, error? }
+    SDK-->>R: ResultMessage (text and optional structured output)
+    R-->>I: { finalText, findings?, metrics, error? }
 ```
 
 **What makes this work:**
@@ -548,15 +548,17 @@ hooks: {
 
 We use a `Map<tool_use_id, startTime>` to pair up the pre and post events, giving us the duration of each individual tool call. This is more reliable than trying to parse timing from the message stream.
 
-**Token counting (dual-path):**
+**Token counting (layered fallback):**
 
-The runner uses a two-path strategy for token counting:
+The runner uses a layered strategy for token counting:
 
-1. **Primary (preferred):** The `SDKResultMessage` emitted at the end of the session carries an authoritative `usage` field with session-level token totals and a `total_cost_usd` field with the actual session cost. When available, these are used directly — no manual accumulation needed.
+1. **Primary (preferred):** The final `SDKResultMessage.modelUsage` groups usage by model across the main conversation and any subagents. The runner sums these entries so token totals cover everything included in the run's cost.
 
-2. **Fallback:** The Agent SDK's message stream also includes a `usage` field on every `AssistantMessage`, representing the token count for that one API call. The runner accumulates these per-turn values with deduplication (see [SDK Message Structure and Deduplication](#sdk-message-structure-and-deduplication)) as a fallback for cases where the `SDKResultMessage.usage` is unavailable (older SDK versions, alternative harnesses, error paths).
+2. **Main-session fallback:** If `modelUsage` is unavailable, the runner uses `SDKResultMessage.usage`. This is authoritative for the main conversation but older SDKs may omit separate subagent usage.
 
-Both paths produce the same `BenchmarkMetrics` shape. The `totalCostUsd` field is only populated when the SDK provides `total_cost_usd` (the primary path); the fallback path sets it to `null` since computing cost requires a model-specific pricing table that the benchmark does not maintain.
+3. **Per-turn fallback:** If neither result-level source exists, the runner accumulates each streamed `AssistantMessage.usage` with deduplication (see [SDK Message Structure and Deduplication](#sdk-message-structure-and-deduplication)).
+
+All paths produce the same `BenchmarkMetrics` shape. `totalCostUsd` comes from `SDKResultMessage.total_cost_usd`, which already includes subagent costs.
 
 Note: input tokens grow each turn because the API is stateless — the full conversation history is re-sent every turn. This means a long agent session can be significantly more expensive than its output token count suggests.
 
@@ -642,8 +644,8 @@ The scorer translates the agent's raw output into a number between 0 and 1. The 
 
 ```mermaid
 flowchart TD
-    A["Agent output text\n(contains FINDINGS_JSON block)"] --> B
-    B["Parse JSON array\nfrom FINDINGS_JSON: block"] --> C
+    A["Runner output\nstructured findings or legacy text"] --> B
+    B["Prefer FindingRecord array\nelse parse FINDINGS_JSON"] --> C
     C["Normalize each finding:\n• type string → VulnType enum\n• severity string → Severity enum"] --> D
     D["Greedily match findings to\nknown vulns by normalized type\n(file/line are metadata)"] --> E
 
@@ -666,7 +668,7 @@ flowchart TD
 - **Recall** answers: "Of all the real vulnerabilities, what fraction did the agent find?" A low recall means important vulns were missed (proxy for false negatives).
 - **F1** is the harmonic mean — it's 1.0 only when both precision and recall are 1.0. It penalizes both missing vulns and crying wolf.
 
-**Why structured output (`FINDINGS_JSON`)?**
+**Why structured findings and the `FINDINGS_JSON` fallback?**
 
 The system prompt asks the agent to output its findings in a specific JSON format at the end:
 
@@ -677,7 +679,7 @@ FINDINGS_JSON:
 ```
 ```
 
-Without this, parsing free-text like "I found a SQL injection vulnerability on line 28 of app.js" is fragile and unreliable. The structured format makes scoring deterministic.
+Without this, parsing free-text like "I found a SQL injection vulnerability on line 28 of app.js" is fragile and unreliable. Runner adapters now pass canonical findings directly when possible. The text envelope remains the compatibility contract for prompt-only model output and historical rescoring. Claude's `/security-review` config and Codex use runner-native JSON Schema enforcement; ordinary Claude configs retain prompt-only behavior for historical comparability.
 
 #### fix-vulns Scoring
 
@@ -1097,7 +1099,7 @@ Command-based run configs (e.g. `snyk-code` in `evals/run-configs.json`) run an 
 
 #### 3. Parser: SARIF → `FindingRecord[]`
 
-**`src/parsers/index.ts`** registers parsers by string key (`"snyk-code"` → `parseSnykCodeOutput`). A **`FindingRecord`** has `type`, `file`, `line`, `severity`, and `description` — the same fields the scorer expects inside `FINDINGS_JSON`.
+**`src/parsers/index.ts`** registers parsers by string key (`"snyk-code"` → `parseSnykCodeOutput`). The shared **`FindingRecord`** in `src/types.ts` has the V1 fields plus optional V2 flow evidence.
 
 **`src/parsers/snyk-code.ts`** — `parseSnykCodeOutput(stdout)`:
 
@@ -1123,17 +1125,17 @@ For attacker-reachable tasks, the same `snyk-code` run config automatically sele
 
 Alignment with a ground-truth row such as those in **`fixtures/js-project-tigerteam/findings.json`** is therefore **primarily a contract on `type`**: the Snyk `ruleId` must map (via `mapRuleId`) to the same `VulnType` string as the `"type"` field in the fixture JSON. If Snyk uses a rule id that falls through to `"other"` while the benchmark expects a specific type, that finding will not match any known vuln (unless the ground truth literally uses `"other"`), and recall will suffer until the mapping is extended.
 
-#### 4. Bridging to the scorer: synthetic `FINDINGS_JSON`
+#### 4. Bridging to the scorer: structured findings
 
-Still in **`src/command-runner.ts`**: after `parser(stdout)` returns `FindingRecord[]`, the runner sets `finalText` to the `FINDINGS_JSON:` marker, a newline, a Markdown `json` fenced block, and `JSON.stringify(findings, null, 2)` inside it — the same outer shape as the LLM contract described under [find-vulns Scoring](#find-vulns-scoring) (**Why structured output (`FINDINGS_JSON`)?**). No separate code path in the scorer is required.
+Still in **`src/command-runner.ts`**: after `parser(stdout)` returns `FindingRecord[]`, the runner returns those records directly on `RunOutput.findings`. The shared compatibility serializer in `src/findings-output.ts` also produces `finalText` for diagnostics and older consumers.
 
-So `scoreFindVulns` in **`src/scorer.ts`** runs unchanged: `parseFindings` extracts the JSON array, `normalizeFindings` assigns synthetic ids `found-0`, `found-1`, … and normalizes types/severities.
+The scorers prefer structured records and normalize them exactly once, assigning synthetic ids `found-0`, `found-1`, … and normalizing types and severities. Text-only output follows the previous parser path.
 
 **`metrics.filesScanned`** for command runs is derived from the unique top-level `file` strings for V1 findings or flattened `filesRelated[].file` strings for V2 findings (not from the Agent SDK), as noted in `command-runner.ts`.
 
 #### 5. Matching to ground truth (same as LLM)
 
-Scoring uses **`scoreFindVulns(finalText, task)`** — the same type-only greedy matching described in [How Vuln Type Matching Works](#how-vuln-type-matching-works). There is **no** secondary matcher that lines up Snyk SARIF rule ids or line numbers to `fixtures/<name>/findings.json` **`id`** fields. A Snyk result “counts” toward `js-xss-1` only if:
+Scoring uses **`scoreFindVulns(findings, task)`** — the same type-only greedy matching described in [How Vuln Type Matching Works](#how-vuln-type-matching-works). There is **no** secondary matcher that lines up Snyk SARIF rule ids or line numbers to `fixtures/<name>/findings.json` **`id`** fields. A Snyk result “counts” toward `js-xss-1` only if:
 
 1. `mapRuleId` produced `"xss"`, and  
 2. That finding is paired by the greedy walk with that ground-truth row (i.e. it is the first unmatched `"xss"` in `knownVulns` order when this finding is processed, given earlier findings already consumed other `"xss"` slots).
@@ -1403,11 +1405,11 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 
 ### Session-Level Token Accounting
 
-The runner uses a dual-path approach for token accounting.
+The runner uses layered token-accounting fallbacks.
 
-**Primary path — `SDKResultMessage.usage`:** The `SDKResultMessage` emitted at the end of the session carries authoritative session-level token totals directly from Claude Code. When available, these are used as the canonical source. The result message also provides `total_cost_usd` — the actual session cost in USD, accounting for per-model pricing and the different billing rates for cached vs non-cached tokens.
+**Primary path — `SDKResultMessage.modelUsage`:** The final result groups usage by model across the main conversation and subagents. These entries are summed into the canonical totals. The result also provides `total_cost_usd` — the actual cost in USD across all participating models, accounting for model pricing and cached versus non-cached tokens.
 
-**Fallback path — per-turn accumulation:** The Anthropic API reports token usage on every API call. The runner accumulates these across the full session as a fallback:
+**Fallback paths:** If per-model usage is unavailable, the runner uses the final main-session `usage`; if that is also unavailable, it accumulates streamed per-turn usage:
 
 ```
 Turn 1 (system prompt + user message):

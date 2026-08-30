@@ -62,4 +62,16 @@ test("DeepSec config validation pins the Codex backend and reasoning level", () 
     }),
     /does not support MCP/,
   );
+  assert.throws(
+    () => validateDeepSecRunConfig({
+      type: "deepsec",
+      id: "invalid-prompt",
+      name: "Invalid prompt",
+      agent: "codex",
+      model: "gpt-5.6-luna",
+      thinkingLevel: "high",
+      promptTemplateId: "security-review",
+    }),
+    /does not support prompt templates/,
+  );
 });

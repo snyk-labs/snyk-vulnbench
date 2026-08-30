@@ -5,7 +5,10 @@ import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { EVAL_CATEGORIES } from "../types.js";
-import { isPromptTemplateId } from "../prompt-templates.js";
+import {
+  isPromptTemplateId,
+  isPromptTemplateSupported,
+} from "../prompt-templates.js";
 import type {
   AttackerReachableVulnerability,
   CommandRunConfig,
@@ -616,19 +619,28 @@ export function loadRunConfigs(): RunConfig[] {
     if (entry.type === "deepsec") {
       return validateDeepSecRunConfig(entry);
     } else if (entry.type === "command") {
-      if ((!entry.executable && !entry.command) || !entry.parser) {
-        throw new Error(
-          `Command config "${entry.id}" requires parser and either executable or command`,
-        );
-      }
-      if (entry.args !== undefined && !Array.isArray(entry.args)) {
-        throw new Error(`Command config "${entry.id}" field "args" must be an array`);
-      }
-      return entry as unknown as CommandRunConfig;
+      return validateCommandRunConfig(entry);
     } else {
       return validateModelRunConfig(entry);
     }
   });
+}
+
+export function validateCommandRunConfig(
+  entry: Record<string, unknown>,
+): CommandRunConfig {
+  if (entry.promptTemplateId !== undefined) {
+    throw new Error(`Command config "${entry.id}" does not support prompt templates`);
+  }
+  if ((!entry.executable && !entry.command) || !entry.parser) {
+    throw new Error(
+      `Command config "${entry.id}" requires parser and either executable or command`,
+    );
+  }
+  if (entry.args !== undefined && !Array.isArray(entry.args)) {
+    throw new Error(`Command config "${entry.id}" field "args" must be an array`);
+  }
+  return entry as unknown as CommandRunConfig;
 }
 
 export function validateDeepSecRunConfig(
@@ -656,6 +668,9 @@ export function validateDeepSecRunConfig(
   if (entry.mcpServers !== undefined) {
     throw new Error(`DeepSec config "${entry.id}" does not support MCP servers`);
   }
+  if (entry.promptTemplateId !== undefined) {
+    throw new Error(`DeepSec config "${entry.id}" does not support prompt templates`);
+  }
   return entry as unknown as DeepSecRunConfig;
 }
 
@@ -672,6 +687,17 @@ export function validateModelRunConfig(entry: Record<string, unknown>): ModelRun
   }
   if (entry.promptTemplateId !== undefined && !isPromptTemplateId(entry.promptTemplateId)) {
     throw new Error(`Model config "${entry.id}" has unknown promptTemplateId "${entry.promptTemplateId}"`);
+  }
+  if (
+    isPromptTemplateId(entry.promptTemplateId)
+    && !isPromptTemplateSupported(
+      entry.promptTemplateId,
+      entry.runner === "codex-cli" ? "codex-cli" : "claude-code",
+    )
+  ) {
+    throw new Error(
+      `Model config "${entry.id}" cannot use promptTemplateId "${entry.promptTemplateId}" with runner "${entry.runner ?? "claude-code"}"`,
+    );
   }
   return entry as unknown as ModelRunConfig;
 }

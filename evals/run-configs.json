@@ -28,6 +28,14 @@
     "maxTurns": 30
   },
   {
+    "id": "sonnet-5-medium-security-review",
+    "name": "Claude Sonnet 5 Medium + Security Review",
+    "model": "claude-sonnet-5",
+    "effort": "medium",
+    "promptTemplateId": "security-review",
+    "maxTurns": 30
+  },
+  {
     "id": "opus-4-7-max",
     "name": "Claude Opus 4.7 Max",
     "model": "claude-opus-4-7",

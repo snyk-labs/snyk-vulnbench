@@ -12,6 +12,7 @@ import {
   type AttackerReachableVulnerability,
   type EvalTask,
   type FileLocation,
+  type FindingRecord,
   type VulnType,
   type Vulnerability,
 } from "../src/types.js";
@@ -103,6 +104,29 @@ test("V1 matching remains type-only", () => {
   assert.equal(primaryFindVulnsScore(details, "v1"), findVulnsScore(details));
 });
 
+test("structured V1 findings score identically to legacy text output", () => {
+  const task = v1Task([{
+    id: "v1-sqli",
+    type: "sql-injection",
+    severity: "critical",
+    file: "src/query.ts",
+    line: 10,
+    description: "SQL injection",
+  }]);
+  const findings: FindingRecord[] = [{
+    type: "SQLi",
+    file: "src/query.ts",
+    line: 10,
+    severity: "high",
+    description: "reported finding",
+  }];
+
+  assert.deepEqual(
+    scoreFindVulns(findings, task),
+    scoreFindVulns(output(findings), task),
+  );
+});
+
 test("V2 primary score is attacker-reachable recall while F1 remains secondary", () => {
   const known = attackerVuln("xss-sink", "xss", [
     { file: "src/view.ts", line: 20, type: "sink" },
@@ -120,6 +144,36 @@ test("V2 primary score is attacker-reachable recall while F1 remains secondary",
   assert.equal(primaryFindVulnsScore(details, "attacker-reachable"), 1);
   assert.equal(findVulnsScore(details), 2 / 3);
   assert.equal(details.scoreSuite?.lenientEndpointLocalizedF1.f1, 2 / 3);
+});
+
+test("structured V2 findings score identically to legacy text output", () => {
+  const task = attackerTask([
+    attackerVuln("xss-flow", "xss", [
+      { file: "src/route.ts", line: 10, type: "source" },
+      { file: "src/view.ts", line: 20, type: "sink" },
+    ]),
+  ]);
+  const findings: FindingRecord[] = [{
+    type: "xss",
+    filesRelated: [
+      { file: "src/route.ts", line: 10, type: "source" },
+      { file: "src/view.ts", line: 20, type: "sink" },
+    ],
+    severity: "high",
+    description: "reported finding",
+    vulnerabilityImpact: "script execution",
+    codeFlowMultiLine: "yes",
+    codeFlowCrossFile: "yes",
+  }];
+
+  assert.deepEqual(
+    scoreAttackerReachableFindVulns(findings, task),
+    scoreAttackerReachableFindVulns(output(findings), task),
+  );
+  assert.deepEqual(
+    scoreLocalizedFindVulns(findings, task),
+    scoreLocalizedFindVulns(output(findings), task),
+  );
 });
 
 test("V1 primary score remains F1 when precision and recall differ", () => {

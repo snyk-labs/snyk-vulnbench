@@ -1,8 +1,16 @@
 import { query, type HookCallback } from "@anthropic-ai/claude-agent-sdk";
-import { dirname } from "path";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { dirname, join } from "node:path";
+import {
+  extractFindingsEnvelope,
+  findingsOutputSchema,
+  serializeFindingsToFinalText,
+} from "./findings-output.js";
 import { resolvePromptTemplate } from "./prompt-templates.js";
 import type {
   EvalTask,
+  FindingRecord,
   McpTelemetry,
   ModelRunConfig,
   RunOutput,
@@ -11,6 +19,104 @@ import type {
 } from "./types.js";
 
 const ENV_REFERENCE = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+const AGENT_TRACE_DIR_ENV = "VULNBENCH_AGENT_TRACE_DIR";
+
+type TraceWriter = (event: Record<string, unknown>) => void;
+
+interface SdkUsageTotals {
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_input_tokens: number;
+  cache_creation_input_tokens: number;
+}
+
+/**
+ * The SDK's top-level result usage covers only the main conversation, while
+ * modelUsage includes the main model and any subagents grouped by model.
+ */
+export function aggregateSdkModelUsage(modelUsage: unknown): SdkUsageTotals | null {
+  if (!modelUsage || typeof modelUsage !== "object") return null;
+
+  const totals: SdkUsageTotals = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_input_tokens: 0,
+    cache_creation_input_tokens: 0,
+  };
+  let foundUsage = false;
+
+  for (const usage of Object.values(modelUsage)) {
+    if (!usage || typeof usage !== "object") continue;
+    const record = usage as Record<string, unknown>;
+    const fields = {
+      input_tokens: record.inputTokens,
+      output_tokens: record.outputTokens,
+      cache_read_input_tokens: record.cacheReadInputTokens,
+      cache_creation_input_tokens: record.cacheCreationInputTokens,
+    };
+    for (const [target, value] of Object.entries(fields)) {
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      totals[target as keyof SdkUsageTotals] += value;
+      foundUsage = true;
+    }
+  }
+
+  return foundUsage ? totals : null;
+}
+
+function traceSafeValue(value: unknown): unknown {
+  const seen = new WeakSet<object>();
+  return JSON.parse(JSON.stringify(value, (key, nestedValue) => {
+    if (/^(?:.*[_-])?(?:token|secret|password|authorization|api[_-]?key)$/i.test(key)) {
+      return "[REDACTED]";
+    }
+    if (typeof nestedValue === "string" && nestedValue.length > 50_000) {
+      return `${nestedValue.slice(0, 50_000)}\n[TRUNCATED]`;
+    }
+    if (typeof nestedValue === "bigint") return nestedValue.toString();
+    if (nestedValue && typeof nestedValue === "object") {
+      if (seen.has(nestedValue)) return "[CIRCULAR]";
+      seen.add(nestedValue);
+    }
+    return nestedValue;
+  }));
+}
+
+function traceSafeMessage(message: unknown): unknown {
+  if (!message || typeof message !== "object") return traceSafeValue(message);
+  const copy = structuredClone(message as object) as any;
+  const content = copy.message?.content;
+  if (Array.isArray(content)) {
+    copy.message.content = content.map((block: any) =>
+      block?.type === "thinking"
+        ? { type: "thinking", omitted: true }
+        : block
+    );
+  }
+  return traceSafeValue(copy);
+}
+
+function createTraceWriter(
+  task: EvalTask,
+  config: ModelRunConfig,
+): { path: string; write: TraceWriter } | null {
+  const outputDir = process.env[AGENT_TRACE_DIR_ENV];
+  if (!outputDir) return null;
+
+  mkdirSync(outputDir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const path = join(
+    outputDir,
+    `${task.id}__${config.id}__${timestamp}__${randomUUID().slice(0, 8)}.jsonl`,
+  );
+  const write: TraceWriter = (event) => {
+    appendFileSync(path, `${JSON.stringify({
+      timestamp: new Date().toISOString(),
+      ...traceSafeValue(event) as Record<string, unknown>,
+    })}\n`, { mode: 0o600 });
+  };
+  return { path, write };
+}
 
 function resolveMcpServers(
   mcpServers: ModelRunConfig["mcpServers"],
@@ -67,15 +173,23 @@ export async function runTask(
   let accCacheCreationTokens = 0;
   let accTurns = 0;
   // Authoritative session totals from SDKResultMessage (preferred when available)
-  let resultUsage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } | null = null;
+  let resultUsage: SdkUsageTotals | null = null;
   let resultCostUsd: number | null = null;
   let resultNumTurns: number | null = null;
   let finalText = "";
+  let findings: FindingRecord[] | undefined;
+  let trace: { path: string; write: TraceWriter } | null = null;
 
   // PreToolUse hook: record start time
   const preToolHook: HookCallback = async (input) => {
     const id = (input as any).tool_use_id ?? String(Date.now());
     toolStartTimes.set(id, Date.now());
+    trace?.write({
+      type: "tool_use",
+      toolUseId: id,
+      tool: (input as any).tool_name ?? "unknown",
+      input: (input as any).tool_input,
+    });
     return {};
   };
 
@@ -104,6 +218,14 @@ export async function runTask(
       if (filePath) filesScannedSet.add(filePath);
     }
     toolStartTimes.delete(id);
+    trace?.write({
+      type: "tool_result",
+      toolUseId: id,
+      tool,
+      durationMs,
+      input: (input as any).tool_input,
+      output,
+    });
     return {};
   };
 
@@ -128,6 +250,23 @@ export async function runTask(
     const benchmarkEnv = process.env;
     const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
     const prompt = resolvePromptTemplate(task.prompt, config.promptTemplateId);
+    const requiresStructuredFindings =
+      config.promptTemplateId === "security-review"
+      && task.category.id !== "fix-vulns";
+    trace = createTraceWriter(task, config);
+    trace?.write({
+      type: "trace_start",
+      taskId: task.id,
+      runConfigId: config.id,
+      model: config.model,
+      effort: effort ?? "default",
+      promptTemplateId: config.promptTemplateId ?? "default",
+      resolvedUserPrompt: prompt,
+      systemPrompt: task.systemPrompt,
+      cwd,
+    });
+    if (trace) console.log(`    Agent trace :  ${trace.path}`);
+    const activeTrace = trace;
 
     for await (const message of query({
       prompt,
@@ -155,12 +294,29 @@ export async function runTask(
         // would otherwise leak unrelated MCP tools into the agent context.
         strictMcpConfig: true,
         systemPrompt: task.systemPrompt,
+        ...(requiresStructuredFindings && {
+          outputFormat: {
+            type: "json_schema" as const,
+            schema: findingsOutputSchema(task.groundTruth),
+          },
+        }),
+        ...(activeTrace && {
+          debug: true,
+          stderr: (data: string) => activeTrace.write({
+            type: "sdk_stderr",
+            data,
+          }),
+        }),
         hooks: {
           PreToolUse: [{ matcher: ".*", hooks: [preToolHook] }],
           PostToolUse: [{ matcher: ".*", hooks: [postToolHook] }],
         },
       },
     })) {
+      trace?.write({
+        type: "sdk_message",
+        message: traceSafeMessage(message),
+      });
       // Accumulate per-turn usage from assistant messages.
       // The SDK emits one SDKAssistantMessage per content block in an API response, and also
       // streams sub-agent messages through the same iterator (parent_tool_use_id != null).
@@ -188,6 +344,27 @@ export async function runTask(
 
       if (message.type === "system" && (message as any).subtype === "init") {
         const init = message as any;
+        trace?.write({
+          type: "sdk_init_summary",
+          sessionId: init.session_id,
+          model: init.model,
+          slashCommands: init.slash_commands,
+          skills: init.skills,
+          tools: init.tools,
+          securityReviewAvailable: Array.isArray(init.slash_commands)
+            && init.slash_commands.includes("security-review"),
+        });
+        if (
+          config.promptTemplateId === "security-review"
+          && (
+            !Array.isArray(init.slash_commands)
+            || !init.slash_commands.includes("security-review")
+          )
+        ) {
+          throw new Error(
+            'Claude Code did not advertise the required "/security-review" command',
+          );
+        }
         const configuredServers = new Set(mcpTelemetry.configuredServers);
         mcpTelemetry.serverStatuses = Array.isArray(init.mcp_servers)
           ? init.mcp_servers
@@ -211,23 +388,50 @@ export async function runTask(
       if ("result" in message) {
         const result = message as any;
         if (result.result) finalText = result.result;
-        // SDKResultMessage carries authoritative session-level token totals.
-        // Prefer these over manual per-turn accumulation when available.
-        if (result.usage) {
+        if (
+          requiresStructuredFindings
+          && result.structured_output !== undefined
+        ) {
+          findings = extractFindingsEnvelope(
+            result.structured_output,
+            task.groundTruth,
+          );
+        }
+        // modelUsage includes subagents; top-level usage covers only the main
+        // conversation. Prefer the former whenever the SDK reports it.
+        const allModelUsage = aggregateSdkModelUsage(result.modelUsage);
+        if (allModelUsage) {
+          resultUsage = allModelUsage;
+        } else if (result.usage) {
           resultUsage = {
             input_tokens: result.usage.input_tokens ?? 0,
             output_tokens: result.usage.output_tokens ?? 0,
             cache_read_input_tokens: result.usage.cache_read_input_tokens ?? 0,
             cache_creation_input_tokens: result.usage.cache_creation_input_tokens ?? 0,
           };
-          resultCostUsd = typeof result.total_cost_usd === "number" ? result.total_cost_usd : null;
-          resultNumTurns = typeof result.num_turns === "number" ? result.num_turns : null;
         }
+        resultCostUsd = typeof result.total_cost_usd === "number"
+          ? result.total_cost_usd
+          : null;
+        resultNumTurns = typeof result.num_turns === "number"
+          ? result.num_turns
+          : null;
       }
     }
+    if (requiresStructuredFindings && !findings) {
+      throw new Error(
+        'Claude Code completed "/security-review" without structured findings',
+      );
+    }
+    if (findings && !finalText) {
+      finalText = serializeFindingsToFinalText(findings);
+    }
+    trace?.write({ type: "trace_end", status: "success", finalText });
   } catch (err) {
+    trace?.write({ type: "trace_end", status: "error", error: String(err), finalText });
     return {
       finalText,
+      ...(findings && { findings }),
       metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
       error: String(err),
     };
@@ -235,6 +439,7 @@ export async function runTask(
 
   return {
     finalText,
+    ...(findings && { findings }),
     metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
   };
 }
@@ -252,7 +457,7 @@ interface BuildMetricsInput {
   accCacheReadTokens: number;
   accCacheCreationTokens: number;
   accTurns: number;
-  resultUsage: { input_tokens: number; output_tokens: number; cache_read_input_tokens: number; cache_creation_input_tokens: number } | null;
+  resultUsage: SdkUsageTotals | null;
   resultCostUsd: number | null;
   resultNumTurns: number | null;
   toolCalls: ToolCallRecord[];
