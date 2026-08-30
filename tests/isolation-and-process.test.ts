@@ -15,6 +15,7 @@ import { resolveCommand } from "../src/command-runner.js";
 import {
   createIsolatedWorkspace,
   prepareSecurityReviewGitWorkspace,
+  pruneIgnoredFilesForScan,
 } from "../src/isolated-workspace.js";
 import {
   executeProcess,
@@ -56,6 +57,9 @@ test("isolated workspace cleanup is idempotent", () => {
 test("security review workspace exposes the whole project as a branch change", () => {
   const source = mkdtempSync(join(tmpdir(), "vulnbench-project-"));
   writeFileSync(join(source, "app.js"), "console.log('review me');\n");
+  writeFileSync(join(source, ".gitignore"), "node_modules/\n");
+  mkdirSync(join(source, "node_modules"));
+  writeFileSync(join(source, "node_modules", "dependency.js"), "ignored\n");
   const workspace = createIsolatedWorkspace(source);
 
   try {
@@ -67,7 +71,20 @@ test("security review workspace exposes the whole project as a branch change", (
       }).trim();
 
     assert.match(git(["log", "--oneline", "origin/HEAD..."]), /VulnBench fixture snapshot/);
-    assert.equal(git(["diff", "--name-only", "origin/HEAD...HEAD"]), "app.js");
+    assert.equal(
+      git(["diff", "--name-only", "origin/HEAD...HEAD"]),
+      ".gitignore\napp.js",
+    );
+    assert.equal(
+      existsSync(join(workspace.projectDir, "node_modules", "dependency.js")),
+      true,
+    );
+    pruneIgnoredFilesForScan(workspace.projectDir);
+    assert.equal(
+      existsSync(join(workspace.projectDir, "node_modules", "dependency.js")),
+      false,
+    );
+    assert.equal(existsSync(join(workspace.projectDir, "app.js")), true);
   } finally {
     workspace.cleanup();
     rmSync(source, { recursive: true, force: true });

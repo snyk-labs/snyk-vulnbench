@@ -1201,6 +1201,8 @@ Raw run metrics additionally retain:
 
 A sealed partial scan is scored and labeled `coverage: partial`; a missing, unsealed, or incompatible findings/coverage contract is a run error. Codex Security is find-only and intentionally excludes deep mode, custom prompts, scan history, patching, publication, and MCP variants from the baseline configuration.
 
+The initial end-to-end validation on 2026-08-30 used Codex Security 0.1.24 (bundled plugin 0.1.79), GPT-5.6 Sol xhigh, and the Goxygen V2 fixture. After pruning git-ignored dependencies from the disposable scan copy, coverage was complete with no deferred or excluded surfaces. The run found 5 of 6 curated vulnerabilities (83% attacker-reachable recall, 50% precision), consumed 18,654,114 logical-plus-output tokens, cost $13.2155, and completed in 797.6 seconds. The configured $50 limit was a fail-safe ceiling; earlier $2 attempts stopped during threat modeling before a sealed result could be produced.
+
 ---
 
 ## Aggregation and Headline Scores

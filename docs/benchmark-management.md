@@ -667,14 +667,16 @@ Codex Security is a separate find-only participant rather than a prompt template
   "effort": "xhigh",
   "mode": "standard",
   "auth": "api-key",
-  "maxCostUsd": 2,
+  "maxCostUsd": 50,
   "timeoutMs": 2700000
 }
 ```
 
 Set `OPENAI_API_KEY` in the ignored root `.env`. The benchmark child receives only that canonical key name; `OPEN_AI_API_KEY`, `CODEX_API_KEY`, and unrelated credentials are not forwarded. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and authentication before a scan.
 
-Every run uses a new Git snapshot and private Codex homes under the temporary state directory. The CLI and all descendants run inside the same outer Landlock boundary as the general Codex runner: the copied project is read-only, scanner state/output are writable, and sibling paths such as fixture ground truth are denied. A model-free dry run completes before the paid scan.
+`maxCostUsd` is a high fail-safe ceiling, not a target budget: standard Sol xhigh scans can exceed small limits during threat modeling before they seal any findings. Use the reported `metrics.totalCostUsd` to track actual spend.
+
+Every run uses a new Git snapshot and private Codex homes under the temporary state directory. Before scanning, git-ignored dependencies and generated output are removed from that disposable copy so the scanner reviews the fixture rather than vendored packages; tracked source files remain unchanged. The CLI and all descendants run inside the same outer Landlock boundary as the general Codex runner: the copied project is read-only, scanner state/output are writable, and sibling paths such as fixture ground truth are denied. A model-free dry run completes before the paid scan.
 
 The adapter consumes only the current scan's sealed `findings` document. V1 uses type-only F1. V2 maps documented Codex Security location roles conservatively to source/sink endpoints and uses attacker-reachable recall; unknown or evidence-only roles remain unlabelled rather than being guessed. JSONL stores coverage completeness, deferred/excluded counts, target and scan identity, package/plugin versions, parser mapping diagnostics, and reported usage/cost. Sealed partial scans are scored with `coverage: partial`; runs without a valid sealed result fail.
 

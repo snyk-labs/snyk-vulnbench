@@ -65,11 +65,20 @@ export function prepareSecurityReviewGitWorkspace(projectDir: string): void {
   git(["remote", "add", "origin", "."]);
   git(["update-ref", "refs/remotes/origin/main", baselineCommit]);
   git(["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
-  git(["add", "--all", "--force"]);
+  git(["add", "--all"]);
   git([
     "-c", "user.name=VulnBench",
     "-c", "user.email=vulnbench@localhost",
     "-c", "commit.gpgSign=false",
     "commit", "--allow-empty", "-m", "VulnBench fixture snapshot",
   ]);
+}
+
+/** Removes git-ignored dependencies/build output from a disposable scan copy. */
+export function pruneIgnoredFilesForScan(projectDir: string): void {
+  execFileSync("git", ["clean", "-f", "-d", "-X"], {
+    cwd: projectDir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }

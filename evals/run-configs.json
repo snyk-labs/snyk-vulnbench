@@ -95,7 +95,7 @@
     "effort": "xhigh",
     "mode": "standard",
     "auth": "api-key",
-    "maxCostUsd": 2,
+    "maxCostUsd": 50,
     "timeoutMs": 2700000
   },
   {

@@ -13,6 +13,7 @@ import {
   codexSecurityExecutable,
   collectCodexSecurityMetrics,
   createCodexSecurityEnvironment,
+  parseCodexSecurityScanOutput,
 } from "../src/runners/codex-security-cli.js";
 import { parseCodexSecurityFindings } from "../src/parsers/codex-security.js";
 import type { CodexSecurityRunConfig } from "../src/types.js";
@@ -172,4 +173,56 @@ test("Codex Security metrics retain usage, coverage, and plugin provenance", () 
   assert.equal(metrics.codexSecurity?.coverage.completeness, "partial");
   assert.equal(metrics.codexSecurity?.coverage.needsFollowUpCount, 1);
   assert.equal(metrics.codexSecurity?.parser.typeMappings.length, 3);
+});
+
+test("Codex Security falls back to sealed artifacts when stdout is empty", () => {
+  const outputDir = mkdtempSync(join(tmpdir(), "codex-security-output-"));
+  const findings = readFileSync(new URL(
+    "./fixtures/codex-security/findings-v1.json",
+    import.meta.url,
+  ), "utf8");
+
+  try {
+    writeFileSync(join(outputDir, "scan-manifest.json"), JSON.stringify({
+      documentType: "codex-security.scan-manifest",
+      schemaVersion: "1.0",
+      scan: { status: "completed" },
+    }));
+    writeFileSync(join(outputDir, "findings.json"), findings);
+    writeFileSync(join(outputDir, "coverage.json"), JSON.stringify({
+      documentType: "codex-security.coverage",
+      schemaVersion: "1.0",
+      completeness: "partial",
+      mode: "repository",
+      surfaces: [],
+      deferred: [],
+      explicitExclusions: [],
+    }));
+
+    const output = parseCodexSecurityScanOutput("", outputDir);
+    assert.equal(
+      (output.findings as { documentType: string }).documentType,
+      "codex-security.findings",
+    );
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
+});
+
+test("Codex Security empty output reports the exit diagnostic", () => {
+  const outputDir = mkdtempSync(join(tmpdir(), "codex-security-empty-"));
+  try {
+    assert.throws(
+      () => parseCodexSecurityScanOutput("", outputDir, {
+        stdout: "",
+        stderr: "Estimated scan cost limit reached",
+        exitCode: 2,
+        signal: null,
+        durationMs: 100,
+      }),
+      /exit 2.*Estimated scan cost limit reached/,
+    );
+  } finally {
+    rmSync(outputDir, { recursive: true, force: true });
+  }
 });

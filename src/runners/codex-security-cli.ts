@@ -1,8 +1,11 @@
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serializeFindingsToFinalText } from "../findings-output.js";
-import { prepareSecurityReviewGitWorkspace } from "../isolated-workspace.js";
+import {
+  prepareSecurityReviewGitWorkspace,
+  pruneIgnoredFilesForScan,
+} from "../isolated-workspace.js";
 import { parseCodexSecurityFindings } from "../parsers/codex-security.js";
 import { executeProcess, type ProcessExecutionResult } from "../process-executor.js";
 import { buildLandlockInvocation } from "../sandbox/landlock.js";
@@ -62,6 +65,7 @@ export async function runCodexSecurityTask({
       throw new Error("Codex Security requires OPENAI_API_KEY");
     }
     prepareSecurityReviewGitWorkspace(cwd);
+    pruneIgnoredFilesForScan(cwd);
 
     const containment = await probeCodexContainment(workspace, "read");
     if (!containment.ok) {
@@ -103,7 +107,7 @@ export async function runCodexSecurityTask({
       );
     }
 
-    const output = parseScanOutput(scan.stdout);
+    const output = parseCodexSecurityScanOutput(scan.stdout, outputDir, scan);
     scanOutput = output;
     const manifest = asRecord(output.manifest);
     const scanMetadata = asRecord(manifest.scan);
@@ -242,18 +246,52 @@ async function executeContained(
   });
 }
 
-function parseScanOutput(stdout: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(stdout) as unknown;
-    if (!asRecord(parsed).findings) {
-      throw new Error("missing findings document");
+export function parseCodexSecurityScanOutput(
+  stdout: string,
+  outputDir: string,
+  result?: ProcessExecutionResult,
+): Record<string, unknown> {
+  const trimmed = stdout.trim();
+  if (trimmed) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (!asRecord(parsed).findings) {
+        throw new Error("missing findings document");
+      }
+      return asRecord(parsed);
+    } catch (error) {
+      throw new Error(
+        `Codex Security returned invalid JSON output: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
-    return asRecord(parsed);
-  } catch (error) {
-    throw new Error(
-      `Codex Security returned invalid JSON output: ${error instanceof Error ? error.message : String(error)}`,
-    );
   }
+
+  const manifestPath = join(outputDir, "scan-manifest.json");
+  const findingsPath = join(outputDir, "findings.json");
+  const coveragePath = join(outputDir, "coverage.json");
+  if (
+    existsSync(manifestPath)
+    && existsSync(findingsPath)
+    && existsSync(coveragePath)
+  ) {
+    try {
+      return {
+        manifest: JSON.parse(readFileSync(manifestPath, "utf8")),
+        findings: JSON.parse(readFileSync(findingsPath, "utf8")),
+        coverage: JSON.parse(readFileSync(coveragePath, "utf8")),
+        scanDir: outputDir,
+      };
+    } catch (error) {
+      throw new Error(
+        `Codex Security produced unreadable scan artifacts: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  const exit = result?.exitCode == null ? "unknown" : String(result.exitCode);
+  throw new Error(
+    `Codex Security produced no structured scan output (exit ${exit}): ${result ? safeDiagnostic(result) : "scan artifacts unavailable"}`,
+  );
 }
 
 export function collectCodexSecurityMetrics(
