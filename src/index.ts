@@ -34,10 +34,17 @@ import {
 } from "./results/execution-runtime.js";
 import { acquireExecutionLock } from "./results/execution-lock.js";
 import {
+  executionPhases,
   listRunRecords,
   readExecutionManifest,
   resolveExecutionDirectory,
 } from "./results/execution-store.js";
+import {
+  configsForPhase,
+  resolveExecutionPhase,
+  resolvePhaseById,
+  runnableRunsForPhase,
+} from "./results/execution-phases.js";
 import { classifyRunFailure, shouldPauseAfterFailure } from "./run-failure.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
@@ -72,6 +79,8 @@ function parseArgs() {
     maxCostUsd?: number;
     maxTokens?: number;
     maxRunTimeMs?: number;
+    prepare: boolean;
+    phase?: string;
   } = {
     allConfigs: false,
     dryRun: false,
@@ -80,6 +89,7 @@ function parseArgs() {
     retryFailed: false,
     retryInterrupted: false,
     continueOnError: false,
+    prepare: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -110,6 +120,8 @@ function parseArgs() {
     else if (args[i] === "--retry-failed") opts.retryFailed = true;
     else if (args[i] === "--retry-interrupted") opts.retryInterrupted = true;
     else if (args[i] === "--continue-on-error") opts.continueOnError = true;
+    else if (args[i] === "--prepare") opts.prepare = true;
+    else if (args[i] === "--phase" && args[i + 1]) opts.phase = args[++i];
     else if (args[i] === "--max-execution-cost-usd" && args[i + 1]) {
       opts.maxCostUsd = positiveNumber(args[++i], "--max-execution-cost-usd");
     }
@@ -151,6 +163,21 @@ function parseArgs() {
   }
   if ((opts.retryFailed || opts.retryInterrupted) && !opts.resume) {
     console.error("--retry-failed and --retry-interrupted require --resume");
+    process.exit(1);
+  }
+  if (opts.prepare && (opts.resume || opts.status || opts.dryRun || opts.phase)) {
+    console.error("--prepare cannot be combined with --resume, --status, --dry-run, or --phase");
+    process.exit(1);
+  }
+  if (
+    opts.prepare
+    && (opts.retryFailed || opts.retryInterrupted || opts.continueOnError)
+  ) {
+    console.error("--prepare cannot use retry or failure-policy flags");
+    process.exit(1);
+  }
+  if (opts.phase && !opts.resume && (opts.configs || opts.allConfigs)) {
+    console.error("Fresh --phase execution requires a config group");
     process.exit(1);
   }
   return opts;
@@ -467,6 +494,18 @@ async function main() {
     (total, config) => total + (compatibleTasks.get(config.id)?.length ?? 0),
     0,
   ) * repetitions;
+  const availablePhases = resumeManifest
+    ? executionPhases(resumeManifest)
+    : selectedGroup?.phases?.map((phase) => ({ ...phase })) ?? [{
+      id: "all",
+      name: "All configs",
+      configIds: configs.map((config) => config.id),
+    }];
+  const selectedPhase = resolvePhaseById(availablePhases, opts.phase);
+  const activeConfigs = configsForPhase(configs, selectedPhase);
+  if (selectedPhase && activeConfigs.length === 0) {
+    throw new Error(`Phase "${selectedPhase.id}" has no compatible configs`);
+  }
   const repSuffix = repetitions > 1 ? ` × ${repetitions} rep(s)` : "";
 
   console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s), ${configs.length} config(s)${repSuffix} = ${totalRuns} compatible run(s)`)}`);
@@ -483,32 +522,46 @@ async function main() {
   }
 
   if (opts.dryRun) {
+    if (selectedPhase) {
+      console.log(
+        `\nSelected phase "${selectedPhase.id}": ${activeConfigs.length} config(s)`,
+      );
+    }
     console.log("\nDry run — exiting.");
     return;
   }
 
+  const newExecutionInput = {
+    projectRoot: PROJECT_ROOT,
+    resultsDir: RESULTS_DIR,
+    argv: process.argv.slice(2),
+    tasks,
+    configs,
+    compatibleTasks,
+    repetitions,
+    selectedGroup,
+    selectedCategory,
+    budgets: {
+      ...(opts.maxCostUsd !== undefined && { maxCostUsd: opts.maxCostUsd }),
+      ...(opts.maxTokens !== undefined && { maxTokens: opts.maxTokens }),
+      ...(opts.maxRunTimeMs !== undefined && { maxRunTimeMs: opts.maxRunTimeMs }),
+    },
+  };
+  if (opts.prepare) {
+    const prepared = initializeExecution(newExecutionInput);
+    console.log(`\nPrepared execution: ${prepared.manifest.executionId}`);
+    console.log(`Planned runs: ${prepared.manifest.plannedRuns.length}`);
+    console.log(`Bundle: ${prepared.executionDir}\n`);
+    return;
+  }
+
   if (!opts.skipPreflight) {
-    runPreflight(configs);
+    runPreflight(activeConfigs);
   }
 
   let execution = opts.resume && executionDir && resumeManifest
     ? checkpointExecution(executionDir, RESULTS_DIR)
-    : initializeExecution({
-      projectRoot: PROJECT_ROOT,
-      resultsDir: RESULTS_DIR,
-      argv: process.argv.slice(2),
-      tasks,
-      configs,
-      compatibleTasks,
-      repetitions,
-      selectedGroup,
-      selectedCategory,
-      budgets: {
-        ...(opts.maxCostUsd !== undefined && { maxCostUsd: opts.maxCostUsd }),
-        ...(opts.maxTokens !== undefined && { maxTokens: opts.maxTokens }),
-        ...(opts.maxRunTimeMs !== undefined && { maxRunTimeMs: opts.maxRunTimeMs }),
-      },
-    });
+    : initializeExecution(newExecutionInput);
   const lock = acquireExecutionLock(execution.executionDir);
   let pauseRequested = false;
   let pauseReason: string | undefined;
@@ -560,8 +613,20 @@ async function main() {
     const records = new Map(
       listRunRecords(execution.executionDir).map((record) => [record.runKey, record]),
     );
+    const runtimePhase = resolveExecutionPhase(execution.manifest, opts.phase);
+    const runnableSpecs = runnableRunsForPhase(
+      execution.manifest,
+      records,
+      runtimePhase,
+      {
+        retryFailed: opts.retryFailed,
+        retryInterrupted: opts.retryInterrupted,
+      },
+    );
+    const runtimeConfigs = configsForPhase(configs, runtimePhase);
     let activeConfigId: string | undefined;
-    for (const spec of execution.manifest.plannedRuns) {
+    for (let scopedIndex = 0; scopedIndex < runnableSpecs.length; scopedIndex++) {
+      const spec = runnableSpecs[scopedIndex];
       const beforeRunBudget = executionBudgetReason(
         execution.progress,
         execution.manifest.budgets,
@@ -570,23 +635,14 @@ async function main() {
         pauseReason ??= beforeRunBudget;
         break;
       }
-      const existing = records.get(spec.runKey);
-      const runnable = !existing
-        || (existing.status === "failed" && opts.retryFailed)
-        || (
-          existing.status === "interrupted-uncertain"
-          && opts.retryInterrupted
-        );
-      if (!runnable) continue;
-
       const config = configs.find((candidate) => candidate.id === spec.runConfigId)!;
       const task = tasks.find((candidate) => candidate.id === spec.taskId)!;
       if (activeConfigId !== config.id) {
         activeConfigId = config.id;
         printConfigHeader(
           config.name,
-          configs.findIndex((candidate) => candidate.id === config.id) + 1,
-          configs.length,
+          runtimeConfigs.findIndex((candidate) => candidate.id === config.id) + 1,
+          runtimeConfigs.length,
         );
       }
       const repLabel = repetitions > 1
@@ -594,8 +650,8 @@ async function main() {
         : "";
       printRunProgress(
         `${task.name}${repLabel}`,
-        spec.ordinal,
-        execution.manifest.plannedRuns.length,
+        scopedIndex + 1,
+        runnableSpecs.length,
       );
       const record = beginExecutionRun(execution.executionDir, spec);
       activeAbortController = new AbortController();
