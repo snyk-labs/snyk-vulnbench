@@ -754,6 +754,15 @@ Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 180 compat
 
 This remains an intentionally expensive command: three Codex Security profiles alone imply 60 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 180 runs.
 
+Groups may define ordered `phases`, each with `id`, `name`, and `configIds`.
+The loader requires phase IDs to be unique lowercase slugs and requires the
+ordered phase config lists to partition the group's `configIds` exactly—no
+missing, duplicated, unknown, or reordered configs. Phase definitions are
+frozen into new execution manifests.
+
+The canonical V2 phases are `snyk-code` (20 runs), `claude-code` (60),
+`codex-security` (60), and `deepsec` (40).
+
 Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
 
 ### Model config fields (`type` absent or `"model"`)
@@ -853,6 +862,34 @@ attempt is not automatically replayed because its remote request may already
 have incurred cost. Resume also verifies the frozen harness, config, task,
 fixture, and ground-truth fingerprints; changed experiments require a new
 execution directory.
+
+For a manually controlled complete V2 run:
+
+```bash
+# Static validation and bundle creation only; no credential preflight
+pnpm run benchmark:v2:prepare
+
+# Execute phases independently into that same bundle
+pnpm tsx src/index.ts --resume <execution-id> --phase snyk-code
+pnpm tsx src/index.ts --resume <execution-id> --phase claude-code
+pnpm tsx src/index.ts --resume <execution-id> --phase codex-security
+pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
+
+pnpm tsx src/index.ts --status <execution-id>
+```
+
+Phase preflight requirements:
+
+- `snyk-code`: Snyk CLI and authentication only.
+- `claude-code`: Claude CLI, LiteLLM, and Snyk authentication for the MCP
+  profile.
+- `codex-security`: LiteLLM, pinned Codex Security/plugin, and Python 3.10+.
+- `deepsec`: LiteLLM and the pinned DeepSec CLI.
+
+The status output shows independent phase progress and the next command. A
+phase may be `completed` while the global execution remains `paused`. Do not
+publish final aggregates until global status is `completed`, with 180
+successful runs and no pending, failed, or interrupted items.
 
 ### LiteLLM gateway configuration
 

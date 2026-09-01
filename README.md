@@ -82,7 +82,7 @@ pnpm install
 # Run the default benchmark matrix
 pnpm run benchmark
 
-# Run only attacker-reachable tasks with Snyk Code
+# Start a complete V2 execution by running its Snyk Code phase
 pnpm run benchmark:v2:snyk
 ```
 
@@ -98,6 +98,22 @@ pnpm tsx src/index.ts --resume <execution-id>
 # Explicitly retry an interrupted or failed attempt
 pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
 pnpm tsx src/index.ts --resume <execution-id> --retry-failed
+```
+
+For manual control over the complete 180-run VulnBench V2 execution:
+
+```bash
+# Creates the full manifest without preflight or provider calls
+pnpm run benchmark:v2:prepare
+
+# Run each phase when ready, using the same printed execution ID
+pnpm tsx src/index.ts --resume <execution-id> --phase snyk-code
+pnpm tsx src/index.ts --resume <execution-id> --phase claude-code
+pnpm tsx src/index.ts --resume <execution-id> --phase codex-security
+pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
+
+# Must report 180/180 and status "completed" before final reporting
+pnpm tsx src/index.ts --status <execution-id>
 ```
 
 See the [benchmark guide](docs/benchmark.md) for persistence, resumability, and

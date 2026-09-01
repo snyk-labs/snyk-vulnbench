@@ -145,7 +145,11 @@ The harness runs the benchmark in an isolated worker. For every key declared in 
 pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:v2                   # canonical V2 matrix (180 runs, 1 repetition)
-pnpm run benchmark:v2:snyk              # V2 tasks with Snyk Code only
+pnpm run benchmark:v2:prepare           # freeze V2 plan without provider calls
+pnpm run benchmark:v2:snyk              # start full V2 bundle with Snyk phase
+pnpm tsx src/index.ts --resume <id> --phase claude-code
+pnpm tsx src/index.ts --resume <id> --phase codex-security
+pnpm tsx src/index.ts --resume <id> --phase deepsec
 pnpm benchmark -- --category attacker-reachable-find-vulns --config codex-security-sol-xhigh
 pnpm benchmark -- --config-group default --dry-run
 pnpm benchmark -- --all-configs --dry-run
@@ -164,6 +168,12 @@ Use `--status <execution-id>` to inspect progress and `--resume <execution-id>`
 to continue pending work without rerunning successful items. Each bundle
 contains per-run JSON, `progress.json`, `aggregates.json`, and a compatible
 `benchmark.jsonl`.
+
+The canonical V2 manifest has four selectable phases: `snyk-code` (20 runs),
+`claude-code` (60), `codex-security` (60), and `deepsec` (40). `--phase`
+filters only the current invocation; all phases remain in one frozen manifest
+and one aggregate dataset. Each phase preflights only its configs. Final
+reporting requires global `completed` status and 180/180 successful runs.
 
 Generated HTML benchmark reports are saved under `public/<report-id>/`. To preview one locally, serve that directory with:
 

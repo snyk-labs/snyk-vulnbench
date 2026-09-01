@@ -524,8 +524,13 @@ async function main() {
 
   if (opts.dryRun) {
     if (selectedPhase) {
+      const selectedPhaseRuns = activeConfigs.reduce(
+        (total, config) =>
+          total + (compatibleTasks.get(config.id)?.length ?? 0) * repetitions,
+        0,
+      );
       console.log(
-        `\nSelected phase "${selectedPhase.id}": ${activeConfigs.length} config(s)`,
+        `\nSelected phase "${selectedPhase.id}": ${activeConfigs.length} config(s), ${selectedPhaseRuns} run(s)`,
       );
     }
     console.log("\nDry run — exiting.");

@@ -366,5 +366,9 @@ When changing proxy, token naming, model aliases, or runner versions:
 5. Verify both DeepSec generated provider configs contain URLs but no token.
 6. Run the four individual smoke targets.
 7. Run `pnpm test` and `pnpm exec tsc --noEmit`.
-8. Dry-run the canonical V2 matrix.
-9. Never commit `.env`, raw traces, temporary scan state, or proxy tokens.
+8. Dry-run the canonical V2 matrix and each gateway-backed phase:
+   `--phase claude-code`, `--phase codex-security`, and `--phase deepsec`.
+9. For a prepared execution, run only the smoke target(s) matching the next
+   phase before `--resume <id> --phase <phase-id>`. The `snyk-code` phase does
+   not require LiteLLM.
+10. Never commit `.env`, raw traces, temporary scan state, or proxy tokens.

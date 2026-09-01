@@ -96,6 +96,8 @@ Before charting an execution bundle, require `progress.status === "completed"`
 and zero failed/interrupted/pending runs for an unqualified report. If coverage
 is partial, stop and ask whether the user wants a clearly labeled partial
 analysis; never silently chart partial aggregates as final results.
+For phased bundles, also require every `progress.phases[]` entry to be
+`completed`. A completed Snyk or Claude phase is not a completed V2 matrix.
 
 Read each JSONL file. Each line is one complete JSON object. Lines have a `_type`
 field that determines what kind of row they are:

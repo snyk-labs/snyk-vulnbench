@@ -83,6 +83,14 @@ Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" 
 - "retry failed/interrupted run X" → add `--retry-failed` or
   `--retry-interrupted` only after explicit user confirmation because the prior
   attempt may already have incurred provider cost
+- "prepare the full V2 run" → `--config-group vulnbench-v2 --prepare`
+- "run the Snyk/Claude Code/Codex Security/DeepSec phase" → add exactly one of
+  `--phase snyk-code`, `--phase claude-code`,
+  `--phase codex-security`, or `--phase deepsec`
+
+For a prepared execution, always combine phase selection with `--resume
+<execution-id>`. Never replace it with `--config`: that would create a separate
+dataset rather than contribute to the existing full execution.
 
 **Repetitions resolution rules:**
 
@@ -125,6 +133,18 @@ inspect with `--status` and use `--resume` rather than launching a new matrix.
 Authentication, quota, gateway, and unknown failures pause new paid work by
 default. Never add `--continue-on-error`, `--retry-failed`, or
 `--retry-interrupted` without explicit user approval.
+
+For a manually phased canonical V2 run, guide the user through this sequence:
+
+1. `pnpm run benchmark:v2:prepare` and record the execution ID.
+2. Resume `--phase snyk-code` (20 runs).
+3. Resume `--phase claude-code` (60 runs).
+4. Resume `--phase codex-security` (60 runs).
+5. Resume `--phase deepsec` (40 runs).
+6. Run `--status <id>` and require global `completed` with 180/180 successes.
+
+Each phase performs only its own preflight. Treat a successful phase invocation
+as phase completion, not full benchmark completion.
 
 **Done when:** the command exits successfully, or you've reported the error with a fix suggestion.
 

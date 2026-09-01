@@ -774,6 +774,45 @@ pnpm tsx src/index.ts --resume <execution-id> --retry-failed
 pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
 ```
 
+#### Selectable VulnBench V2 phases
+
+`vulnbench-v2` freezes all 180 planned runs into one bundle but can execute
+them through four separately controlled phases:
+
+- `snyk-code`: 1 config × 20 tasks = 20 runs
+- `claude-code`: 3 configs × 20 tasks = 60 runs
+- `codex-security`: 3 configs × 20 tasks = 60 runs
+- `deepsec`: 2 configs × 20 tasks = 40 runs
+
+Prepare once without credentials, preflight, or provider calls:
+
+```bash
+pnpm run benchmark:v2:prepare
+```
+
+Prepare only after the harness, configs, tasks, fixtures, and ground truth are
+in their final state. Any later source or input change intentionally makes
+resume fingerprint validation fail rather than mixing experiments.
+
+Use the printed execution ID for every later invocation:
+
+```bash
+pnpm tsx src/index.ts --resume <execution-id> --phase snyk-code
+pnpm tsx src/index.ts --resume <execution-id> --phase claude-code
+pnpm tsx src/index.ts --resume <execution-id> --phase codex-security
+pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
+pnpm tsx src/index.ts --status <execution-id>
+```
+
+Each phase preflights only its configs and checkpoints into the same run
+ledger, aggregate snapshot, and JSONL. A clean phase completion exits
+successfully while later phases remain pending. Only global `status:
+"completed"` with 180/180 successful runs is a complete V2 benchmark.
+Omitting `--phase` retains the all-pending-runs behavior.
+
+Alternatively, `pnpm run benchmark:v2 -- --phase snyk-code` creates the full
+manifest and immediately runs only the first phase.
+
 Resume reloads the immutable manifest and refuses changed harness, config, task,
 fixture, or ground-truth fingerprints. Successful run keys are never repeated.
 A stale `running` attempt after a crash becomes `interrupted-uncertain`; retrying

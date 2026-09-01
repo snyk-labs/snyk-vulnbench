@@ -48,7 +48,9 @@ lookup table where the fixture name helps the reader map back to the data.
 - **Required**: one or more complete execution bundles or result files (JSONL
   with one record per run, JSON, or CSV) with per-run scores and metrics. For
   bundles, inspect `progress.json` and reject or explicitly qualify incomplete
-  coverage before using `benchmark.jsonl`.
+  coverage before using `benchmark.jsonl`. For phased executions, final
+  reporting requires global `completed` status and every phase completed;
+  phase-level completion alone is partial evidence.
 - **Recommended**: a benchmark guide document (e.g. `docs/benchmark.md`) describing goals, methodology, and task design. If it's missing, ask the user for the missing context rather than inventing it.
 - **Optional**: chart-generator artifacts, either as a generated report directory or direct paths to `article-visuals.md` and `chart-manifest.json`. Treat `article-visuals.md` as the preferred visual catalog and `chart-manifest.json` as validation/detail metadata. Treat `index.html` as a human preview, not the source of chart truth.
 - **Optional**: an existing draft or a prior report to build on, and a target style ("Anthropic announcement", "FrontierSWE deep-dive", "Cursor blog", etc.).
