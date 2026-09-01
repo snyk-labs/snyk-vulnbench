@@ -40,6 +40,14 @@ export interface PlannedExecutionRun {
   totalRepetitions: number;
   taskFingerprint: string;
   configFingerprint: string;
+  /** Frozen phase assignment. Missing only on legacy phase-less manifests. */
+  phaseId?: string;
+}
+
+export interface ExecutionPhase {
+  id: string;
+  name: string;
+  configIds: string[];
 }
 
 export interface ExecutionSourceSnapshot {
@@ -72,6 +80,8 @@ export interface ExecutionManifest {
   source: ExecutionSourceSnapshot;
   budgets: ExecutionBudgets;
   planFingerprint: string;
+  /** Ordered execution phases. Missing only on legacy phase-less manifests. */
+  phases?: ExecutionPhase[];
   plannedRuns: PlannedExecutionRun[];
   taskSnapshots: Record<string, unknown>;
   configSnapshots: Record<string, unknown>;

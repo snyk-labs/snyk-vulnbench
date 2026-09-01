@@ -12,6 +12,7 @@ import {
   atomicWriteJson,
   buildExecutionManifest,
   createExecutionBundle,
+  executionPhases,
   hashValue,
   listRunRecords,
   readExecutionManifest,
@@ -141,6 +142,53 @@ test("execution manifests are deterministic, versioned, and redact secrets", () 
     "[REDACTED]",
   );
   assert.equal(first.argv.at(-1), "[REDACTED]");
+  assert.deepEqual(executionPhases(first), [{
+    id: "all",
+    name: "All configs",
+    configIds: ["config-one"],
+  }]);
+});
+
+test("new phase metadata is frozen into the plan fingerprint", () => {
+  const base = {
+    codename: "phased",
+    argv: [],
+    selection: {
+      category: null,
+      configGroup: "phased",
+      taskIds: ["task-one"],
+      configIds: ["config-one"],
+      repetitions: 1,
+    },
+    source: {
+      gitCommit: "abc123",
+      dirtyFingerprint: null,
+      harnessFingerprint: hashValue("harness"),
+    },
+    plannedRuns: [{ ...plannedRun(), phaseId: "phase-one" }],
+    taskSnapshots: {},
+    configSnapshots: {},
+    phases: [{
+      id: "phase-one",
+      name: "Phase One",
+      configIds: ["config-one"],
+    }],
+    shortId: "phased",
+  };
+  const phased = buildExecutionManifest(base);
+  const renamed = buildExecutionManifest({
+    ...base,
+    plannedRuns: [{ ...plannedRun(), phaseId: "renamed" }],
+    phases: [{
+      id: "renamed",
+      name: "Renamed",
+      configIds: ["config-one"],
+    }],
+  });
+
+  assert.equal(phased.plannedRuns[0].phaseId, "phase-one");
+  assert.notEqual(phased.planFingerprint, renamed.planFingerprint);
+  assert.notEqual(phased.plannedRuns[0].runKey, renamed.plannedRuns[0].runKey);
 });
 
 test("duplicate work items are rejected before an execution starts", () => {

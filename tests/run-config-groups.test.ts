@@ -33,6 +33,22 @@ test("run config groups load safe defaults and the V2 profile", () => {
     "deepsec-claude-opus-5-xhigh",
     "deepsec-codex-sol-xhigh",
   ]);
+  assert.deepEqual(
+    v2Group?.phases?.map((phase) => ({
+      id: phase.id,
+      configCount: phase.configIds.length,
+    })),
+    [
+      { id: "snyk-code", configCount: 1 },
+      { id: "claude-code", configCount: 3 },
+      { id: "codex-security", configCount: 3 },
+      { id: "deepsec", configCount: 2 },
+    ],
+  );
+  assert.deepEqual(
+    v2Group?.phases?.flatMap((phase) => phase.configIds),
+    v2Group?.configIds,
+  );
   const v2Tasks = loadEvalTasks().filter((task) =>
     task.category.id === v2Group?.category
   );
@@ -72,6 +88,20 @@ test("run config group validation rejects unknown and duplicate config IDs", () 
     assert.throws(
       () => loadRunConfigGroups(configs, file),
       /contains duplicate config id "snyk-code"/,
+    );
+
+    writeFileSync(file, JSON.stringify([{
+      id: "invalid-phases",
+      name: "Invalid phases",
+      configIds: ["snyk-code", "opus-4-6-high"],
+      phases: [
+        { id: "snyk", name: "Snyk", configIds: ["snyk-code"] },
+        { id: "models", name: "Models", configIds: ["snyk-code"] },
+      ],
+    }]));
+    assert.throws(
+      () => loadRunConfigGroups(configs, file),
+      /phases must partition configIds in order/,
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });

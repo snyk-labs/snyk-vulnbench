@@ -687,6 +687,7 @@ export function loadRunConfigGroups(
     if (unknown) {
       throw new Error(`Run config group "${entry.id}" references unknown config "${unknown}"`);
     }
+    validateRunConfigGroupPhases(entry);
     if (
       entry.category !== undefined
       && (
@@ -708,6 +709,47 @@ export function loadRunConfigGroups(
     }
     return entry as unknown as RunConfigGroup;
   });
+}
+
+function validateRunConfigGroupPhases(entry: Record<string, unknown>): void {
+  if (entry.phases === undefined) return;
+  if (!Array.isArray(entry.phases) || entry.phases.length === 0) {
+    throw new Error(`Run config group "${entry.id}" phases must be a non-empty array`);
+  }
+  const phaseIds = new Set<string>();
+  const flattenedConfigIds: string[] = [];
+  for (const value of entry.phases) {
+    if (
+      !isRecord(value)
+      || typeof value.id !== "string"
+      || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.id)
+      || typeof value.name !== "string"
+      || value.name.length === 0
+      || !Array.isArray(value.configIds)
+      || value.configIds.length === 0
+      || !value.configIds.every((id) => typeof id === "string")
+    ) {
+      throw new Error(
+        `Run config group "${entry.id}" has an invalid phase definition`,
+      );
+    }
+    if (phaseIds.has(value.id)) {
+      throw new Error(
+        `Run config group "${entry.id}" contains duplicate phase id "${value.id}"`,
+      );
+    }
+    phaseIds.add(value.id);
+    flattenedConfigIds.push(...value.configIds as string[]);
+  }
+  const configIds = entry.configIds as string[];
+  if (
+    flattenedConfigIds.length !== configIds.length
+    || flattenedConfigIds.some((id, index) => id !== configIds[index])
+  ) {
+    throw new Error(
+      `Run config group "${entry.id}" phases must partition configIds in order`,
+    );
+  }
 }
 
 export function validateCodexSecurityRunConfig(

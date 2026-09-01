@@ -15,6 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import type {
   ExecutionManifest,
   ExecutionBudgets,
+  ExecutionPhase,
   ExecutionProgress,
   ExecutionRunRecord,
   ExecutionRunStatus,
@@ -37,6 +38,7 @@ export interface PlannedRunInput {
   totalRepetitions: number;
   taskFingerprint: string;
   configFingerprint: string;
+  phaseId?: string;
 }
 
 export interface BuildExecutionManifestInput {
@@ -50,6 +52,7 @@ export interface BuildExecutionManifestInput {
   now?: Date;
   shortId?: string;
   budgets?: ExecutionBudgets;
+  phases?: ExecutionPhase[];
 }
 
 export function buildExecutionManifest(
@@ -70,6 +73,7 @@ export function buildExecutionManifest(
     plannedRuns: input.plannedRuns,
     taskSnapshots,
     configSnapshots,
+    ...(input.phases && { phases: input.phases }),
   };
   const planFingerprint = hashValue(planMaterial);
   const plannedRuns: PlannedExecutionRun[] = input.plannedRuns.map((run, index) => ({
@@ -94,6 +98,7 @@ export function buildExecutionManifest(
     source: input.source,
     budgets,
     planFingerprint,
+    ...(input.phases && { phases: input.phases }),
     plannedRuns,
     taskSnapshots,
     configSnapshots,
@@ -137,6 +142,16 @@ export function readExecutionManifest(executionDir: string): ExecutionManifest {
   const manifest = readJson<ExecutionManifest>(join(executionDir, "manifest.json"));
   validateManifest(manifest);
   return manifest;
+}
+
+export function executionPhases(
+  manifest: ExecutionManifest,
+): ExecutionPhase[] {
+  return manifest.phases ?? [{
+    id: "all",
+    name: "All configs",
+    configIds: manifest.selection.configIds,
+  }];
 }
 
 export function writeRunRecord(
@@ -393,6 +408,26 @@ function validateManifest(manifest: ExecutionManifest): void {
     throw new Error("Invalid execution manifest");
   }
   assertUniqueRunKeys(manifest.plannedRuns);
+  if (manifest.phases) {
+    const flattened = manifest.phases.flatMap((phase) => phase.configIds);
+    if (
+      flattened.length !== manifest.selection.configIds.length
+      || flattened.some(
+        (id, index) => id !== manifest.selection.configIds[index],
+      )
+    ) {
+      throw new Error("Execution manifest phases do not partition selected configs");
+    }
+    const phaseIds = new Set(manifest.phases.map((phase) => phase.id));
+    if (
+      phaseIds.size !== manifest.phases.length
+      || manifest.plannedRuns.some(
+        (run) => !run.phaseId || !phaseIds.has(run.phaseId),
+      )
+    ) {
+      throw new Error("Execution manifest contains invalid run phase assignments");
+    }
+  }
 }
 
 function assertUniqueRunKeys(runs: PlannedExecutionRun[]): void {

@@ -411,8 +411,15 @@ export interface RunConfigGroup {
   id: string;
   name: string;
   configIds: string[];
+  phases?: RunConfigGroupPhase[];
   category?: EvalCategoryId;
   defaultRepetitions?: number;
+}
+
+export interface RunConfigGroupPhase {
+  id: string;
+  name: string;
+  configIds: string[];
 }
 
 export interface RunnerCapabilities {

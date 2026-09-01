@@ -31,6 +31,39 @@
       "deepsec-claude-opus-5-xhigh",
       "deepsec-codex-sol-xhigh"
     ],
+    "phases": [
+      {
+        "id": "snyk-code",
+        "name": "Snyk Code",
+        "configIds": ["snyk-code"]
+      },
+      {
+        "id": "claude-code",
+        "name": "Claude Code",
+        "configIds": [
+          "opus-5-medium-security-review-with-snyk-mcp",
+          "opus-5-xhigh-security-review",
+          "sonnet-5-xhigh-security-review"
+        ]
+      },
+      {
+        "id": "codex-security",
+        "name": "Codex Security",
+        "configIds": [
+          "codex-security-luna-xhigh",
+          "codex-security-terra-xhigh",
+          "codex-security-sol-xhigh"
+        ]
+      },
+      {
+        "id": "deepsec",
+        "name": "DeepSec",
+        "configIds": [
+          "deepsec-claude-opus-5-xhigh",
+          "deepsec-codex-sol-xhigh"
+        ]
+      }
+    ],
     "category": "attacker-reachable-find-vulns",
     "defaultRepetitions": 1
   }

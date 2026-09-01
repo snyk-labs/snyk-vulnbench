@@ -32,6 +32,7 @@ import {
   EXECUTION_SCHEMA_VERSION,
   type ExecutionAggregates,
   type ExecutionBudgets,
+  type ExecutionPhase,
   type ExecutionManifest,
   type ExecutionProgress,
   type ExecutionRunRecord,
@@ -61,7 +62,8 @@ export interface ExecutionCheckpoint {
 }
 
 export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoint {
-  const plan = buildPlanData(input);
+  const phases = phasesForNewExecution(input);
+  const plan = buildPlanData(input, phases);
   const manifest = buildExecutionManifest({
     codename: input.selectedGroup?.id ?? input.selectedCategory ?? "benchmark",
     argv: input.argv,
@@ -73,6 +75,7 @@ export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoi
       repetitions: input.repetitions,
     },
     budgets: input.budgets,
+    phases,
     ...plan,
   });
   const executionDir = createExecutionBundle(
@@ -86,12 +89,14 @@ export function validateExecutionInputs(
   manifest: ExecutionManifest,
   input: NewExecutionInput,
 ): void {
+  const phases = manifest.phases;
   const candidate = buildExecutionManifest({
     codename: manifest.codename,
     argv: manifest.argv,
     selection: manifest.selection,
     budgets: manifest.budgets,
-    ...buildPlanData(input),
+    ...(phases && { phases }),
+    ...buildPlanData(input, phases),
     now: new Date(manifest.createdAt),
     shortId: "validation",
   });
@@ -102,7 +107,10 @@ export function validateExecutionInputs(
   }
 }
 
-function buildPlanData(input: NewExecutionInput) {
+function buildPlanData(
+  input: NewExecutionInput,
+  phases?: ExecutionPhase[],
+) {
   const taskSnapshots: Record<string, unknown> = {};
   const taskFingerprints = new Map<string, string>();
   for (const task of input.tasks) {
@@ -128,6 +136,11 @@ function buildPlanData(input: NewExecutionInput) {
   const configFingerprints = new Map(
     input.configs.map((config) => [config.id, hashValue(config)]),
   );
+  const phaseByConfig = new Map(
+    phases?.flatMap((phase) =>
+      phase.configIds.map((configId) => [configId, phase.id] as const)
+    ) ?? [],
+  );
   const plannedRuns = input.configs.flatMap((config) =>
     (input.compatibleTasks.get(config.id) ?? []).flatMap((task) =>
       Array.from({ length: input.repetitions }, (_, repetition) => ({
@@ -140,6 +153,7 @@ function buildPlanData(input: NewExecutionInput) {
         totalRepetitions: input.repetitions,
         taskFingerprint: taskFingerprints.get(task.id)!,
         configFingerprint: configFingerprints.get(config.id)!,
+        ...(phases && { phaseId: phaseByConfig.get(config.id)! }),
       }))
     )
   );
@@ -150,6 +164,16 @@ function buildPlanData(input: NewExecutionInput) {
     taskSnapshots: redactSecrets(taskSnapshots) as Record<string, unknown>,
     configSnapshots: redactSecrets(configSnapshots) as Record<string, unknown>,
   };
+}
+
+function phasesForNewExecution(input: NewExecutionInput): ExecutionPhase[] {
+  const phases = input.selectedGroup?.phases;
+  if (phases) return phases.map((phase) => ({ ...phase }));
+  return [{
+    id: "all",
+    name: "All configs",
+    configIds: input.configs.map((config) => config.id),
+  }];
 }
 
 export function beginExecutionRun(
