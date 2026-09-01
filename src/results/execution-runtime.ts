@@ -298,6 +298,13 @@ export function checkpointExecution(
       plannedRuns: progress.totalRuns,
       failedRuns: progress.counts.failed,
       interruptedRuns: progress.counts["interrupted-uncertain"],
+      phases: progress.phases.map((phase) => ({
+        phaseId: phase.id,
+        plannedRuns: phase.totalRuns,
+        succeededRuns: phase.counts.succeeded,
+        failedRuns: phase.counts.failed,
+        interruptedRuns: phase.counts["interrupted-uncertain"],
+      })),
     },
     taskAggregates,
     configAggregates,

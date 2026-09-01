@@ -6,6 +6,7 @@ import {
   runnableRunsForPhase,
   runsForPhase,
 } from "../src/results/execution-phases.js";
+import { reconcileExecutionProgress } from "../src/results/execution-store.js";
 import type {
   ExecutionManifest,
   ExecutionRunRecord,
@@ -113,6 +114,84 @@ test("legacy phase-less manifests expose only the implicit all phase", () => {
   assert.throws(
     () => resolveExecutionPhase(legacy, "claude-code"),
     /Available: all/,
+  );
+});
+
+test("phase progress completes independently from the global execution", () => {
+  const records = [
+    record(plannedRuns[0], "succeeded"),
+    record(plannedRuns[1], "succeeded"),
+  ];
+  const progress = reconcileExecutionProgress(
+    manifest,
+    records,
+    "2026-09-01T01:00:00.000Z",
+  );
+
+  assert.equal(progress.status, "paused");
+  assert.deepEqual(
+    progress.phases.map((phase) => ({
+      id: phase.id,
+      status: phase.status,
+      succeeded: phase.counts.succeeded,
+      pending: phase.counts.pending,
+    })),
+    [
+      { id: "snyk-code", status: "completed", succeeded: 2, pending: 0 },
+      { id: "claude-code", status: "planned", succeeded: 0, pending: 2 },
+    ],
+  );
+});
+
+test("four canonical phases accumulate into one complete 180-run execution", () => {
+  const phaseSizes = [
+    ["snyk-code", 20],
+    ["claude-code", 60],
+    ["codex-security", 60],
+    ["deepsec", 40],
+  ] as const;
+  const canonicalPhases = phaseSizes.map(([id]) => ({
+    id,
+    name: id,
+    configIds: [id],
+  }));
+  const canonicalRuns = phaseSizes.flatMap(([phaseId, size]) =>
+    Array.from({ length: size }, (_, index) =>
+      run(
+        `${phaseId}-${index + 1}`,
+        phaseSizes
+          .slice(0, phaseSizes.findIndex(([id]) => id === phaseId))
+          .reduce((total, [, count]) => total + count, 0) + index + 1,
+        phaseId,
+        phaseId,
+      )
+    )
+  );
+  const canonicalManifest: ExecutionManifest = {
+    ...manifest,
+    selection: {
+      ...manifest.selection,
+      configIds: canonicalPhases.flatMap((phase) => phase.configIds),
+    },
+    phases: canonicalPhases,
+    plannedRuns: canonicalRuns,
+  };
+  const records: ExecutionRunRecord[] = [];
+  const cumulative: number[] = [];
+  for (const phase of canonicalPhases) {
+    records.push(
+      ...canonicalRuns
+        .filter((spec) => spec.phaseId === phase.id)
+        .map((spec) => record(spec, "succeeded")),
+    );
+    const progress = reconcileExecutionProgress(canonicalManifest, records);
+    cumulative.push(progress.counts.succeeded);
+  }
+
+  assert.deepEqual(cumulative, [20, 80, 140, 180]);
+  assert.equal(
+    reconcileExecutionProgress(canonicalManifest, records).status,
+    "completed",
   );
 });
 

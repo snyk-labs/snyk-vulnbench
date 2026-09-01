@@ -75,8 +75,20 @@ export function printConfigHeader(configName: string, configIndex: number, total
 
 // ─── Run Progress Header ──────────────────────────────────────────────────────
 
-export function printRunProgress(taskName: string, runIndex: number, totalRuns: number): void {
-  console.log(`\n  ${s("bold", `▸ [${runIndex}/${totalRuns}]`)} ${s("bold", taskName)}`);
+export function printRunProgress(
+  taskName: string,
+  runIndex: number,
+  totalRuns: number,
+  context?: {
+    phaseId: string;
+    globalIndex: number;
+    globalTotal: number;
+  },
+): void {
+  const phase = context
+    ? ` ${s("dim", `(phase ${context.phaseId}; global ${context.globalIndex}/${context.globalTotal})`)}`
+    : "";
+  console.log(`\n  ${s("bold", `▸ [${runIndex}/${totalRuns}]`)} ${s("bold", taskName)}${phase}`);
 }
 
 export function printExecutionStatus(progress: ExecutionProgress): void {
@@ -101,6 +113,20 @@ export function printExecutionStatus(progress: ExecutionProgress): void {
     `$${progress.observedUsage.costUsd.toFixed(4)} observed; ${progress.observedUsage.attemptsWithUnknownCost} attempt(s) unknown`,
     "  ",
   ));
+  if (progress.phases.length > 0) {
+    console.log("  Phases:");
+    for (const phase of progress.phases) {
+      const cost = `$${phase.observedUsage.costUsd.toFixed(4)}`;
+      console.log(
+        `    ${phase.id.padEnd(16)} ${phase.status.padEnd(23)} ${String(phase.counts.succeeded).padStart(3)}/${String(phase.totalRuns).padEnd(3)} succeeded  ${cost}`,
+      );
+      if (phase.status !== "completed") {
+        console.log(
+          `      Next: pnpm tsx src/index.ts --resume ${progress.executionId} --phase ${phase.id}`,
+        );
+      }
+    }
+  }
 }
 
 // ─── Per-Run Result Block ─────────────────────────────────────────────────────

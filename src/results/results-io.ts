@@ -47,6 +47,13 @@ export function writeBenchmarkJsonl(
       plannedRuns: number;
       failedRuns: number;
       interruptedRuns: number;
+      phases?: Array<{
+        phaseId: string;
+        plannedRuns: number;
+        succeededRuns: number;
+        failedRuns: number;
+        interruptedRuns: number;
+      }>;
     };
   },
 ): void {

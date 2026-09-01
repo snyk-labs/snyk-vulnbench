@@ -236,6 +236,7 @@ export function reconcileExecutionProgress(
   const items = manifest.plannedRuns.map((run) => {
     const record = recordsByKey.get(run.runKey);
     const status = record?.status ?? "pending";
+    const phaseId = run.phaseId ?? "all";
     counts[status]++;
     return {
       runKey: run.runKey,
@@ -245,19 +246,53 @@ export function reconcileExecutionProgress(
       repetition: run.repetition,
       status,
       attempts: record?.attempts.length ?? 0,
+      phaseId,
+    };
+  });
+  const phases = executionPhases(manifest).map((phase) => {
+    const phaseRuns = manifest.plannedRuns.filter((run) =>
+      (run.phaseId ?? "all") === phase.id
+    );
+    const phaseCounts: Record<ExecutionRunStatus, number> = {
+      pending: 0,
+      running: 0,
+      succeeded: 0,
+      failed: 0,
+      "interrupted-uncertain": 0,
+    };
+    let phaseLogicalInputTokens = 0;
+    let phaseOutputTokens = 0;
+    let phaseCostUsd = 0;
+    let phaseUnknownCost = 0;
+    for (const run of phaseRuns) {
+      const record = recordsByKey.get(run.runKey);
+      phaseCounts[record?.status ?? "pending"]++;
+      for (const attempt of record?.attempts ?? []) {
+        if (attempt.metrics) {
+          phaseLogicalInputTokens += attempt.metrics.totalLogicalInputTokens;
+          phaseOutputTokens += attempt.metrics.totalOutputTokens;
+          if (attempt.metrics.totalCostUsd == null) phaseUnknownCost++;
+          else phaseCostUsd += attempt.metrics.totalCostUsd;
+        } else if (attempt.status !== "running") {
+          phaseUnknownCost++;
+        }
+      }
+    }
+    return {
+      ...phase,
+      totalRuns: phaseRuns.length,
+      status: statusFromCounts(phaseCounts, phaseRuns.length),
+      counts: phaseCounts,
+      observedUsage: {
+        logicalInputTokens: phaseLogicalInputTokens,
+        outputTokens: phaseOutputTokens,
+        costUsd: phaseCostUsd,
+        attemptsWithUnknownCost: phaseUnknownCost,
+      },
     };
   });
   const currentRunKey = items.find((item) => item.status === "running")?.runKey ?? null;
-  const attempted = manifest.plannedRuns.length - counts.pending;
-  const status = counts.running > 0
-    ? "running"
-    : counts.succeeded === manifest.plannedRuns.length
-      ? "completed"
-      : counts.pending === 0
-        ? "completed-with-failures"
-        : attempted === 0
-          ? "planned"
-          : "paused";
+  const status = statusFromCounts(counts, manifest.plannedRuns.length);
 
   return {
     schemaVersion: EXECUTION_SCHEMA_VERSION,
@@ -274,6 +309,7 @@ export function reconcileExecutionProgress(
       attemptsWithUnknownCost,
     },
     items,
+    phases,
   };
 }
 
@@ -438,6 +474,22 @@ function assertUniqueRunKeys(runs: PlannedExecutionRun[]): void {
     }
     seen.add(run.runKey);
   }
+}
+
+function statusFromCounts(
+  counts: Record<ExecutionRunStatus, number>,
+  totalRuns: number,
+): ExecutionProgress["status"] {
+  const attempted = totalRuns - counts.pending;
+  return counts.running > 0
+    ? "running"
+    : counts.succeeded === totalRuns
+      ? "completed"
+      : counts.pending === 0
+        ? "completed-with-failures"
+        : attempted === 0
+          ? "planned"
+          : "paused";
 }
 
 function sortValue(value: unknown): unknown {

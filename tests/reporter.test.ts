@@ -64,6 +64,26 @@ test("execution status reports durable progress and uncertain cost", () => {
         attemptsWithUnknownCost: 1,
       },
       items: [],
+      phases: [{
+        id: "snyk-code",
+        name: "Snyk Code",
+        configIds: ["snyk-code"],
+        totalRuns: 20,
+        status: "completed",
+        counts: {
+          pending: 0,
+          running: 0,
+          succeeded: 20,
+          failed: 0,
+          "interrupted-uncertain": 0,
+        },
+        observedUsage: {
+          logicalInputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+          attemptsWithUnknownCost: 0,
+        },
+      }],
     });
   } finally {
     console.log = original;
@@ -73,4 +93,5 @@ test("execution status reports durable progress and uncertain cost", () => {
   assert.match(output, /20\/180 succeeded/);
   assert.match(output, /Interrupted.*1/);
   assert.match(output, /\$12\.3400 observed; 1 attempt\(s\) unknown/);
+  assert.match(output, /snyk-code.*completed.*20\/20/);
 });

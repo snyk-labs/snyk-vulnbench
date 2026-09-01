@@ -115,6 +115,22 @@ export interface ExecutionProgressItem {
   repetition: number;
   status: ExecutionRunStatus;
   attempts: number;
+  phaseId: string;
+}
+
+export interface ExecutionPhaseProgress {
+  id: string;
+  name: string;
+  configIds: string[];
+  totalRuns: number;
+  status: ExecutionStatus;
+  counts: Record<ExecutionRunStatus, number>;
+  observedUsage: {
+    logicalInputTokens: number;
+    outputTokens: number;
+    costUsd: number;
+    attemptsWithUnknownCost: number;
+  };
 }
 
 export interface ExecutionProgress {
@@ -132,6 +148,15 @@ export interface ExecutionProgress {
     attemptsWithUnknownCost: number;
   };
   items: ExecutionProgressItem[];
+  phases: ExecutionPhaseProgress[];
+}
+
+export interface ExecutionPhaseCoverage {
+  phaseId: string;
+  plannedRuns: number;
+  succeededRuns: number;
+  failedRuns: number;
+  interruptedRuns: number;
 }
 
 export interface ExecutionAggregates {
@@ -144,6 +169,7 @@ export interface ExecutionAggregates {
     plannedRuns: number;
     failedRuns: number;
     interruptedRuns: number;
+    phases: ExecutionPhaseCoverage[];
   };
   taskAggregates: AggregatedTaskResult[];
   configAggregates: AggregatedConfigResult[];

@@ -351,15 +351,28 @@ test("a completed run is checkpointed while later planned work remains pending",
       plannedRuns: 2,
       failedRuns: 0,
       interruptedRuns: 0,
+      phases: [{
+        phaseId: "all",
+        plannedRuns: 2,
+        succeededRuns: 1,
+        failedRuns: 0,
+        interruptedRuns: 0,
+      }],
     });
     const progress = refreshExecutionProgress(executionDir);
     assert.equal(progress.counts.succeeded, 1);
     assert.equal(progress.counts.pending, 1);
+    assert.equal(progress.phases[0].status, "paused");
     assert.equal(readBenchmarkResults(executionDir).runs.length, 1);
     assert.equal(
       readBenchmarkResults(checkpoint.compatibilityJsonlPath).runs.length,
       1,
     );
+    const jsonlRow = JSON.parse(
+      readFileSync(checkpoint.compatibilityJsonlPath, "utf8").trim().split("\n")[0],
+    );
+    assert.equal(jsonlRow.executionCoverage.phases[0].phaseId, "all");
+    assert.equal(jsonlRow.executionCoverage.phases[0].succeededRuns, 1);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

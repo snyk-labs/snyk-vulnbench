@@ -44,6 +44,7 @@ import {
   resolveExecutionPhase,
   resolvePhaseById,
   runnableRunsForPhase,
+  runsForPhase,
 } from "./results/execution-phases.js";
 import { classifyRunFailure, shouldPauseAfterFailure } from "./run-failure.js";
 import { EVAL_CATEGORIES } from "./types.js";
@@ -551,7 +552,16 @@ async function main() {
     const prepared = initializeExecution(newExecutionInput);
     console.log(`\nPrepared execution: ${prepared.manifest.executionId}`);
     console.log(`Planned runs: ${prepared.manifest.plannedRuns.length}`);
+    for (const phase of prepared.progress.phases) {
+      console.log(`  ${phase.id}: ${phase.totalRuns} run(s)`);
+    }
     console.log(`Bundle: ${prepared.executionDir}\n`);
+    const firstPhase = prepared.progress.phases[0];
+    if (firstPhase) {
+      console.log(
+        `Next: pnpm tsx src/index.ts --resume ${prepared.manifest.executionId} --phase ${firstPhase.id}\n`,
+      );
+    }
     return;
   }
 
@@ -624,6 +634,10 @@ async function main() {
       },
     );
     const runtimeConfigs = configsForPhase(configs, runtimePhase);
+    const phasePlan = runsForPhase(execution.manifest, runtimePhase);
+    const phaseOrdinal = new Map(
+      phasePlan.map((run, index) => [run.runKey, index + 1]),
+    );
     let activeConfigId: string | undefined;
     for (let scopedIndex = 0; scopedIndex < runnableSpecs.length; scopedIndex++) {
       const spec = runnableSpecs[scopedIndex];
@@ -650,8 +664,13 @@ async function main() {
         : "";
       printRunProgress(
         `${task.name}${repLabel}`,
-        scopedIndex + 1,
-        runnableSpecs.length,
+        phaseOrdinal.get(spec.runKey) ?? scopedIndex + 1,
+        phasePlan.length,
+        runtimePhase ? {
+          phaseId: runtimePhase.id,
+          globalIndex: spec.ordinal,
+          globalTotal: execution.manifest.plannedRuns.length,
+        } : undefined,
       );
       const record = beginExecutionRun(execution.executionDir, spec);
       activeAbortController = new AbortController();
@@ -697,6 +716,19 @@ async function main() {
 
     printSummaryTable(execution.results, taskAggregates, configAggregates);
     printExecutionStatus(execution.progress);
+    if (runtimePhase) {
+      const phaseProgress = execution.progress.phases.find((phase) =>
+        phase.id === runtimePhase.id
+      );
+      if (phaseProgress?.status === "completed") {
+        console.log(`  Phase completed: ${runtimePhase.id}`);
+      } else {
+        process.exitCode = 1;
+        console.log(
+          `  Phase incomplete: ${runtimePhase.id} (${phaseProgress?.status ?? "unknown"})`,
+        );
+      }
+    }
     if (pauseRequested) {
       console.log(`  Paused: ${pauseReason ?? "operator request"}`);
       console.log(`  Resume: pnpm tsx src/index.ts --resume ${execution.manifest.executionId}`);
