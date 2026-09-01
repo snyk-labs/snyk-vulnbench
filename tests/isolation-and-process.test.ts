@@ -120,6 +120,18 @@ test("process executor captures output without invoking a shell", async () => {
   assert.equal(result.stdout, "hello world");
 });
 
+test("process executor can run without a wall-clock timeout", async () => {
+  const result = await executeProcess({
+    program: process.execPath,
+    args: ["-e", "setTimeout(() => process.stdout.write('done'), 10)"],
+    cwd: process.cwd(),
+    env: process.env,
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stdout, "done");
+});
+
 test("process executor terminates timed-out process groups", async () => {
   await assert.rejects(
     executeProcess({

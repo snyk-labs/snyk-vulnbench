@@ -1,0 +1,37 @@
+[
+  {
+    "id": "default",
+    "name": "Safe default benchmark configs",
+    "configIds": [
+      "opus-4-6-high",
+      "sonnet-4-6-high",
+      "opus-4-6-medium",
+      "sonnet-4-6-medium",
+      "opus-4-7-max",
+      "haiku-4-5-default-with-snyk-mcp",
+      "codex-luna-high",
+      "codex-luna-high-with-snyk-mcp",
+      "snyk-code"
+    ],
+    "defaultRepetitions": 1
+  },
+  {
+    "id": "vulnbench-v2",
+    "name": "VulnBench 2.0 canonical matrix",
+    "configIds": [
+      "snyk-code",
+      "opus-5-medium-security-review-with-snyk-mcp",
+      "opus-5-xhigh-security-review",
+      "opus-5-medium-security-review",
+      "sonnet-5-medium-security-review",
+      "sonnet-5-xhigh-security-review",
+      "codex-security-luna-xhigh",
+      "codex-security-terra-xhigh",
+      "codex-security-sol-xhigh",
+      "deepsec-claude-opus-5-xhigh",
+      "deepsec-codex-sol-xhigh"
+    ],
+    "category": "attacker-reachable-find-vulns",
+    "defaultRepetitions": 1
+  }
+]

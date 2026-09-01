@@ -1,6 +1,11 @@
 import { execFileSync } from "child_process";
 import { styleText } from "node:util";
-import type { RunConfig, CommandRunConfig, ModelRunConfig } from "./types.js";
+import type {
+  CommandRunConfig,
+  DeepSecRunConfig,
+  ModelRunConfig,
+  RunConfig,
+} from "./types.js";
 import {
   CODEX_CLI_VERSION,
   codexExecutable,
@@ -42,7 +47,10 @@ export function runPreflight(configs: RunConfig[]): void {
       && c.runner === "codex-cli",
   );
   const needsCodexSecurity = configs.some((c) => c.type === "codex-security");
-  const needsDeepSec = configs.some((c) => c.type === "deepsec");
+  const deepSecConfigs = configs.filter(
+    (config): config is DeepSecRunConfig => config.type === "deepsec",
+  );
+  const needsDeepSec = deepSecConfigs.length > 0;
   const needsSnyk = configs.some(
     (c) => {
       if (c.type !== "command") return false;
@@ -67,7 +75,9 @@ export function runPreflight(configs: RunConfig[]): void {
 
   if (needsDeepSec) {
     checks.push(checkDeepSecInstalled());
-    checks.push(checkDeepSecAuth());
+    for (const agent of new Set(deepSecConfigs.map((config) => config.agent))) {
+      checks.push(checkDeepSecAuth(agent));
+    }
   }
 
   if (needsCodexSecurity) {
@@ -199,15 +209,16 @@ function checkDeepSecInstalled(): CheckResult {
   }
 }
 
-function checkDeepSecAuth(): CheckResult {
-  const ok = Boolean(
-    process.env.OPENAI_API_KEY
-    || process.env.CODEX_API_KEY,
-  );
+function checkDeepSecAuth(agent: DeepSecRunConfig["agent"]): CheckResult {
+  const ok = agent === "claude"
+    ? Boolean(process.env.ANTHROPIC_API_KEY)
+    : Boolean(process.env.OPENAI_API_KEY || process.env.CODEX_API_KEY);
   return {
     ok,
-    label: "DeepSec OpenAI authentication",
-    detail: ok ? "API key available" : "Set OPENAI_API_KEY",
+    label: `DeepSec ${agent === "claude" ? "Anthropic" : "OpenAI"} authentication`,
+    detail: ok
+      ? "API key available"
+      : `Set ${agent === "claude" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"}`,
   };
 }
 

@@ -56,7 +56,7 @@ export async function runDeepSecTask({
   const dataDir = join(workspace.stateDir, "deepsec-data");
   const exportPath = join(workspace.outputDir, "deepsec-findings.json");
   const toolCalls: ToolCallRecord[] = [];
-  const environment = createDeepSecEnvironment();
+  const environment = createDeepSecEnvironment(deepsec);
 
   writeFileSync(
     join(workspace.stateDir, "deepsec.config.mjs"),
@@ -132,7 +132,7 @@ export async function runDeepSecTask({
   async function runStage(
     tool: string,
     args: string[],
-    timeoutMs = deepsec.timeoutMs ?? 45 * 60_000,
+    timeoutMs = deepsec.timeoutMs,
   ): Promise<void> {
     const result = await executeProcess({
       program: deepSecExecutable(),
@@ -159,19 +159,27 @@ export function deepSecExecutable(): string {
   return resolve(RUNNERS_DIR, "../../node_modules/.bin/deepsec");
 }
 
-function buildDeepSecConfig(
+export function buildDeepSecConfig(
   projectId: string,
   projectRoot: string,
   dataDir: string,
   config: DeepSecRunConfig,
 ): string {
+  const ai = config.agent === "claude"
+    ? {
+        mode: "direct",
+        provider: "anthropic",
+        apiKeyEnv: "ANTHROPIC_API_KEY",
+        baseUrl: "https://api.anthropic.com",
+      }
+    : {
+        mode: "direct",
+        provider: "openai",
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.com/v1",
+      };
   const value = {
-    ai: {
-      mode: "direct",
-      provider: "openai",
-      apiKeyEnv: "OPENAI_API_KEY",
-      baseUrl: "https://api.openai.com/v1",
-    },
+    ai,
     dataDir,
     defaultAgent: config.agent,
     defaultModel: config.model,
@@ -181,7 +189,8 @@ function buildDeepSecConfig(
   return `export default ${JSON.stringify(value, null, 2)};\n`;
 }
 
-function createDeepSecEnvironment(
+export function createDeepSecEnvironment(
+  config: Pick<DeepSecRunConfig, "agent">,
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
@@ -206,9 +215,15 @@ function createDeepSecEnvironment(
   ]) {
     if (source[name] !== undefined) environment[name] = source[name];
   }
-  const apiKey = source.OPENAI_API_KEY
-    ?? source.CODEX_API_KEY;
-  if (apiKey) environment.OPENAI_API_KEY = apiKey;
+  if (config.agent === "claude") {
+    if (source.ANTHROPIC_API_KEY) {
+      environment.ANTHROPIC_API_KEY = source.ANTHROPIC_API_KEY;
+    }
+  } else {
+    const apiKey = source.OPENAI_API_KEY
+      ?? source.CODEX_API_KEY;
+    if (apiKey) environment.OPENAI_API_KEY = apiKey;
+  }
   return environment;
 }
 

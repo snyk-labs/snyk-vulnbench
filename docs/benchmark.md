@@ -423,7 +423,9 @@ Example comparisons enabled by this design:
 | `codex-luna-high` vs `deepsec-codex-luna-high` | General coding agent vs opinionated security harness on an OpenAI model |
 | `codex-luna-high` vs `codex-security-sol-xhigh` | General Codex agent vs OpenAI's dedicated security harness |
 
-**Snyk, DeepSec, and Codex Security are find-only.** They are skipped with an error result for fix-vulns tasks. Codex CLI and Claude Code support both find and fix tasks.
+**Snyk, DeepSec, and Codex Security are find-only.** Config-level category compatibility removes them from fix-vulns matrices before preflight. Claude security-review profiles are likewise V2-only even though the underlying Claude adapter can edit files.
+
+Named groups in `evals/run-config-groups.json` control default participation. `default` excludes opinionated Codex Security and DeepSec harnesses; `vulnbench-v2` selects the canonical 11-config V2 matrix. Use `--all-configs` only when the full registry is intentional.
 
 **Adding a model config with an MCP server:**
 ```json
@@ -1174,7 +1176,7 @@ Operational checklist, example `jq` invocations, and the distinction between “
 
 ### DeepSec and localized V2 scoring
 
-The `deepsec-cli` adapter generates a minimal ephemeral DeepSec config, then runs pinned DeepSec 2.3.7 through `scan`, `process`, and `export --format json --out`. It does not pass the benchmark prompt: this intentionally measures DeepSec's opinionated security workflow rather than a customizable general coding agent.
+The `deepsec-cli` adapter generates a minimal ephemeral DeepSec config, then runs pinned DeepSec 2.3.7 through `scan`, `process`, and `export --format json --out`. It does not pass the benchmark prompt: this intentionally measures DeepSec's opinionated security workflow rather than a customizable general coding agent. Codex profiles use direct OpenAI authentication; Claude profiles use direct Anthropic authentication. Canonical V2 profiles omit paid-stage wall-time limits.
 
 DeepSec exports `vulnSlug`, `filePath`, and `lineNumbers`, but not source/sink roles. Therefore:
 
@@ -1199,9 +1201,9 @@ Raw run metrics additionally retain:
 - parser type/role mapping decisions and skipped findings;
 - reported input/cache/output/reasoning tokens and estimated cost.
 
-A sealed partial scan is scored and labeled `coverage: partial`; a missing, unsealed, or incompatible findings/coverage contract is a run error. Codex Security is find-only and intentionally excludes deep mode, custom prompts, scan history, patching, publication, and MCP variants from the baseline configuration.
+A sealed partial scan is scored and labeled `coverage: partial`; a missing, unsealed, or incompatible findings/coverage contract is a run error. Codex Security is find-only and intentionally excludes deep mode, custom prompts, scan history, patching, publication, and MCP variants from the baseline configuration. Canonical Luna, Terra, and Sol xhigh profiles omit cost and paid-scan wall-time ceilings; model-free preflight remains bounded.
 
-The initial end-to-end validation on 2026-08-30 used Codex Security 0.1.24 (bundled plugin 0.1.79), GPT-5.6 Sol xhigh, and the Goxygen V2 fixture. After pruning git-ignored dependencies from the disposable scan copy, coverage was complete with no deferred or excluded surfaces. The run found 5 of 6 curated vulnerabilities (83% attacker-reachable recall, 50% precision), consumed 18,654,114 logical-plus-output tokens, cost $13.2155, and completed in 797.6 seconds. The configured $50 limit was a fail-safe ceiling; earlier $2 attempts stopped during threat modeling before a sealed result could be produced.
+The initial end-to-end validation on 2026-08-30 used Codex Security 0.1.24 (bundled plugin 0.1.79), GPT-5.6 Sol xhigh, and the Goxygen V2 fixture. After pruning git-ignored dependencies from the disposable scan copy, coverage was complete with no deferred or excluded surfaces. The run found 5 of 6 curated vulnerabilities (83% attacker-reachable recall, 50% precision), consumed 18,654,114 logical-plus-output tokens, cost $13.2155, and completed in 797.6 seconds. That validation used a temporary $50 fail-safe ceiling; canonical production profiles now rely on monitoring without a hard stop.
 
 ---
 
@@ -2098,8 +2100,10 @@ pnpm run benchmark -- --category fix-vulns
 
 # Shorthand scripts for common categories
 pnpm run benchmark:find    # equivalent to --category find-vulns
-pnpm run benchmark:v2      # all VulnBench 2.0 tasks across all configs
+pnpm run benchmark:v2      # canonical V2 matrix: 18 tasks × 11 configs × 1 rep
 pnpm run benchmark:v2:snyk # VulnBench 2.0 tasks with Snyk Code only
+pnpm benchmark -- --config-group default --dry-run
+pnpm benchmark -- --all-configs --dry-run
 pnpm run benchmark:fix     # equivalent to --category fix-vulns
 
 # Filter by a specific task (one row of the matrix), across all configs

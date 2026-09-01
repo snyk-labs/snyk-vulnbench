@@ -40,8 +40,16 @@ export function isPromptTemplateSupported(
 export function resolvePromptTemplate(
   taskPrompt: string,
   promptTemplateId: PromptTemplateId = DEFAULT_PROMPT_TEMPLATE_ID,
+  requiredToolPolicyId?: "snyk-code-once",
 ): string {
   const template = PROMPT_TEMPLATES[promptTemplateId];
-  if (template.mode === "replace") return template.content;
-  return template.content ? `${taskPrompt}\n\n${template.content}` : taskPrompt;
+  const prompt = template.mode === "replace"
+    ? template.content
+    : template.content
+      ? `${taskPrompt}\n\n${template.content}`
+      : taskPrompt;
+  if (requiredToolPolicyId === "snyk-code-once") {
+    return `${prompt}\n\nBefore completing the review, invoke the Snyk MCP \`snyk_code_scan\` tool exactly once against the project root and incorporate its evidence.`;
+  }
+  return prompt;
 }

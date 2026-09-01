@@ -9,7 +9,12 @@ import {
   fixVulnsScore,
 } from "./scorer.js";
 import { printResult, printRunProgress, printConfigHeader, printSummaryTable, saveResults } from "./reporter.js";
-import { loadEvalTasks, loadRunConfigs } from "./evals/loader.js";
+import {
+  loadEvalTasks,
+  loadRunConfigGroups,
+  loadRunConfigs,
+} from "./evals/loader.js";
+import { configSupportsTask } from "./evals/selection.js";
 import { runPreflight } from "./preflight.js";
 import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
@@ -21,7 +26,7 @@ import {
 } from "./isolated-workspace.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
+import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, RunConfigGroup, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_DIR = resolve(__dirname, "../results");
@@ -37,11 +42,13 @@ function parseArgs() {
     category?: EvalCategoryId;
     tasks?: string[];
     configs?: string[];
-    repetitions: number;
+    configGroup?: string;
+    allConfigs: boolean;
+    repetitions?: number;
     dryRun: boolean;
     skipPreflight: boolean;
     traceAgent: boolean;
-  } = { repetitions: 1, dryRun: false, skipPreflight: false, traceAgent: false };
+  } = { allConfigs: false, dryRun: false, skipPreflight: false, traceAgent: false };
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--category" && args[i + 1]) {
@@ -53,6 +60,8 @@ function parseArgs() {
       opts.category = val as EvalCategoryId;
     } else if (args[i] === "--task" && args[i + 1]) opts.tasks = args[++i].split(",").map((s) => s.trim());
     else if (args[i] === "--config" && args[i + 1]) opts.configs = args[++i].split(",").map((s) => s.trim());
+    else if (args[i] === "--config-group" && args[i + 1]) opts.configGroup = args[++i];
+    else if (args[i] === "--all-configs") opts.allConfigs = true;
     else if (args[i] === "--repetitions" && args[i + 1]) {
       const n = parseInt(args[++i], 10);
       if (isNaN(n) || n < 1) {
@@ -64,6 +73,13 @@ function parseArgs() {
     else if (args[i] === "--dry-run") opts.dryRun = true;
     else if (args[i] === "--skip-preflight") opts.skipPreflight = true;
     else if (args[i] === "--trace-agent") opts.traceAgent = true;
+  }
+  const selectors = Number(Boolean(opts.configs))
+    + Number(Boolean(opts.configGroup))
+    + Number(opts.allConfigs);
+  if (selectors > 1) {
+    console.error("--config, --config-group, and --all-configs are mutually exclusive");
+    process.exit(1);
   }
   return opts;
 }
@@ -223,10 +239,33 @@ async function main() {
 
   const EVAL_TASKS = loadEvalTasks();
   const DEFAULT_RUN_CONFIGS = loadRunConfigs();
+  const CONFIG_GROUPS = loadRunConfigGroups(DEFAULT_RUN_CONFIGS);
+  const selectedGroup: RunConfigGroup | undefined = opts.allConfigs
+    ? undefined
+    : CONFIG_GROUPS.find((group) => group.id === (opts.configGroup ?? "default"));
+  if (!opts.allConfigs && !selectedGroup) {
+    console.error(
+      `Unknown config group "${opts.configGroup ?? "default"}". Available: ${CONFIG_GROUPS.map((group) => group.id).join(", ")}`,
+    );
+    process.exit(1);
+  }
+  if (
+    selectedGroup?.category
+    && opts.category
+    && selectedGroup.category !== opts.category
+  ) {
+    console.error(
+      `Config group "${selectedGroup.id}" requires category "${selectedGroup.category}", not "${opts.category}"`,
+    );
+    process.exit(1);
+  }
 
   // Filter tasks
   let tasks = EVAL_TASKS;
-  if (opts.category) tasks = tasks.filter((t) => t.category.id === opts.category);
+  const selectedCategory = opts.category ?? selectedGroup?.category;
+  if (selectedCategory) {
+    tasks = tasks.filter((t) => t.category.id === selectedCategory);
+  }
   if (opts.tasks) {
     const ids = new Set(opts.tasks);
     tasks = tasks.filter((t) => ids.has(t.id));
@@ -237,6 +276,11 @@ async function main() {
   if (opts.configs) {
     const ids = new Set(opts.configs);
     configs = configs.filter((c) => ids.has(c.id));
+  } else if (selectedGroup) {
+    const ids = new Set(selectedGroup.configIds);
+    configs = selectedGroup.configIds.map((id) =>
+      DEFAULT_RUN_CONFIGS.find((config) => config.id === id)!
+    ).filter((config) => ids.has(config.id));
   }
 
   if (tasks.length === 0) {
@@ -248,16 +292,36 @@ async function main() {
     process.exit(1);
   }
 
-  const { repetitions } = opts;
-  const totalRuns = tasks.length * configs.length * repetitions;
+  const compatibleTasks = new Map(
+    configs.map((config) => [
+      config.id,
+      tasks.filter((task) => configSupportsTask(config, task)),
+    ]),
+  );
+  configs = configs.filter((config) =>
+    (compatibleTasks.get(config.id)?.length ?? 0) > 0
+  );
+  if (configs.length === 0) {
+    console.error("No compatible task/config pairs remain after category restrictions.");
+    process.exit(1);
+  }
+  const repetitions = opts.repetitions
+    ?? selectedGroup?.defaultRepetitions
+    ?? 1;
+  const totalRuns = configs.reduce(
+    (total, config) => total + (compatibleTasks.get(config.id)?.length ?? 0),
+    0,
+  ) * repetitions;
   const repSuffix = repetitions > 1 ? ` × ${repetitions} rep(s)` : "";
 
-  console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s) × ${configs.length} config(s)${repSuffix} = ${totalRuns} run(s)`)}`);
+  console.log(`\n${styleText("bold", `Benchmark: ${tasks.length} task(s), ${configs.length} config(s)${repSuffix} = ${totalRuns} compatible run(s)`)}`);
   for (const task of tasks) {
+    const taskConfigs = configs.filter((config) => configSupportsTask(config, task));
+    if (taskConfigs.length === 0) continue;
     console.log(`  ${styleText("bold", task.id)}  ${styleText("dim", `[${task.category.id}]`)}`);
-    for (let i = 0; i < configs.length; i++) {
-      const c = configs[i];
-      const connector = i === configs.length - 1 ? "└─" : "├─";
+    for (let i = 0; i < taskConfigs.length; i++) {
+      const c = taskConfigs[i];
+      const connector = i === taskConfigs.length - 1 ? "└─" : "├─";
       const label = getRunner(c).describe(c);
       console.log(`  ${styleText("dim", connector)} ${c.id}: ${label}`);
     }
@@ -279,7 +343,7 @@ async function main() {
     const config = configs[ci];
     printConfigHeader(config.name, ci + 1, configs.length);
 
-    for (const task of tasks) {
+    for (const task of compatibleTasks.get(config.id) ?? []) {
       for (let rep = 0; rep < repetitions; rep++) {
         runIndex++;
         const repLabel = repetitions > 1 ? ` (rep ${rep + 1}/${repetitions})` : "";

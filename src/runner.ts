@@ -64,6 +64,19 @@ export function aggregateSdkModelUsage(modelUsage: unknown): SdkUsageTotals | nu
   return foundUsage ? totals : null;
 }
 
+export function assertRequiredToolPolicy(
+  config: ModelRunConfig,
+  telemetry: McpTelemetry,
+): void {
+  if (config.requiredToolPolicyId !== "snyk-code-once") return;
+  const count = telemetry.toolStats.mcp__Snyk__snyk_code_scan?.count ?? 0;
+  if (count !== 1) {
+    throw new Error(
+      `Required Snyk Code MCP invocation count was ${count}; expected exactly 1`,
+    );
+  }
+}
+
 function traceSafeValue(value: unknown): unknown {
   const seen = new WeakSet<object>();
   return JSON.parse(JSON.stringify(value, (key, nestedValue) => {
@@ -238,7 +251,7 @@ export async function runTask(
   const lastUsagePerSession = new Map<string | null, string>();
 
   try {
-    if (config.effort === "minimal" || config.effort === "xhigh") {
+    if (config.effort === "minimal") {
       throw new Error(
         `Claude Code runner does not support effort "${config.effort}"`,
       );
@@ -249,7 +262,11 @@ export async function runTask(
     const thinking = config.thinking ?? { type: "adaptive" as const };
     const benchmarkEnv = process.env;
     const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
-    const prompt = resolvePromptTemplate(task.prompt, config.promptTemplateId);
+    const prompt = resolvePromptTemplate(
+      task.prompt,
+      config.promptTemplateId,
+      config.requiredToolPolicyId,
+    );
     const requiresStructuredFindings =
       config.promptTemplateId === "security-review"
       && task.category.id !== "fix-vulns";
@@ -423,6 +440,7 @@ export async function runTask(
         'Claude Code completed "/security-review" without structured findings',
       );
     }
+    assertRequiredToolPolicy(config, mcpTelemetry);
     if (findings && !finalText) {
       finalText = serializeFindingsToFinalText(findings);
     }

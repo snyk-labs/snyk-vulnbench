@@ -99,6 +99,23 @@ test("Codex Security scan arguments pin standard report-only behavior", () => {
   assert.ok(!args.includes("--scan-prompt-file"));
 });
 
+test("Codex Security production profiles omit cost and time stops", () => {
+  const args = buildCodexSecurityScanArgs(
+    {
+      type: "codex-security",
+      id: "production",
+      name: "Production",
+      model: "gpt-5.6-sol",
+      effort: "xhigh",
+    },
+    "/tmp/project",
+    "/tmp/output",
+    "python3",
+  );
+
+  assert.ok(!args.includes("--max-cost"));
+});
+
 test("pinned Codex Security executable reports the expected version", () => {
   const version = execFileSync(codexSecurityExecutable(), ["--version"], {
     encoding: "utf8",

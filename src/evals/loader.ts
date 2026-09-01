@@ -21,6 +21,7 @@ import type {
   GroundTruthKind,
   ModelRunConfig,
   RunConfig,
+  RunConfigGroup,
   Severity,
   Vulnerability,
   VulnType,
@@ -32,6 +33,7 @@ const FIXTURES_DIR = resolve(PROJECT_ROOT, "fixtures");
 const EVALS_DIR = resolve(PROJECT_ROOT, "evals");
 const TASKS_DIR = resolve(EVALS_DIR, "tasks");
 const RUN_CONFIGS_FILE = resolve(EVALS_DIR, "run-configs.json");
+const RUN_CONFIG_GROUPS_FILE = resolve(EVALS_DIR, "run-config-groups.json");
 
 /** Shape of a task JSON file in evals/tasks/ */
 interface TaskJson {
@@ -629,9 +631,79 @@ export function loadRunConfigs(): RunConfig[] {
   });
 }
 
+export function loadRunConfigGroups(
+  configs: RunConfig[] = loadRunConfigs(),
+  file: string = RUN_CONFIG_GROUPS_FILE,
+): RunConfigGroup[] {
+  let raw: Array<Record<string, unknown>>;
+  try {
+    raw = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (err) {
+    throw new Error(`Failed to read run config groups at ${file}: ${err}`);
+  }
+  if (!Array.isArray(raw)) {
+    throw new Error(`${file} must be a JSON array of RunConfigGroup objects`);
+  }
+
+  const knownConfigs = new Set(configs.map((config) => config.id));
+  const knownCategories = new Set(
+    Object.values(EVAL_CATEGORIES).map((category) => category.id),
+  );
+  const seen = new Set<string>();
+  return raw.map((entry) => {
+    if (typeof entry.id !== "string" || typeof entry.name !== "string") {
+      throw new Error(`Run config group missing required id/name: ${JSON.stringify(entry)}`);
+    }
+    if (seen.has(entry.id)) {
+      throw new Error(`Duplicate run config group id "${entry.id}"`);
+    }
+    seen.add(entry.id);
+    if (
+      !Array.isArray(entry.configIds)
+      || entry.configIds.length === 0
+      || !entry.configIds.every((id) => typeof id === "string")
+    ) {
+      throw new Error(`Run config group "${entry.id}" requires non-empty configIds`);
+    }
+    const duplicateIds = entry.configIds.filter(
+      (id, index, ids) => ids.indexOf(id) !== index,
+    );
+    if (duplicateIds.length > 0) {
+      throw new Error(
+        `Run config group "${entry.id}" contains duplicate config id "${duplicateIds[0]}"`,
+      );
+    }
+    const unknown = entry.configIds.find((id) => !knownConfigs.has(id));
+    if (unknown) {
+      throw new Error(`Run config group "${entry.id}" references unknown config "${unknown}"`);
+    }
+    if (
+      entry.category !== undefined
+      && (
+        typeof entry.category !== "string"
+        || !knownCategories.has(entry.category as EvalCategoryId)
+      )
+    ) {
+      throw new Error(`Run config group "${entry.id}" has unknown category "${entry.category}"`);
+    }
+    if (
+      entry.defaultRepetitions !== undefined
+      && (
+        typeof entry.defaultRepetitions !== "number"
+        || !Number.isInteger(entry.defaultRepetitions)
+        || entry.defaultRepetitions < 1
+      )
+    ) {
+      throw new Error(`Run config group "${entry.id}" defaultRepetitions must be positive`);
+    }
+    return entry as unknown as RunConfigGroup;
+  });
+}
+
 export function validateCodexSecurityRunConfig(
   entry: Record<string, unknown>,
 ): CodexSecurityRunConfig {
+  validateSupportedCategories(entry);
   if (typeof entry.model !== "string" || entry.model.length === 0) {
     throw new Error(`Codex Security config "${entry.id}" missing required field: model`);
   }
@@ -674,6 +746,7 @@ export function validateCodexSecurityRunConfig(
 export function validateCommandRunConfig(
   entry: Record<string, unknown>,
 ): CommandRunConfig {
+  validateSupportedCategories(entry);
   if (entry.promptTemplateId !== undefined) {
     throw new Error(`Command config "${entry.id}" does not support prompt templates`);
   }
@@ -691,13 +764,20 @@ export function validateCommandRunConfig(
 export function validateDeepSecRunConfig(
   entry: Record<string, unknown>,
 ): DeepSecRunConfig {
-  if (entry.agent !== "codex") {
+  validateSupportedCategories(entry);
+  if (entry.agent !== "codex" && entry.agent !== "claude") {
     throw new Error(
-      `DeepSec config "${entry.id}" currently requires agent "codex"`,
+      `DeepSec config "${entry.id}" requires agent "codex" or "claude"`,
     );
   }
   if (typeof entry.model !== "string" || entry.model.length === 0) {
     throw new Error(`DeepSec config "${entry.id}" missing required field: model`);
+  }
+  if (entry.agent === "claude" && !entry.model.startsWith("claude-")) {
+    throw new Error(`DeepSec config "${entry.id}" Claude agent requires a Claude model`);
+  }
+  if (entry.agent === "codex" && entry.model.startsWith("claude-")) {
+    throw new Error(`DeepSec config "${entry.id}" Codex agent cannot use a Claude model`);
   }
   if (
     entry.thinkingLevel !== "minimal"
@@ -720,6 +800,7 @@ export function validateDeepSecRunConfig(
 }
 
 export function validateModelRunConfig(entry: Record<string, unknown>): ModelRunConfig {
+  validateSupportedCategories(entry);
   if (!entry.model) {
     throw new Error(`Model config "${entry.id}" missing required field: model`);
   }
@@ -729,6 +810,24 @@ export function validateModelRunConfig(entry: Record<string, unknown>): ModelRun
     && entry.runner !== "codex-cli"
   ) {
     throw new Error(`Model config "${entry.id}" has unknown runner "${entry.runner}"`);
+  }
+  const validEfforts = new Set([
+    "default",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+  ]);
+  if (entry.effort !== undefined && !validEfforts.has(String(entry.effort))) {
+    throw new Error(`Model config "${entry.id}" has invalid effort "${entry.effort}"`);
+  }
+  if (
+    (entry.runner === undefined || entry.runner === "claude-code")
+    && entry.effort === "minimal"
+  ) {
+    throw new Error(`Model config "${entry.id}" cannot use minimal effort with Claude Code`);
   }
   if (entry.promptTemplateId !== undefined && !isPromptTemplateId(entry.promptTemplateId)) {
     throw new Error(`Model config "${entry.id}" has unknown promptTemplateId "${entry.promptTemplateId}"`);
@@ -744,7 +843,40 @@ export function validateModelRunConfig(entry: Record<string, unknown>): ModelRun
       `Model config "${entry.id}" cannot use promptTemplateId "${entry.promptTemplateId}" with runner "${entry.runner ?? "claude-code"}"`,
     );
   }
+  if (
+    entry.requiredToolPolicyId !== undefined
+    && entry.requiredToolPolicyId !== "snyk-code-once"
+  ) {
+    throw new Error(
+      `Model config "${entry.id}" has unknown requiredToolPolicyId "${entry.requiredToolPolicyId}"`,
+    );
+  }
+  if (entry.requiredToolPolicyId === "snyk-code-once") {
+    const mcpServers = entry.mcpServers;
+    const hasSnyk = typeof mcpServers === "object"
+      && mcpServers !== null
+      && Object.keys(mcpServers).some((name) => name.toLowerCase() === "snyk");
+    if (!hasSnyk) {
+      throw new Error(
+        `Model config "${entry.id}" requires a Snyk MCP server for snyk-code-once`,
+      );
+    }
+  }
   return entry as unknown as ModelRunConfig;
+}
+
+function validateSupportedCategories(entry: Record<string, unknown>): void {
+  if (entry.supportedCategories === undefined) return;
+  const valid = new Set(Object.values(EVAL_CATEGORIES).map((category) => category.id));
+  if (
+    !Array.isArray(entry.supportedCategories)
+    || entry.supportedCategories.length === 0
+    || !entry.supportedCategories.every((category) =>
+      typeof category === "string" && valid.has(category as EvalCategoryId)
+    )
+  ) {
+    throw new Error(`Run config "${entry.id}" has invalid supportedCategories`);
+  }
 }
 
 function validateUniqueRunConfigIds(configs: Array<Record<string, unknown>>): void {

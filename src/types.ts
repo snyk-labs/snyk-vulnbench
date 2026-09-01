@@ -321,6 +321,7 @@ export type ThinkingConfig =
   | { type: "disabled" };
 
 export type AgentRunnerId = "claude-code" | "codex-cli";
+export type RequiredToolPolicyId = "snyk-code-once";
 
 /** Standard coding-agent run using a native agent harness. */
 export interface ModelRunConfig {
@@ -336,10 +337,13 @@ export interface ModelRunConfig {
   thinking?: ThinkingConfig;
   /** User-prompt augmentation selected from the prompt template registry. */
   promptTemplateId?: PromptTemplateId;
+  /** Tool-use requirement enforced after the run. */
+  requiredToolPolicyId?: RequiredToolPolicyId;
   mcpServers?: Record<string, MCPServerConfig>;
   maxTurns?: number;
   /** Parent-process wall-clock deadline for CLI-backed agents. */
   timeoutMs?: number;
+  supportedCategories?: EvalCategoryId[];
 }
 
 /**
@@ -361,13 +365,14 @@ export interface CommandRunConfig {
   parser: string;
   /** Hard wall-clock deadline for the command. Defaults to ten minutes. */
   timeoutMs?: number;
+  supportedCategories?: EvalCategoryId[];
 }
 
 export interface DeepSecRunConfig {
   type: "deepsec";
   id: string;
   name: string;
-  agent: "codex";
+  agent: "codex" | "claude";
   model: string;
   thinkingLevel: "minimal" | "low" | "medium" | "high" | "xhigh";
   maxTurns?: number;
@@ -375,6 +380,7 @@ export interface DeepSecRunConfig {
   concurrency?: number;
   limit?: number;
   timeoutMs?: number;
+  supportedCategories?: EvalCategoryId[];
 }
 
 export interface CodexSecurityRunConfig {
@@ -387,6 +393,7 @@ export interface CodexSecurityRunConfig {
   auth?: "api-key";
   maxCostUsd?: number;
   timeoutMs?: number;
+  supportedCategories?: EvalCategoryId[];
 }
 
 export type RunConfig =
@@ -394,6 +401,14 @@ export type RunConfig =
   | CommandRunConfig
   | DeepSecRunConfig
   | CodexSecurityRunConfig;
+
+export interface RunConfigGroup {
+  id: string;
+  name: string;
+  configIds: string[];
+  category?: EvalCategoryId;
+  defaultRepetitions?: number;
+}
 
 export interface RunnerCapabilities {
   findVulns: boolean;

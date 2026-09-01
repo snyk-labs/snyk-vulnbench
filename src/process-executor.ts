@@ -9,7 +9,7 @@ export interface ProcessExecutionOptions {
   cwd: string;
   env: NodeJS.ProcessEnv;
   stdin?: string;
-  timeoutMs: number;
+  timeoutMs?: number;
   maxOutputBytes?: number;
   terminationGraceMs?: number;
   onStdoutChunk?: (chunk: string, receivedAt: number) => void;
@@ -94,18 +94,20 @@ export function executeProcess(
     child.stdout.on("data", (chunk: Buffer) => capture("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer) => capture("stderr", chunk));
 
-    const timeout = setTimeout(() => {
-      terminalError = new ProcessExecutionError(
-        `Process timed out after ${options.timeoutMs}ms`,
-        stdout,
-        stderr,
-      );
-      terminate();
-    }, options.timeoutMs);
-    timeout.unref();
+    const timeout = options.timeoutMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          terminalError = new ProcessExecutionError(
+            `Process timed out after ${options.timeoutMs}ms`,
+            stdout,
+            stderr,
+          );
+          terminate();
+        }, options.timeoutMs);
+    timeout?.unref();
 
     child.once("error", (error) => {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       reject(
         new ProcessExecutionError(
@@ -117,7 +119,7 @@ export function executeProcess(
     });
 
     child.once("exit", (exitCode, signal) => {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       if (terminalError) {
         reject(terminalError);

@@ -31,6 +31,18 @@ test("security review template replaces the task prompt", () => {
   );
 });
 
+test("security review can compose a required Snyk MCP policy", () => {
+  const prompt = resolvePromptTemplate(
+    "ignored task prompt",
+    "security-review",
+    "snyk-code-once",
+  );
+
+  assert.match(prompt, /^\/security-review/);
+  assert.match(prompt, /invoke the Snyk MCP `snyk_code_scan` tool exactly once/);
+  assert.doesNotMatch(prompt, /ignored task prompt/);
+});
+
 test("prompt template IDs are validated against the registry", () => {
   assert.equal(isPromptTemplateId("default"), true);
   assert.equal(isPromptTemplateId("snyk-mcp"), true);
@@ -77,5 +89,25 @@ test("command configs reject prompt templates", () => {
       promptTemplateId: "security-review",
     }),
     /does not support prompt templates/,
+  );
+});
+
+test("Claude model configs accept xhigh and validate required tool policies", () => {
+  assert.equal(validateModelRunConfig({
+    id: "claude-xhigh",
+    name: "Claude XHigh",
+    model: "claude-opus-5",
+    effort: "xhigh",
+    promptTemplateId: "security-review",
+  }).effort, "xhigh");
+
+  assert.throws(
+    () => validateModelRunConfig({
+      id: "missing-snyk",
+      name: "Missing Snyk",
+      model: "claude-opus-5",
+      requiredToolPolicyId: "snyk-code-once",
+    }),
+    /requires a Snyk MCP server/,
   );
 });
