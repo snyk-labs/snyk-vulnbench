@@ -117,12 +117,12 @@ flowchart TD
         U --> Y["Build EvalResult\n(score + metrics + details)"]
         X --> Y
         Y --> Z["Print to console\n(table with score,\ntokens, tool stats)"]
-        Z --> AA["Append to JSONL file\nin results/"]
+        Z --> AA["Atomically checkpoint run,\nprogress, aggregates,\nand compatible JSONL"]
     end
 
     AA --> AB{More runs?}
     AB -->|yes| E
-    AB -->|no| AC["Print summary table\nfor all runs"]
+    AB -->|no| AC["Finalize execution bundle\nand print summary"]
     AC --> AD([END])
 
     style SETUP fill:#e8f4f8,stroke:#2980b9
@@ -425,7 +425,7 @@ Example comparisons enabled by this design:
 
 **Snyk, DeepSec, and Codex Security are find-only.** Config-level category compatibility removes them from fix-vulns matrices before preflight. Claude security-review profiles are likewise V2-only even though the underlying Claude adapter can edit files.
 
-Named groups in `evals/run-config-groups.json` control default participation. `default` excludes opinionated Codex Security and DeepSec harnesses; `vulnbench-v2` selects the canonical 11-config V2 matrix. Use `--all-configs` only when the full registry is intentional.
+Named groups in `evals/run-config-groups.json` control default participation. `default` excludes opinionated Codex Security and DeepSec harnesses; `vulnbench-v2` selects the canonical 9-config V2 matrix. Use `--all-configs` only when the full registry is intentional.
 
 **Adding a model config with an MCP server:**
 ```json
@@ -736,7 +736,15 @@ The reporter handles all output. It has five functions:
 
 **`printSummaryTable(results, taskAggregates, configAggregates)`** — prints a summary after all runs finish. Every score column names its `primaryMetric`. When repetitions > 1, the per-fixture table shows mean primary scores and wall time with `±SD` error bars. Comparable per-config headlines are macro-averaged; mixed V1/V2/fix selections suppress the combined quality headline and show generation-specific rows instead. See [Sample Output — Summary Table](#sample-output--summary-table).
 
-**`saveResults(results, dir, taskAggregates, configAggregates)`** — writes results to `results/benchmark-<timestamp>.jsonl`. Each line is a JSON object tagged with a `_type` discriminator:
+Every invocation creates a versioned execution bundle under
+`results/executions/<date>-<codename>-<short-id>/`. Before paid work begins,
+`manifest.json` freezes the ordered task/config/repetition plan and its input
+fingerprints. Before each run, its per-run JSON file is marked `running`; after
+the attempt, that file and the reconstructible `progress.json` are atomically
+updated. `aggregates.json` and the bundle's compatible `benchmark.jsonl` are
+then regenerated from successful run records.
+
+The compatibility JSONL uses the existing `_type` discriminator:
 - `"run"` — raw `EvalResult` (one per execution)
 - `"task-aggregate"` — `AggregatedTaskResult` (one per task+config pair, mean plus score/runtime standard deviation across repetitions)
 - `"config-aggregate"` — `AggregatedConfigResult` (one per config, with generation-specific headlines; mixed primary metrics have null top-level quality fields)
@@ -747,6 +755,50 @@ JSONL (JSON Lines) format means one complete JSON object per line, making it eas
 - Query with `jq` from the command line — filter by `_type` to select the aggregation level
 
 See [Sample Output — JSONL Record](#sample-output--jsonl-record) for the full structure of each row type.
+
+Infrastructure failures are retained as attempt records with safe diagnostics
+and any observed token/cost telemetry, but they are not converted into
+scientific zero scores. Partial aggregate snapshots carry execution coverage
+metadata and must not be presented as complete benchmark results.
+
+---
+
+### Resuming and controlling execution cost
+
+Use the execution ID printed when a run starts:
+
+```bash
+pnpm tsx src/index.ts --status <execution-id>
+pnpm tsx src/index.ts --resume <execution-id>
+pnpm tsx src/index.ts --resume <execution-id> --retry-failed
+pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
+```
+
+Resume reloads the immutable manifest and refuses changed harness, config, task,
+fixture, or ground-truth fingerprints. Successful run keys are never repeated.
+A stale `running` attempt after a crash becomes `interrupted-uncertain`; retrying
+it is explicit because the provider may have charged the remote call before the
+local result was committed.
+
+Authentication, quota, gateway, timeout, scoring, and unknown failures pause
+new paid work by default. `--continue-on-error` is an explicit opt-in. Optional
+guardrails are frozen into the manifest:
+
+```bash
+pnpm tsx src/index.ts --config-group vulnbench-v2 \
+  --max-execution-cost-usd 100 \
+  --max-execution-tokens 50000000 \
+  --max-run-time-ms 3600000
+```
+
+Cost and token gates use runner-reported telemetry and can overshoot by one
+active run. The status output reports attempts whose cost is unavailable.
+The first Ctrl+C pauses after the current run; a second Ctrl+C or SIGTERM
+cancels the active runner and preserves the pre-run marker for reconciliation.
+
+Use `pnpm results:flatten -- --input <execution-dir>` for a standalone JSONL
+export and `pnpm results:rescore -- --input <execution-dir>` to rescore without
+mutating the original run ledger.
 
 ---
 
@@ -879,7 +931,9 @@ FINDINGS_JSON:
 
 **Step 6 — Report (`reporter.ts`)**
 - `printResult()` writes the detailed block to console
-- `saveResults()` appends the full `EvalResult` JSON to `results/benchmark-<timestamp>.jsonl`
+- The execution store atomically writes the per-run JSON record, refreshes
+  `progress.json` and `aggregates.json`, and regenerates the bundle's
+  `benchmark.jsonl` compatibility snapshot before the next paid run starts
 
 ---
 
@@ -1960,37 +2014,37 @@ V2 run rows additionally include rich scorer evidence under `details.matchDiagno
 The JSONL file can be queried directly:
 ```bash
 # Show all raw run scores
-jq 'select(._type == "run") | .score' results/benchmark-*.jsonl
+jq 'select(._type == "run") | .score' results/executions/*/benchmark.jsonl
 
 # Get headline scores, runtimes, and error bars per config (for charts)
-jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs, recall: .recall}' results/benchmark-*.jsonl
+jq 'select(._type == "config-aggregate") | {config: .runConfigId, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs, recall: .recall}' results/executions/*/benchmark.jsonl
 
 # Get V2-only headline metrics directly from each config aggregate
-jq 'select(._type == "config-aggregate") | {config: .runConfigId, v2: .byGroundTruth["attacker-reachable"]}' results/benchmark-*.jsonl
+jq 'select(._type == "config-aggregate") | {config: .runConfigId, v2: .byGroundTruth["attacker-reachable"]}' results/executions/*/benchmark.jsonl
 
 # Get per-fixture scores, runtimes, and run-to-run spread
-jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, groundTruth: .groundTruth, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs}' results/benchmark-*.jsonl
+jq 'select(._type == "task-aggregate") | {task: .taskId, config: .runConfigId, groundTruth: .groundTruth, score: .score, scoreStdDev: .scoreStdDev, timeMs: .sessionDurationMs, timeStdDevMs: .sessionDurationStdDevMs}' results/executions/*/benchmark.jsonl
 
 # Compare model vs SAST scores for the same task
-jq 'select(._type == "run" and .taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .taskId == "js-project-tigerteam-find-vulns") | {config: .runConfigId, type: .runConfigType, score: .score}' results/executions/*/benchmark.jsonl
 
 # Only model runs (exclude SAST tools)
-jq 'select(._type == "run" and .runConfigType == "model")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model")' results/executions/*/benchmark.jsonl
 
 # Only SAST tool runs
-jq 'select(._type == "run" and .runConfigType == "command")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "command")' results/executions/*/benchmark.jsonl
 
 # Compare logical input tokens and cost across model configs
-jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, task: .taskId, tokens: .metrics.totalLogicalInputTokens, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, task: .taskId, tokens: .metrics.totalLogicalInputTokens, cost: .metrics.totalCostUsd}' results/executions/*/benchmark.jsonl
 
 # Find the most-used tool across all model runs
-jq 'select(._type == "run" and .runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | .metrics.toolStats | to_entries | max_by(.value.count) | .key' results/executions/*/benchmark.jsonl
 
 # Compare scores across effort levels for the same model
-jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, effort: .effort, thinking: .thinking.type, score: .score, cost: .metrics.totalCostUsd}' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .runConfigType == "model") | {config: .runConfigId, effort: .effort, thinking: .thinking.type, score: .score, cost: .metrics.totalCostUsd}' results/executions/*/benchmark.jsonl
 
 # Only high-effort runs
-jq 'select(._type == "run" and .effort == "high")' results/benchmark-*.jsonl
+jq 'select(._type == "run" and .effort == "high")' results/executions/*/benchmark.jsonl
 ```
 
 ---
@@ -2108,7 +2162,7 @@ pnpm run benchmark -- --category fix-vulns
 
 # Shorthand scripts for common categories
 pnpm run benchmark:find    # equivalent to --category find-vulns
-pnpm run benchmark:v2      # canonical V2 matrix: 20 tasks × 11 configs × 1 rep
+pnpm run benchmark:v2      # canonical V2 matrix: 20 tasks × 9 configs × 1 rep
 pnpm run benchmark:v2:snyk # VulnBench 2.0 tasks with Snyk Code only
 pnpm benchmark -- --config-group default --dry-run
 pnpm benchmark -- --all-configs --dry-run

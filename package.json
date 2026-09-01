@@ -15,6 +15,8 @@
     "benchmark:v2:codex-security": "tsx src/index.ts --category attacker-reachable-find-vulns --config codex-security-sol-xhigh --repetitions 1",
     "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
     "smoke:litellm": "tsx scripts/smoke-litellm.ts",
+    "results:flatten": "tsx src/flatten-results.ts",
+    "results:rescore": "tsx src/rescore-results.ts",
     "test": "tsx --test tests/*.test.ts",
     "report:serve": "serve",
     "//report:serve example": "pnpm report:serve public/2026-05-14-wpq2k",

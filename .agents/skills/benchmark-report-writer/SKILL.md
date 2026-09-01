@@ -45,7 +45,10 @@ lookup table where the fixture name helps the reader map back to the data.
 
 ## Inputs
 
-- **Required**: one or more result files (JSONL with one record per run, JSON, or CSV) with per-run scores and metrics.
+- **Required**: one or more complete execution bundles or result files (JSONL
+  with one record per run, JSON, or CSV) with per-run scores and metrics. For
+  bundles, inspect `progress.json` and reject or explicitly qualify incomplete
+  coverage before using `benchmark.jsonl`.
 - **Recommended**: a benchmark guide document (e.g. `docs/benchmark.md`) describing goals, methodology, and task design. If it's missing, ask the user for the missing context rather than inventing it.
 - **Optional**: chart-generator artifacts, either as a generated report directory or direct paths to `article-visuals.md` and `chart-manifest.json`. Treat `article-visuals.md` as the preferred visual catalog and `chart-manifest.json` as validation/detail metadata. Treat `index.html` as a human preview, not the source of chart truth.
 - **Optional**: an existing draft or a prior report to build on, and a target style ("Anthropic announcement", "FrontierSWE deep-dive", "Cursor blog", etc.).
@@ -148,7 +151,9 @@ Done when: the file is written and the user has a short list of pre-publication 
 User says: "We just finished a benchmark run — can you write this up as a blog post?"
 
 Actions:
-1. Find the most recent `results/benchmark-*.jsonl` file and read it.
+1. Find the newest `results/executions/*/manifest.json`, verify its
+   `progress.json` is complete, and read its `benchmark.jsonl`; fall back to the
+   most recent legacy `results/benchmark-*.jsonl`.
 2. Locate `docs/benchmark.md` (if present) and skim for methodology.
 3. Ask the target audience (default: public, technical).
 4. Check whether a chart-generator directory or `article-visuals.md` was provided; if not, keep the draft table-led and note that visuals can be generated separately.

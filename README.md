@@ -86,7 +86,23 @@ pnpm run benchmark
 pnpm run benchmark:v2:snyk
 ```
 
-Results are written to `results/benchmark-<timestamp>.jsonl`. See the [benchmark guide](docs/benchmark.md) for the pipeline and scoring model, and the [management guide](docs/benchmark-management.md) for adding tasks, fixtures, and configurations.
+Each invocation creates `results/executions/<date>-<codename>-<id>/`. Completed
+runs are checkpointed individually, while `progress.json`, `aggregates.json`, and
+the compatible `benchmark.jsonl` snapshot are refreshed after every run.
+
+```bash
+# Inspect or resume without repeating completed work
+pnpm tsx src/index.ts --status <execution-id>
+pnpm tsx src/index.ts --resume <execution-id>
+
+# Explicitly retry an interrupted or failed attempt
+pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
+pnpm tsx src/index.ts --resume <execution-id> --retry-failed
+```
+
+See the [benchmark guide](docs/benchmark.md) for persistence, resumability, and
+scoring, and the [management guide](docs/benchmark-management.md) for adding
+tasks, fixtures, and configurations.
 
 ### MCP-backed model runs
 
@@ -98,7 +114,7 @@ Model configs can expose security tools through `mcpServers`. For Snyk MCP runs,
 src/        Harness runner, scoring, reporting, and CLI
 evals/      Task descriptors and model/tool run configurations
 fixtures/   Inspectable vulnerable projects and protected answer keys
-results/    JSONL benchmark output
+results/    Resumable execution bundles and compatible JSONL snapshots
 docs/       Benchmark and fixture-management documentation
 ```
 

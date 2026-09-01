@@ -129,7 +129,7 @@ Run `claude auth status` to see which is active. Either works; no special setup 
 
 Canonical V2 Claude Code, Codex Security, and DeepSec profiles route through LiteLLM using `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` from the ignored repository-root `.env`; `ENABLE_TOOL_SEARCH=true` keeps Claude tool search available through the gateway. Claude-shaped clients use the Anthropic Messages route and Codex-shaped clients use the derived `<origin>/v1` Responses route. Runner environments strip direct provider keys, stored Claude OAuth fallback, aliases, and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
 
-Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` is the canonical 20-task × 11-config × 1-repetition matrix; `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
+Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` is the canonical 20-task × 9-config × 1-repetition matrix; `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
 
 ## MCP Configurations and Credentials
 
@@ -144,7 +144,7 @@ The harness runs the benchmark in an isolated worker. For every key declared in 
 ```bash
 pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
-pnpm run benchmark:v2                   # canonical V2 matrix (220 runs, 1 repetition)
+pnpm run benchmark:v2                   # canonical V2 matrix (180 runs, 1 repetition)
 pnpm run benchmark:v2:snyk              # V2 tasks with Snyk Code only
 pnpm benchmark -- --category attacker-reachable-find-vulns --config codex-security-sol-xhigh
 pnpm benchmark -- --config-group default --dry-run
@@ -159,7 +159,11 @@ pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task
 pnpm benchmark -- --repetitions 3       # run each (task, config) pair 3 times
 ```
 
-Results are saved to `results/benchmark-<timestamp>.jsonl`.
+Results are checkpointed under `results/executions/<date>-<codename>-<id>/`.
+Use `--status <execution-id>` to inspect progress and `--resume <execution-id>`
+to continue pending work without rerunning successful items. Each bundle
+contains per-run JSON, `progress.json`, `aggregates.json`, and a compatible
+`benchmark.jsonl`.
 
 Generated HTML benchmark reports are saved under `public/<report-id>/`. To preview one locally, serve that directory with:
 

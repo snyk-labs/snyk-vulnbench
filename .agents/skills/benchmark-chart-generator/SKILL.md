@@ -25,8 +25,8 @@ metadata:
 
 ## Requirements
 
-Requires read access to benchmark JSONL files in `results/` and write access to
-`public/`. The HTML/JSON/Markdown outputs are static files that can be opened
+Requires read access to benchmark execution bundles or JSONL files in
+`results/` and write access to `public/`. The HTML/JSON/Markdown outputs are static files that can be opened
 directly. PDF chart export requires `jsdom` to render the generated HTML and
 `rsvg-convert` (`librsvg2-bin` on Debian) to convert rendered SVG charts to PDF.
 
@@ -85,8 +85,17 @@ when a custom chart page is clearer.
 
 Identify which JSONL file(s) to use:
 - If the user provided explicit file paths, use those.
-- If the user said "latest" or didn't specify, find the most recent file in `results/` by filename timestamp.
+- If the user provided an execution directory, read its `manifest.json`,
+  `progress.json`, and nested `benchmark.jsonl`.
+- If the user said "latest" or didn't specify, find the newest
+  `results/executions/*/manifest.json` by `createdAt`; fall back to legacy flat
+  `results/benchmark-*.jsonl`.
 - If multiple files are provided, read all of them and concatenate their rows.
+
+Before charting an execution bundle, require `progress.status === "completed"`
+and zero failed/interrupted/pending runs for an unqualified report. If coverage
+is partial, stop and ask whether the user wants a clearly labeled partial
+analysis; never silently chart partial aggregates as final results.
 
 Read each JSONL file. Each line is one complete JSON object. Lines have a `_type`
 field that determines what kind of row they are:
@@ -96,6 +105,9 @@ field that determines what kind of row they are:
 - `"config-aggregate"` -- generation-specific headlines under `byGroundTruth`; top-level quality fields are null when unlike primary metrics are mixed
 
 Lines without a `_type` field are legacy `"run"` rows (backward compatible).
+Current bundle snapshots also carry `executionPartial` and
+`executionCoverage`; reject or prominently qualify rows where
+`executionPartial === true`.
 
 ### Step 2: Parse, filter, and validate
 

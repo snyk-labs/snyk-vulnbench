@@ -254,7 +254,7 @@ export function reconcileInterruptedRuns(
 
 export function checkpointExecution(
   executionDir: string,
-  resultsDir = resolve(executionDir, "../.."),
+  _resultsDir = resolve(executionDir, "../.."),
   generatedAt = new Date().toISOString(),
 ): ExecutionCheckpoint {
   const manifest = readExecutionManifest(executionDir);
@@ -289,15 +289,7 @@ export function checkpointExecution(
     { runs: results, taskAggregates, configAggregates },
     snapshot,
   );
-  const compatibilityJsonlPath = join(
-    resultsDir,
-    `benchmark-${manifest.executionId}.jsonl`,
-  );
-  writeBenchmarkJsonl(
-    compatibilityJsonlPath,
-    { runs: results, taskAggregates, configAggregates },
-    snapshot,
-  );
+  const compatibilityJsonlPath = join(executionDir, "benchmark.jsonl");
   return {
     manifest,
     executionDir,

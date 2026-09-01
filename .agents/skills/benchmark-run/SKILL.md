@@ -78,6 +78,11 @@ Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" 
 - "skip preflight" → add `--skip-preflight`
 - "use config group X" → add `--config-group X`
 - "3 times", "repeat 3", "3 reps", "3 repetitions" → add `--repetitions 3`
+- "status of run X" → use `--status X` by itself
+- "resume run X" → use `--resume X`; never repeat task/config selectors
+- "retry failed/interrupted run X" → add `--retry-failed` or
+  `--retry-interrupted` only after explicit user confirmation because the prior
+  attempt may already have incurred provider cost
 
 **Repetitions resolution rules:**
 
@@ -112,7 +117,14 @@ pnpm tsx src/index.ts [resolved flags]
 
 Use `pnpm tsx src/index.ts` directly rather than `pnpm run benchmark` so you can pass arbitrary flags without the `--` separator.
 
-For long benchmark runs (model configs take minutes per task and security harnesses can take hours), run the command in the background so you can report progress. Canonical Codex Security and DeepSec V2 profiles intentionally have no paid-scan wall-time or cost stop; monitor their emitted cost/progress and do not kill a healthy run merely because it is long. If preflight fails, report the failing check and suggest a fix rather than re-running blindly.
+For long benchmark runs (model configs take minutes per task and security
+harnesses can take hours), run the command in the background so you can report
+progress. Record the printed execution ID immediately. Completed items are
+checkpointed under `results/executions/<execution-id>/`; if the process stops,
+inspect with `--status` and use `--resume` rather than launching a new matrix.
+Authentication, quota, gateway, and unknown failures pause new paid work by
+default. Never add `--continue-on-error`, `--retry-failed`, or
+`--retry-interrupted` without explicit user approval.
 
 **Done when:** the command exits successfully, or you've reported the error with a fix suggestion.
 
@@ -126,7 +138,10 @@ After the benchmark completes:
 2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, DeepSec localized recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time. Never average DeepSec localized recall with endpoint-aware recall.
 3. For a model config with MCP servers, report `MCP status` and `MCP calls` from the console. In JSONL, verify `metrics.mcp.serverStatuses` and `metrics.mcp.toolStats`; a connected server with an empty `toolStats` was available but not invoked.
 4. For Codex Security, report package/plugin versions, coverage completeness, deferred/excluded counts, model/effort, tokens, estimated cost, and whether V2 endpoint evidence was present. Treat partial coverage as a scored but qualified result.
-5. Note the results file path (printed at the end of output).
+5. Note the execution bundle and its nested `benchmark.jsonl` path. Verify
+   `progress.json` reports complete coverage before presenting aggregate
+   quality results; partial bundles may be analyzed only with a clear coverage
+   qualification.
 
 If the user wants a detailed report or writeup, suggest using the `benchmark-report-writer` skill.
 

@@ -77,7 +77,9 @@ The Y-axis label ("SCORE", "DURATION", "RATE") is offset at `y: -50` in the rota
 
 ### Option A — Manual (no tools)
 
-1. Run your benchmark so it writes a new file under `results/`, e.g. `results/benchmark-<timestamp>.jsonl`.
+1. Run your benchmark so it creates an execution bundle under
+   `results/executions/`, then use its `benchmark.jsonl` after
+   `progress.json` reports complete coverage.
 2. Open the JSONL in an editor. Copy **only the lines** you want on the chart (same `taskId` is easiest to compare apples-to-apples).
 3. Open `public/benchmark-report.html`.
 4. Replace the contents of the `BENCHMARK_ROWS` array with valid JavaScript array elements:

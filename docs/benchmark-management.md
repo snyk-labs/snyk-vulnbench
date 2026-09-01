@@ -739,14 +739,20 @@ npm run report:serve -- public/2026-05-14-wpq2k
 `evals/run-config-groups.json` defines named, validated config selections:
 
 - `default` is used when neither `--config`, `--config-group`, nor `--all-configs` is supplied. It excludes Codex Security and DeepSec to avoid accidental opinionated-harness runs.
-- `vulnbench-v2` pins the canonical 11-config matrix to `attacker-reachable-find-vulns` with one repetition.
+- `vulnbench-v2` pins the canonical 9-config matrix to `attacker-reachable-find-vulns` with one repetition.
 - `--config` selects explicit IDs; `--all-configs` deliberately restores the full registry. These selectors are mutually exclusive.
 
-The V2 group contains Snyk Code; Claude Opus 5 medium with Snyk MCP, Opus 5 medium/xhigh, and Sonnet 5 medium/xhigh (all using the built-in security review); Codex Security Luna/Terra/Sol xhigh; and DeepSec Claude Opus 5 plus Codex Sol xhigh. DeepSec rows retain localized-recall semantics, while the other model/security runners use endpoint-aware attacker-reachable recall.
+The V2 group contains Snyk Code; Claude Opus 5 medium with Snyk MCP,
+Claude Opus 5 xhigh and Sonnet 5 xhigh using the built-in security review;
+Codex Security Luna/Terra/Sol xhigh; and DeepSec Claude Opus 5 plus Codex
+Sol xhigh. The plain Opus and Sonnet medium profiles remain available in the
+registry but are commented out of this group. DeepSec rows retain
+localized-recall semantics, while the other model/security runners use
+endpoint-aware attacker-reachable recall.
 
-Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 220 compatible runs with `pnpm run benchmark:v2 -- --dry-run`. Config-level `supportedCategories` removes incompatible pairs before preflight, so V2 security-review profiles never run against fix tasks.
+Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 180 compatible runs with `pnpm run benchmark:v2 -- --dry-run`. Config-level `supportedCategories` removes incompatible pairs before preflight, so V2 security-review profiles never run against fix tasks.
 
-This remains an intentionally expensive command: three Codex Security profiles alone imply 60 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 220 runs.
+This remains an intentionally expensive command: three Codex Security profiles alone imply 60 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 180 runs.
 
 Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
 
@@ -814,7 +820,39 @@ Command configs only support find-vulns tasks. They produce `"runConfigType": "c
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 
-For one-off Claude Code diagnostics, pass `--trace-agent`. This opt-in flag writes bounded JSONL traces under `results/agent-traces/`, including the resolved prompts, SDK initialization and slash-command inventory, visible assistant messages, tool calls/results, and Claude Code debug stderr. Credential-shaped fields are redacted and thinking blocks are deliberately omitted, but source code and model-visible tool output are retained; treat traces as sensitive development artifacts. Normal benchmark runs do not create them.
+For one-off Claude Code diagnostics, pass `--trace-agent`. This opt-in flag
+writes bounded JSONL traces under the execution bundle's
+`artifacts/traces/` directory, including the resolved prompts, SDK
+initialization and slash-command inventory, visible assistant messages, tool
+calls/results, and Claude Code debug stderr. Credential-shaped fields are
+redacted and thinking blocks are deliberately omitted, but source code and
+model-visible tool output are retained; treat traces as sensitive development
+artifacts. Normal benchmark runs do not create them.
+
+### Execution bundles and recovery
+
+Real runs create `results/executions/<date>-<group>-<short-id>/`. Share or
+archive that directory as one unit: it contains the immutable plan, per-run
+attempt records, progress, partial/final aggregates, and a compatible JSONL
+snapshot.
+
+```bash
+# Read progress without calling a provider
+pnpm tsx src/index.ts --status <execution-id>
+
+# Continue pending work; successful items are skipped
+pnpm tsx src/index.ts --resume <execution-id>
+
+# Explicitly replay a failed or crash-interrupted item
+pnpm tsx src/index.ts --resume <execution-id> --retry-failed
+pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
+```
+
+The harness pauses on systemic or unknown failures by default. An interrupted
+attempt is not automatically replayed because its remote request may already
+have incurred cost. Resume also verifies the frozen harness, config, task,
+fixture, and ground-truth fingerprints; changed experiments require a new
+execution directory.
 
 ### LiteLLM gateway configuration
 
