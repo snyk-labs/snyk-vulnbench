@@ -37,17 +37,27 @@ const TARGETS = [
   "deepsec-codex",
 ] as const;
 type SmokeTarget = typeof TARGETS[number];
+const EFFORTS = ["minimal", "low", "medium", "high", "xhigh", "max"] as const;
+type SmokeEffort = typeof EFFORTS[number];
+
+interface SmokeOptions {
+  target?: SmokeTarget;
+  model?: string;
+  effort?: SmokeEffort;
+}
 
 async function main(): Promise<void> {
   const source = createBenchmarkEnvironment();
   const connection = resolveLiteLlmConnection(source);
-  const requested = readTarget(process.argv.slice(2));
-  const targets = requested ? [requested] : [...TARGETS];
+  const options = readOptions(process.argv.slice(2));
+  const targets = options.target ? [options.target] : [...TARGETS];
 
   for (const target of targets) {
     try {
-      await runTarget(target, source, connection);
-      console.log(`LiteLLM smoke ${target}: OK (${connection.origin})`);
+      const profile = await runTarget(target, source, connection, options);
+      console.log(
+        `LiteLLM smoke ${target}: OK (${connection.origin}; ${profile.model}; ${profile.effort})`,
+      );
     } catch (error) {
       console.error(
         `LiteLLM smoke ${target}: FAILED — ${redactLiteLlmError(error, connection)}`,
@@ -58,33 +68,59 @@ async function main(): Promise<void> {
   }
 }
 
-function readTarget(args: string[]): SmokeTarget | undefined {
-  const index = args.indexOf("--target");
-  if (index < 0) return undefined;
-  const target = args[index + 1];
-  if (!TARGETS.includes(target as SmokeTarget)) {
+function readOptions(args: string[]): SmokeOptions {
+  const target = readFlag(args, "--target");
+  const model = readFlag(args, "--model");
+  const effort = readFlag(args, "--effort");
+  if (target && !TARGETS.includes(target as SmokeTarget)) {
     throw new Error(`Unknown target "${target}". Expected: ${TARGETS.join(", ")}`);
   }
-  return target as SmokeTarget;
+  if (effort && !EFFORTS.includes(effort as SmokeEffort)) {
+    throw new Error(`Unknown effort "${effort}". Expected: ${EFFORTS.join(", ")}`);
+  }
+  return {
+    ...(target && { target: target as SmokeTarget }),
+    ...(model && { model }),
+    ...(effort && { effort: effort as SmokeEffort }),
+  };
+}
+
+function readFlag(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  return index >= 0 ? args[index + 1] : undefined;
 }
 
 async function runTarget(
   target: SmokeTarget,
   source: NodeJS.ProcessEnv,
   connection: LiteLlmConnection,
-): Promise<void> {
-  if (target === "claude") return smokeClaude(source);
-  if (target === "codex-security") {
-    return smokeCodexSecurity(source, connection);
+  options: SmokeOptions,
+): Promise<{ model: string; effort: SmokeEffort }> {
+  if (target === "claude") {
+    const model = options.model ?? "claude-sonnet-5";
+    const effort = options.effort ?? "low";
+    await smokeClaude(source, model, effort);
+    return { model, effort };
   }
-  return smokeDeepSec(
-    target === "deepsec-claude" ? "claude" : "codex",
-    source,
-    connection,
-  );
+  if (target === "codex-security") {
+    const model = options.model ?? "gpt-5.6-luna";
+    const effort = options.effort ?? "low";
+    await smokeCodexSecurity(source, connection, model, effort);
+    return { model, effort };
+  }
+  const agent = target === "deepsec-claude" ? "claude" : "codex";
+  const model = options.model
+    ?? (agent === "claude" ? "claude-opus-5" : "gpt-5.6-luna");
+  const effort = options.effort ?? "minimal";
+  await smokeDeepSec(agent, source, connection, model, effort);
+  return { model, effort };
 }
 
-async function smokeClaude(source: NodeJS.ProcessEnv): Promise<void> {
+async function smokeClaude(
+  source: NodeJS.ProcessEnv,
+  model: string,
+  effort: SmokeEffort,
+): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "vulnbench-litellm-claude-"));
   let finalText = "";
   try {
@@ -97,8 +133,8 @@ async function smokeClaude(source: NodeJS.ProcessEnv): Promise<void> {
       options: {
         cwd: root,
         env: environment,
-        model: "claude-sonnet-5",
-        effort: "low",
+        model,
+        effort: effort === "minimal" ? "low" : effort,
         tools: [],
         settingSources: [],
         maxTurns: 1,
@@ -126,6 +162,8 @@ async function smokeClaude(source: NodeJS.ProcessEnv): Promise<void> {
 async function smokeCodexSecurity(
   source: NodeJS.ProcessEnv,
   connection: LiteLlmConnection,
+  model: string,
+  effort: SmokeEffort,
 ): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), "vulnbench-litellm-codex-security-"));
   const projectDir = join(root, "project");
@@ -157,8 +195,8 @@ async function smokeCodexSecurity(
         "--strict-config",
         "--sandbox", "read-only",
         "--json",
-        "--model", "gpt-5.6-luna",
-        "-c", 'model_reasoning_effort="low"',
+        "--model", model,
+        "-c", `model_reasoning_effort=${JSON.stringify(effort)}`,
         "-c", 'model_provider="litellm"',
         "-c", 'model_providers.litellm.name="LiteLLM"',
         "-c", `model_providers.litellm.base_url=${JSON.stringify(connection.openAiBaseUrl)}`,
@@ -190,8 +228,8 @@ async function smokeCodexSecurity(
         type: "codex-security",
         id: "litellm-smoke",
         name: "LiteLLM smoke",
-        model: "gpt-5.6-luna",
-        effort: "low",
+        model,
+        effort,
         gateway: "litellm",
       },
       projectDir,
@@ -222,6 +260,8 @@ async function smokeDeepSec(
   agent: "claude" | "codex",
   source: NodeJS.ProcessEnv,
   connection: LiteLlmConnection,
+  model: string,
+  effort: SmokeEffort,
 ): Promise<void> {
   const root = mkdtempSync(join(tmpdir(), `vulnbench-litellm-deepsec-${agent}-`));
   const projectDir = join(root, "project");
@@ -235,8 +275,8 @@ async function smokeDeepSec(
     id: `smoke-${agent}`,
     name: `Smoke ${agent}`,
     agent,
-    model: agent === "claude" ? "claude-opus-5" : "gpt-5.6-luna",
-    thinkingLevel: "minimal" as const,
+    model,
+    thinkingLevel: effort,
     gateway: "litellm" as const,
     maxTurns: 5,
     batchSize: 1,
@@ -261,7 +301,7 @@ async function smokeDeepSec(
         "--files", "hello.js",
         "--agent", agent,
         "--model", config.model,
-        "--thinking-level", "minimal",
+        "--thinking-level", effort,
         "--max-turns", "5",
         "--batch-size", "1",
         "--concurrency", "1",

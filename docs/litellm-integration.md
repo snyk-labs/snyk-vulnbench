@@ -265,6 +265,16 @@ Or run all targets sequentially:
 pnpm run smoke:litellm
 ```
 
+Pass `--model` and `--effort` to verify an exact run-config pair without
+starting a benchmark, for example:
+
+```bash
+pnpm run smoke:litellm -- \
+  --target codex-security \
+  --model gpt-5.6-terra \
+  --effort xhigh
+```
+
 The probes are not benchmark runs:
 
 - Claude performs a one-turn, tool-free marker response.
@@ -288,6 +298,10 @@ internal gateway:
 - Codex / OpenAI Responses plus Codex Security dry run;
 - DeepSec Claude / Anthropic Messages;
 - DeepSec Codex / OpenAI Responses.
+
+The complete security-harness V2 matrix was also checked with exact model and
+effort values: Codex Security accepted GPT-5.6 Luna, Terra, and Sol at `xhigh`;
+DeepSec accepted Claude Opus 5 and GPT-5.6 Sol at `xhigh`.
 
 Two compatibility findings are intentionally encoded in the implementation:
 
