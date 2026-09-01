@@ -18,6 +18,7 @@ import {
   DEEPSEC_CLI_VERSION,
   deepSecExecutable,
 } from "./runners/deepsec-cli.js";
+import { resolveLiteLlmConnection } from "./runners/litellm.js";
 
 interface CheckResult {
   ok: boolean;
@@ -38,6 +39,16 @@ export function runPreflight(configs: RunConfig[]): void {
       && c.type !== "deepsec"
       && c.type !== "codex-security"
       && c.runner !== "codex-cli",
+  );
+  const claudeConfigs = configs.filter(
+    (config): config is ModelRunConfig =>
+      config.type !== "command"
+      && config.type !== "deepsec"
+      && config.type !== "codex-security"
+      && (config.runner === undefined || config.runner === "claude-code"),
+  );
+  const needsClaudeDirectAuth = claudeConfigs.some(
+    (config) => config.gateway !== "litellm",
   );
   const needsCodex = configs.some(
     (c) =>
@@ -60,12 +71,16 @@ export function runPreflight(configs: RunConfig[]): void {
     },
   );
   const needsSnykMcp = configs.some(usesSnykMcp);
+  const needsLiteLlm = configs.some(
+    (config) => "gateway" in config && config.gateway === "litellm",
+  );
 
   const checks: CheckResult[] = [];
+  if (needsLiteLlm) checks.push(checkLiteLlmConfig());
 
   if (needsClaude) {
     checks.push(checkClaudeInstalled());
-    checks.push(checkClaudeAuth());
+    if (needsClaudeDirectAuth) checks.push(checkClaudeAuth());
   }
 
   if (needsCodex) {
@@ -75,7 +90,11 @@ export function runPreflight(configs: RunConfig[]): void {
 
   if (needsDeepSec) {
     checks.push(checkDeepSecInstalled());
-    for (const agent of new Set(deepSecConfigs.map((config) => config.agent))) {
+    for (const agent of new Set(
+      deepSecConfigs
+        .filter((config) => config.gateway !== "litellm")
+        .map((config) => config.agent),
+    )) {
       checks.push(checkDeepSecAuth(agent));
     }
   }
@@ -84,7 +103,13 @@ export function runPreflight(configs: RunConfig[]): void {
     checks.push(checkCodexSecurityInstalled());
     checks.push(checkCodexSecurityPlugin());
     checks.push(checkCodexSecurityPython());
-    checks.push(checkCodexSecurityAuth());
+    if (configs.some(
+      (config) =>
+        config.type === "codex-security"
+        && config.gateway !== "litellm",
+    )) {
+      checks.push(checkCodexSecurityAuth());
+    }
   }
 
   if (needsSnyk) {
@@ -102,6 +127,23 @@ export function runPreflight(configs: RunConfig[]): void {
   if (failures.length > 0) {
     console.error(`\nPreflight failed: ${failures.length} check(s) need attention. Fix the issues above and retry.\n`);
     process.exit(1);
+  }
+}
+
+function checkLiteLlmConfig(): CheckResult {
+  try {
+    const connection = resolveLiteLlmConnection(process.env);
+    return {
+      ok: true,
+      label: "LiteLLM gateway",
+      detail: connection.origin,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      label: "LiteLLM gateway",
+      detail: error instanceof Error ? error.message : String(error),
+    };
   }
 }
 

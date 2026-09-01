@@ -56,7 +56,7 @@ test("Codex Security environment exposes only canonical OpenAI authentication", 
   const workspace = createIsolatedWorkspace(source);
 
   try {
-    const environment = createCodexSecurityEnvironment(workspace, {
+    const environment = createCodexSecurityEnvironment(workspace, config, {
       PATH: "/usr/bin",
       HOME: "/home/test",
       OPENAI_API_KEY: "canonical-key",
@@ -70,6 +70,31 @@ test("Codex Security environment exposes only canonical OpenAI authentication", 
     assert.match(environment.CODEX_HOME ?? "", /codex-home$/);
     assert.match(environment.CODEX_SECURITY_STATE_DIR ?? "", /codex-security-state$/);
     assert.equal(environment.CODEX_CLI_PATH?.endsWith("/node_modules/.bin/codex"), true);
+  } finally {
+    workspace.cleanup();
+    rmSync(source, { recursive: true, force: true });
+  }
+});
+
+test("Codex Security LiteLLM environment derives only its child compatibility key", () => {
+  const source = mkdtempSync(join(tmpdir(), "codex-security-litellm-"));
+  writeFileSync(join(source, "app.js"), "console.log('ok');\n");
+  const workspace = createIsolatedWorkspace(source);
+
+  try {
+    const environment = createCodexSecurityEnvironment(
+      workspace,
+      { gateway: "litellm" },
+      {
+        PATH: "/usr/bin",
+        ANTHROPIC_BASE_URL: "https://proxy.example",
+        ANTHROPIC_AUTH_TOKEN: "proxy-token",
+        OPENAI_API_KEY: "direct-key",
+      },
+    );
+    assert.equal(environment.ANTHROPIC_AUTH_TOKEN, "proxy-token");
+    assert.equal(environment.OPENAI_API_KEY, "proxy-token");
+    assert.equal(environment.CODEX_API_KEY, undefined);
   } finally {
     workspace.cleanup();
     rmSync(source, { recursive: true, force: true });
@@ -114,6 +139,31 @@ test("Codex Security production profiles omit cost and time stops", () => {
   );
 
   assert.ok(!args.includes("--max-cost"));
+});
+
+test("Codex Security LiteLLM config uses Responses without putting the token in argv", () => {
+  const liteLlmConfig = {
+    ...config,
+    gateway: "litellm" as const,
+  };
+  const connection = {
+    origin: "https://proxy.example",
+    anthropicBaseUrl: "https://proxy.example",
+    openAiBaseUrl: "https://proxy.example/v1",
+    authToken: "secret-proxy-token",
+  };
+  const args = buildCodexSecurityScanArgs(
+    liteLlmConfig,
+    "/tmp/project",
+    "/tmp/output",
+    "python3",
+    connection,
+  );
+
+  assert.match(args.join(" "), /model_provider="litellm"/);
+  assert.match(args.join(" "), /https:\/\/proxy\.example\/v1/);
+  assert.match(args.join(" "), /env_key="ANTHROPIC_AUTH_TOKEN"/);
+  assert.doesNotMatch(args.join(" "), /secret-proxy-token/);
 });
 
 test("pinned Codex Security executable reports the expected version", () => {

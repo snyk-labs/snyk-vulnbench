@@ -322,6 +322,7 @@ export type ThinkingConfig =
 
 export type AgentRunnerId = "claude-code" | "codex-cli";
 export type RequiredToolPolicyId = "snyk-code-once";
+export type ModelGatewayId = "litellm";
 
 /** Standard coding-agent run using a native agent harness. */
 export interface ModelRunConfig {
@@ -339,6 +340,8 @@ export interface ModelRunConfig {
   promptTemplateId?: PromptTemplateId;
   /** Tool-use requirement enforced after the run. */
   requiredToolPolicyId?: RequiredToolPolicyId;
+  /** Routes model requests through a configured gateway. */
+  gateway?: ModelGatewayId;
   mcpServers?: Record<string, MCPServerConfig>;
   maxTurns?: number;
   /** Parent-process wall-clock deadline for CLI-backed agents. */
@@ -381,6 +384,7 @@ export interface DeepSecRunConfig {
   limit?: number;
   timeoutMs?: number;
   supportedCategories?: EvalCategoryId[];
+  gateway?: ModelGatewayId;
 }
 
 export interface CodexSecurityRunConfig {
@@ -394,6 +398,7 @@ export interface CodexSecurityRunConfig {
   maxCostUsd?: number;
   timeoutMs?: number;
   supportedCategories?: EvalCategoryId[];
+  gateway?: ModelGatewayId;
 }
 
 export type RunConfig =

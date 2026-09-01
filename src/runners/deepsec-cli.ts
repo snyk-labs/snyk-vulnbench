@@ -11,6 +11,13 @@ import {
   type ProcessExecutionResult,
 } from "../process-executor.js";
 import { serializeFindingsToFinalText } from "../findings-output.js";
+import {
+  copyRuntimeEnvironment,
+  redactLiteLlmError,
+  resolveLiteLlmConnection,
+  stripDirectModelCredentials,
+  type LiteLlmConnection,
+} from "./litellm.js";
 import type {
   BenchmarkMetrics,
   DeepSecRunConfig,
@@ -57,10 +64,13 @@ export async function runDeepSecTask({
   const exportPath = join(workspace.outputDir, "deepsec-findings.json");
   const toolCalls: ToolCallRecord[] = [];
   const environment = createDeepSecEnvironment(deepsec);
+  const liteLlm = deepsec.gateway === "litellm"
+    ? resolveLiteLlmConnection(process.env)
+    : undefined;
 
   writeFileSync(
     join(workspace.stateDir, "deepsec.config.mjs"),
-    buildDeepSecConfig(task.fixtureId, cwd, dataDir, deepsec),
+    buildDeepSecConfig(task.fixtureId, cwd, dataDir, deepsec, liteLlm),
     { mode: 0o600 },
   );
   // Config discovery walks upward from cwd; the state directory is the
@@ -125,7 +135,7 @@ export async function runDeepSecTask({
         toolCalls,
         deepsec,
       ),
-      error: error instanceof Error ? error.message : String(error),
+      error: redactLiteLlmError(error, liteLlm),
     };
   }
 
@@ -164,19 +174,35 @@ export function buildDeepSecConfig(
   projectRoot: string,
   dataDir: string,
   config: DeepSecRunConfig,
+  liteLlm?: LiteLlmConnection,
 ): string {
+  if (config.gateway === "litellm" && !liteLlm) {
+    throw new Error("DeepSec LiteLLM config requires a resolved connection");
+  }
+  const apiKeyEnv = config.gateway === "litellm"
+    ? "ANTHROPIC_AUTH_TOKEN"
+    : config.agent === "claude"
+      ? "ANTHROPIC_API_KEY"
+      : "OPENAI_API_KEY";
+  const baseUrl = config.gateway === "litellm"
+    ? config.agent === "claude"
+      ? liteLlm!.anthropicBaseUrl
+      : liteLlm!.openAiBaseUrl
+    : config.agent === "claude"
+      ? "https://api.anthropic.com"
+      : "https://api.openai.com/v1";
   const ai = config.agent === "claude"
     ? {
         mode: "direct",
         provider: "anthropic",
-        apiKeyEnv: "ANTHROPIC_API_KEY",
-        baseUrl: "https://api.anthropic.com",
+        apiKeyEnv,
+        baseUrl,
       }
     : {
         mode: "direct",
         provider: "openai",
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
+        apiKeyEnv,
+        baseUrl,
       };
   const value = {
     ai,
@@ -190,7 +216,7 @@ export function buildDeepSecConfig(
 }
 
 export function createDeepSecEnvironment(
-  config: Pick<DeepSecRunConfig, "agent">,
+  config: Pick<DeepSecRunConfig, "agent" | "gateway">,
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {
@@ -214,6 +240,19 @@ export function createDeepSecEnvironment(
     "no_proxy",
   ]) {
     if (source[name] !== undefined) environment[name] = source[name];
+  }
+  if (config.gateway === "litellm") {
+    const connection = resolveLiteLlmConnection(source);
+    const sanitized = stripDirectModelCredentials(copyRuntimeEnvironment(source));
+    Object.assign(environment, sanitized);
+    environment.ANTHROPIC_AUTH_TOKEN = connection.authToken;
+    if (config.agent === "claude") {
+      environment.ANTHROPIC_BASE_URL = connection.anthropicBaseUrl;
+      if (source.ENABLE_TOOL_SEARCH !== undefined) {
+        environment.ENABLE_TOOL_SEARCH = source.ENABLE_TOOL_SEARCH;
+      }
+    }
+    return environment;
   }
   if (config.agent === "claude") {
     if (source.ANTHROPIC_API_KEY) {

@@ -2,7 +2,7 @@
 name: benchmark-run
 description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run with Codex Security", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
 license: MIT
-compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Codex Security and DeepSec Codex profiles require canonical `OPENAI_API_KEY`; DeepSec Claude profiles require `ANTHROPIC_API_KEY`. Codex Security also requires Python 3.10+. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
+compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Canonical V2 Claude Code, Codex Security, and DeepSec profiles require LiteLLM `ANTHROPIC_BASE_URL` plus `ANTHROPIC_AUTH_TOKEN`; Codex Security also requires Python 3.10+. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
 metadata:
   author: snyk-vulnbench
   version: 1.0.0
@@ -13,6 +13,8 @@ metadata:
 # Instructions
 
 Turn a natural-language benchmark request into the exact CLI command that runs it, execute it, and report the outcome. No need to memorize task IDs or dig through `package.json`.
+
+For canonical V2 gateway setup or proxy failures, consult `docs/litellm-integration.md` before changing runner credentials or provider configuration.
 
 ---
 
@@ -216,8 +218,8 @@ Solution: Re-read `evals/run-configs.json` and use the correct `id` values. Show
 ---
 
 Error: `Preflight failed: N check(s) need attention`
-Cause: Claude Code CLI or Snyk CLI is not installed or not authenticated.
-Solution: Read the preflight output for which check failed. For Claude: run `claude auth login` or set `ANTHROPIC_API_KEY`. For a Snyk command or MCP config, set a valid `SNYK_TOKEN` in the repository-root `.env`; the worker injects it into the run. Alternatively, add `--skip-preflight` only when the user explicitly wants to bypass checks.
+Cause: A required CLI, LiteLLM gateway pair, Python runtime, or Snyk credential is unavailable.
+Solution: Read the preflight output for the failed component. Canonical V2 model profiles require both `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`; validate them with the matching `pnpm run smoke:litellm -- --target ...` command. For Snyk command or MCP configs, set `SNYK_TOKEN` in the repository-root `.env`. Add `--skip-preflight` only when the user explicitly requests it.
 
 ---
 

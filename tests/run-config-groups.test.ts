@@ -46,8 +46,8 @@ test("run config groups load safe defaults and the V2 profile", () => {
       total + v2Tasks.filter((task) => configSupportsTask(config, task)).length,
     0,
   );
-  assert.equal(v2Tasks.length, 18);
-  assert.equal(compatibleRuns, 198);
+  assert.equal(v2Tasks.length, 20);
+  assert.equal(compatibleRuns, 220);
 });
 
 test("run config group validation rejects unknown and duplicate config IDs", () => {

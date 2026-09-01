@@ -127,9 +127,9 @@ The Agent SDK works by spawning the `claude` CLI binary as a subprocess — it d
 
 Run `claude auth status` to see which is active. Either works; no special setup is needed beyond having the CLI authenticated.
 
-Codex Security runs noninteractively with the canonical `OPENAI_API_KEY` from the ignored repository-root `.env`. Its child environment deliberately omits alternative key aliases and unrelated credentials. DeepSec Codex profiles use `OPENAI_API_KEY`; DeepSec Claude profiles require `ANTHROPIC_API_KEY`. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
+Canonical V2 Claude Code, Codex Security, and DeepSec profiles route through LiteLLM using `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` from the ignored repository-root `.env`; `ENABLE_TOOL_SEARCH=true` keeps Claude tool search available through the gateway. Claude-shaped clients use the Anthropic Messages route and Codex-shaped clients use the derived `<origin>/v1` Responses route. Runner environments strip direct provider keys, stored Claude OAuth fallback, aliases, and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
 
-Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` is the canonical 18-task × 11-config × 1-repetition matrix; `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
+Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` is the canonical 20-task × 11-config × 1-repetition matrix; `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
 
 ## MCP Configurations and Credentials
 
@@ -144,11 +144,15 @@ The harness runs the benchmark in an isolated worker. For every key declared in 
 ```bash
 pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
-pnpm run benchmark:v2                   # canonical V2 matrix (198 runs, 1 repetition)
+pnpm run benchmark:v2                   # canonical V2 matrix (220 runs, 1 repetition)
 pnpm run benchmark:v2:snyk              # V2 tasks with Snyk Code only
 pnpm benchmark -- --category attacker-reachable-find-vulns --config codex-security-sol-xhigh
 pnpm benchmark -- --config-group default --dry-run
 pnpm benchmark -- --all-configs --dry-run
+pnpm run smoke:litellm -- --target claude
+pnpm run smoke:litellm -- --target codex-security
+pnpm run smoke:litellm -- --target deepsec-claude
+pnpm run smoke:litellm -- --target deepsec-codex
 pnpm run benchmark:fix                  # only fix-vulns tasks
 pnpm benchmark -- --config opus-only    # specific run config
 pnpm benchmark -- --task js-project-tigerteam-find-vulns  # specific task
@@ -177,6 +181,7 @@ This uses the `serve` npm package and defaults to `0.0.0.0:3000`; pass standard 
 
 - **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add V1 and V2 eval tasks and fixtures without code changes: both ground-truth schemas, source/sink annotations, directory-scanning loader behavior, task JSON, vulnerability types, run configs, SAST commands, Snyk mappings, and troubleshooting.
 - **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, V1 type-only and V2 endpoint-aware scoring, Snyk's V1/rich SARIF parsers, aggregation, metrics, and result formats.
+- **[`docs/litellm-integration.md`](docs/litellm-integration.md)** — Complete gateway environment flow, Claude/Codex Security/DeepSec protocol configuration, secret handling, smoke tests, and troubleshooting.
 
 ## TODO
 

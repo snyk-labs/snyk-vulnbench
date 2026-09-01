@@ -136,3 +136,66 @@ test("DeepSec config and environment route credentials by agent provider", () =>
   assert.equal(codexEnvironment.OPENAI_API_KEY, "openai-key");
   assert.equal(codexEnvironment.ANTHROPIC_API_KEY, undefined);
 });
+
+test("DeepSec LiteLLM configs share one token across protocol-specific routes", () => {
+  const connection = {
+    origin: "https://proxy.example",
+    anthropicBaseUrl: "https://proxy.example",
+    openAiBaseUrl: "https://proxy.example/v1",
+    authToken: "proxy-token",
+  };
+  const claudeConfig = {
+    type: "deepsec",
+    id: "claude-litellm",
+    name: "Claude LiteLLM",
+    agent: "claude",
+    model: "claude-opus-5",
+    thinkingLevel: "xhigh",
+    gateway: "litellm",
+  } as const;
+  const codexConfig = {
+    ...claudeConfig,
+    id: "codex-litellm",
+    name: "Codex LiteLLM",
+    agent: "codex",
+    model: "gpt-5.6-sol",
+  } as const;
+  const source = {
+    PATH: "/usr/bin",
+    ANTHROPIC_BASE_URL: "https://proxy.example",
+    ANTHROPIC_AUTH_TOKEN: "proxy-token",
+    ANTHROPIC_API_KEY: "direct-anthropic",
+    OPENAI_API_KEY: "direct-openai",
+    ENABLE_TOOL_SEARCH: "true",
+  };
+
+  const claudeRendered = buildDeepSecConfig(
+    "project",
+    "/tmp/project",
+    "/tmp/data",
+    claudeConfig,
+    connection,
+  );
+  const codexRendered = buildDeepSecConfig(
+    "project",
+    "/tmp/project",
+    "/tmp/data",
+    codexConfig,
+    connection,
+  );
+  assert.match(claudeRendered, /"baseUrl": "https:\/\/proxy\.example"/);
+  assert.match(codexRendered, /"baseUrl": "https:\/\/proxy\.example\/v1"/);
+  assert.match(claudeRendered, /"apiKeyEnv": "ANTHROPIC_AUTH_TOKEN"/);
+  assert.match(codexRendered, /"apiKeyEnv": "ANTHROPIC_AUTH_TOKEN"/);
+  assert.doesNotMatch(claudeRendered + codexRendered, /proxy-token/);
+
+  const claudeEnvironment = createDeepSecEnvironment(claudeConfig, source);
+  const codexEnvironment = createDeepSecEnvironment(codexConfig, source);
+  assert.equal(claudeEnvironment.ANTHROPIC_AUTH_TOKEN, "proxy-token");
+  assert.equal(claudeEnvironment.ANTHROPIC_BASE_URL, "https://proxy.example");
+  assert.equal(claudeEnvironment.ENABLE_TOOL_SEARCH, "true");
+  assert.equal(codexEnvironment.ANTHROPIC_AUTH_TOKEN, "proxy-token");
+  assert.equal(codexEnvironment.ANTHROPIC_BASE_URL, undefined);
+  assert.equal(codexEnvironment.OPENAI_API_KEY, undefined);
+  assert.equal(claudeEnvironment.ANTHROPIC_API_KEY, undefined);
+});

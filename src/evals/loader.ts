@@ -704,6 +704,7 @@ export function validateCodexSecurityRunConfig(
   entry: Record<string, unknown>,
 ): CodexSecurityRunConfig {
   validateSupportedCategories(entry);
+  validateGateway(entry);
   if (typeof entry.model !== "string" || entry.model.length === 0) {
     throw new Error(`Codex Security config "${entry.id}" missing required field: model`);
   }
@@ -765,6 +766,7 @@ export function validateDeepSecRunConfig(
   entry: Record<string, unknown>,
 ): DeepSecRunConfig {
   validateSupportedCategories(entry);
+  validateGateway(entry);
   if (entry.agent !== "codex" && entry.agent !== "claude") {
     throw new Error(
       `DeepSec config "${entry.id}" requires agent "codex" or "claude"`,
@@ -801,6 +803,7 @@ export function validateDeepSecRunConfig(
 
 export function validateModelRunConfig(entry: Record<string, unknown>): ModelRunConfig {
   validateSupportedCategories(entry);
+  validateGateway(entry);
   if (!entry.model) {
     throw new Error(`Model config "${entry.id}" missing required field: model`);
   }
@@ -876,6 +879,12 @@ function validateSupportedCategories(entry: Record<string, unknown>): void {
     )
   ) {
     throw new Error(`Run config "${entry.id}" has invalid supportedCategories`);
+  }
+}
+
+function validateGateway(entry: Record<string, unknown>): void {
+  if (entry.gateway !== undefined && entry.gateway !== "litellm") {
+    throw new Error(`Run config "${entry.id}" has unknown gateway "${entry.gateway}"`);
   }
 }
 

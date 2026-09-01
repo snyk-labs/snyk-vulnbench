@@ -9,6 +9,13 @@ import {
 import { parseCodexSecurityFindings } from "../parsers/codex-security.js";
 import { executeProcess, type ProcessExecutionResult } from "../process-executor.js";
 import { buildLandlockInvocation } from "../sandbox/landlock.js";
+import {
+  copyRuntimeEnvironment,
+  redactLiteLlmError,
+  resolveLiteLlmConnection,
+  stripDirectModelCredentials,
+  type LiteLlmConnection,
+} from "./litellm.js";
 import type {
   BenchmarkMetrics,
   CodexSecurityParserDiagnostics,
@@ -59,9 +66,10 @@ export async function runCodexSecurityTask({
   let findings: FindingRecord[] = [];
   let scanOutput: Record<string, unknown> | undefined;
   let parserDiagnostics: CodexSecurityParserDiagnostics | undefined;
+  let liteLlm: LiteLlmConnection | undefined;
 
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (security.gateway !== "litellm" && !process.env.OPENAI_API_KEY) {
       throw new Error("Codex Security requires OPENAI_API_KEY");
     }
     prepareSecurityReviewGitWorkspace(cwd);
@@ -72,13 +80,17 @@ export async function runCodexSecurityTask({
       throw new Error(`Codex Security containment unavailable: ${containment.detail}`);
     }
 
-    const environment = createCodexSecurityEnvironment(workspace);
+    const environment = createCodexSecurityEnvironment(workspace, security);
+    liteLlm = security.gateway === "litellm"
+      ? resolveLiteLlmConnection(process.env)
+      : undefined;
     const outputDir = join(workspace.outputDir, "codex-security-scan");
     const baseArgs = buildCodexSecurityScanArgs(
       security,
       cwd,
       outputDir,
       environment.PYTHON ?? "python3",
+      liteLlm,
     );
 
     const dryRun = await executeContained(
@@ -147,7 +159,7 @@ export async function runCodexSecurityTask({
           ? codexSecurityTelemetry(scanOutput, parserDiagnostics)
           : undefined,
       ),
-      error: error instanceof Error ? error.message : String(error),
+      error: redactLiteLlmError(error, liteLlm),
     };
   }
 }
@@ -158,6 +170,7 @@ export function codexSecurityExecutable(): string {
 
 export function createCodexSecurityEnvironment(
   workspace: RunnerContext["workspace"],
+  config: Pick<CodexSecurityRunConfig, "gateway">,
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const codexHome = join(workspace.stateDir, "codex-home");
@@ -166,6 +179,7 @@ export function createCodexSecurityEnvironment(
   mkdirSync(securityState, { recursive: true });
 
   const environment: NodeJS.ProcessEnv = {
+    ...stripDirectModelCredentials(copyRuntimeEnvironment(source)),
     CI: "1",
     NO_COLOR: "1",
     CODEX_HOME: codexHome,
@@ -173,29 +187,13 @@ export function createCodexSecurityEnvironment(
     CODEX_CLI_PATH: codexExecutable(),
     PYTHON: source.PYTHON ?? "python3",
   };
-  for (const name of [
-    "PATH",
-    "HOME",
-    "USER",
-    "LOGNAME",
-    "LANG",
-    "TERM",
-    "SSL_CERT_FILE",
-    "SSL_CERT_DIR",
-    "NODE_EXTRA_CA_CERTS",
-    "HTTP_PROXY",
-    "HTTPS_PROXY",
-    "NO_PROXY",
-    "http_proxy",
-    "https_proxy",
-    "no_proxy",
-  ]) {
-    if (source[name] !== undefined) environment[name] = source[name];
-  }
-  for (const [name, value] of Object.entries(source)) {
-    if (name.startsWith("LC_") && value !== undefined) environment[name] = value;
-  }
-  if (source.OPENAI_API_KEY) {
+  if (config.gateway === "litellm") {
+    const connection = resolveLiteLlmConnection(source);
+    environment.ANTHROPIC_AUTH_TOKEN = connection.authToken;
+    // Codex Security 0.1.24 requires a native key variable at its outer auth
+    // gate even though the nested Codex provider uses ANTHROPIC_AUTH_TOKEN.
+    environment.OPENAI_API_KEY = connection.authToken;
+  } else if (source.OPENAI_API_KEY) {
     environment.OPENAI_API_KEY = source.OPENAI_API_KEY;
   }
   return environment;
@@ -206,6 +204,7 @@ export function buildCodexSecurityScanArgs(
   projectDir: string,
   outputDir: string,
   python: string,
+  liteLlm?: LiteLlmConnection,
 ): string[] {
   const args = [
     "scan",
@@ -221,6 +220,20 @@ export function buildCodexSecurityScanArgs(
   ];
   if (config.maxCostUsd !== undefined) {
     args.push("--max-cost", String(config.maxCostUsd));
+  }
+  if (config.gateway === "litellm") {
+    if (!liteLlm) {
+      throw new Error("Codex Security LiteLLM config requires a resolved connection");
+    }
+    args.push(
+      "--codex", 'model_provider="litellm"',
+      "--codex", 'model_providers.litellm.name="LiteLLM"',
+      "--codex", `model_providers.litellm.base_url=${JSON.stringify(liteLlm.openAiBaseUrl)}`,
+      "--codex", 'model_providers.litellm.env_key="ANTHROPIC_AUTH_TOKEN"',
+      "--codex", 'model_providers.litellm.wire_api="responses"',
+      "--codex", "model_providers.litellm.requires_openai_auth=false",
+      "--codex", "model_providers.litellm.supports_websockets=false",
+    );
   }
   return args;
 }

@@ -652,7 +652,7 @@ DeepSec is a dedicated run-config type because it orchestrates multiple CLI stag
 }
 ```
 
-The adapter pins DeepSec 2.3.7, creates fresh state for every repetition, and runs `scan → process → export`. Codex agents use direct OpenAI with canonical `OPENAI_API_KEY`; Claude agents use direct Anthropic with `ANTHROPIC_API_KEY`. The isolated worker forwards only the provider key required by the selected agent. Do not add `mcpServers`: DeepSec controls its own agent toolset.
+The adapter pins DeepSec 2.3.7, creates fresh state for every repetition, and runs `scan → process → export`. Canonical V2 profiles use the shared LiteLLM token: Claude agents use the Anthropic Messages route at `ANTHROPIC_BASE_URL`, while Codex agents use the OpenAI Responses route derived as `<origin>/v1`. Do not add `mcpServers`: DeepSec controls its own agent toolset.
 
 DeepSec supports V1 and attacker-reachable tasks but uses different V2 evidence semantics. Since its export has file/line locations without source/sink labels, the primary V2 metric is `localized-vulnerability-recall` (type plus any matching curated flow location within ±2 lines), not endpoint-aware attacker-reachable recall. The two metrics are not aggregated together. DeepSec does not support fix-vulns tasks.
 
@@ -672,7 +672,7 @@ Codex Security is a separate find-only participant rather than a prompt template
 }
 ```
 
-Set `OPENAI_API_KEY` in the ignored root `.env`. The benchmark child receives only that canonical key name; alternative key aliases and unrelated credentials are not forwarded. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and authentication before a scan.
+Set the LiteLLM variables documented below in the ignored root `.env`. Codex Security defines a custom Responses provider using `<origin>/v1` and the shared proxy token. Its isolated child also receives a temporary native-key alias solely to satisfy the package's outer authentication gate; no OpenAI key variable is required in `.env`. Preflight also verifies the pinned package, bundled plugin metadata, Python 3.10+, and proxy configuration before a scan.
 
 Canonical V2 profiles omit `maxCostUsd` and `timeoutMs` so long scans can finish. Both remain available for explicitly bounded ad-hoc configs. Use reported `metrics.totalCostUsd` and elapsed time for monitoring rather than treating a budget or wall clock as the production benchmark contract.
 
@@ -744,9 +744,9 @@ npm run report:serve -- public/2026-05-14-wpq2k
 
 The V2 group contains Snyk Code; Claude Opus 5 medium with Snyk MCP, Opus 5 medium/xhigh, and Sonnet 5 medium/xhigh (all using the built-in security review); Codex Security Luna/Terra/Sol xhigh; and DeepSec Claude Opus 5 plus Codex Sol xhigh. DeepSec rows retain localized-recall semantics, while the other model/security runners use endpoint-aware attacker-reachable recall.
 
-Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 198 compatible runs with `pnpm run benchmark:v2 -- --dry-run`. Config-level `supportedCategories` removes incompatible pairs before preflight, so V2 security-review profiles never run against fix tasks.
+Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 220 compatible runs with `pnpm run benchmark:v2 -- --dry-run`. Config-level `supportedCategories` removes incompatible pairs before preflight, so V2 security-review profiles never run against fix tasks.
 
-This remains an intentionally expensive command: three Codex Security profiles alone imply 54 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 198 runs.
+This remains an intentionally expensive command: three Codex Security profiles alone imply 60 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 220 runs.
 
 Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
 
@@ -763,6 +763,7 @@ Each entry in `evals/run-configs.json` is a general coding-agent config, a gener
 | `thinking` | No | `ThinkingConfig` | Extended thinking mode. Defaults to `{ "type": "adaptive" }`. Options: `{ "type": "adaptive" }`, `{ "type": "enabled", "budgetTokens": N }`, `{ "type": "disabled" }`. |
 | `promptTemplateId` | No | `"default"` \| `"snyk-mcp"` \| `"security-review"` | User-prompt selection. `"default"` preserves the task prompt, `"snyk-mcp"` appends a required Snyk Code MCP scan, and Claude-only `"security-review"` replaces the user prompt with `/security-review`. |
 | `requiredToolPolicyId` | No | `"snyk-code-once"` | Appends Snyk guidance and enforces exactly one Snyk Code MCP invocation. |
+| `gateway` | No | `"litellm"` | Routes the model through the validated LiteLLM proxy contract. |
 | `supportedCategories` | No | `EvalCategoryId[]` | Restricts scheduling before preflight; canonical V2 model configs use only `attacker-reachable-find-vulns`. |
 | `maxTurns` | No | `number` | Max conversation turns for this config. Overridden per-task by the task's `maxTurns` if set. |
 | `timeoutMs` | No | `number` | Parent-process wall-clock deadline for CLI-backed agents. |
@@ -791,6 +792,7 @@ Command configs only support find-vulns tasks. They produce `"runConfigType": "c
 | `agent` | Yes | `"codex"` \| `"claude"` | DeepSec backend; must match the configured model/provider. |
 | `model` | Yes | `string` | Explicit OpenAI model slug. |
 | `thinkingLevel` | Yes | `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` | DeepSec reasoning control. |
+| `gateway` | No | `"litellm"` | Uses the shared token with the agent's Anthropic or OpenAI protocol route. |
 | `maxTurns` | No | `number` | Maximum turns per DeepSec batch. |
 | `batchSize` / `concurrency` | No | `number` | DeepSec processing controls. |
 | `limit` | No | `number` | Optional file cap for smoke testing. Omit for scored full runs. |
@@ -805,13 +807,44 @@ Command configs only support find-vulns tasks. They produce `"runConfigType": "c
 | `model` | Yes | `string` | Explicit OpenAI model slug. |
 | `effort` | Yes | `"minimal"` \| `"low"` \| `"medium"` \| `"high"` \| `"xhigh"` \| `"max"` | Codex Security reasoning effort. |
 | `mode` | No | `"standard"` | Full-repository standard mode; deep mode is intentionally excluded. |
-| `auth` | No | `"api-key"` | Noninteractive canonical `OPENAI_API_KEY` authentication. |
+| `auth` | No | `"api-key"` | Noninteractive mode; LiteLLM profiles derive the package's child-only compatibility key from `ANTHROPIC_AUTH_TOKEN`. |
+| `gateway` | No | `"litellm"` | Configures the named LiteLLM Responses provider. |
 | `maxCostUsd` | No | positive `number` | Optional ad-hoc estimated scan-cost ceiling; canonical V2 profiles omit it. |
 | `timeoutMs` | No | `number` | Optional paid-scan deadline; model-free dry runs remain bounded. |
 
 **Note on repetitions:** The `--repetitions N` CLI flag controls how many times each (task, config) pair is executed. This is intentionally a run-time concern (how many times to execute) rather than a config property (what to execute), so it does not appear in `run-configs.json`. See [`docs/benchmark.md` — Repetitions](./benchmark.md#repetitions) for details.
 
 For one-off Claude Code diagnostics, pass `--trace-agent`. This opt-in flag writes bounded JSONL traces under `results/agent-traces/`, including the resolved prompts, SDK initialization and slash-command inventory, visible assistant messages, tool calls/results, and Claude Code debug stderr. Credential-shaped fields are redacted and thinking blocks are deliberately omitted, but source code and model-visible tool output are retained; treat traces as sensitive development artifacts. Normal benchmark runs do not create them.
+
+### LiteLLM gateway configuration
+
+Canonical V2 model and security-harness profiles declare `"gateway": "litellm"` and require these ignored root `.env` values:
+
+```dotenv
+ANTHROPIC_BASE_URL=https://proxy.example
+ANTHROPIC_AUTH_TOKEN=<virtual-or-gateway-token>
+ENABLE_TOOL_SEARCH=true
+```
+
+Use the proxy origin without `/v1`, `/anthropic`, query parameters, fragments, or embedded credentials. The harness validates HTTPS and derives protocol routes:
+
+- Claude Code and DeepSec Claude: `<origin>/v1/messages` through the Anthropic-compatible client.
+- Codex Security and DeepSec Codex: `<origin>/v1/responses` through an OpenAI Responses-compatible provider.
+
+LiteLLM profiles remove direct Anthropic/OpenAI keys and Claude OAuth fallback from child environments. The token is passed only through environment variables; it is never written into generated provider configuration, command arguments, traces, results, or error messages. Snyk MCP credentials remain separate and are forwarded only to the selected Snyk server.
+
+Validate routing without a benchmark run:
+
+```bash
+pnpm run smoke:litellm -- --target claude
+pnpm run smoke:litellm -- --target codex-security
+pnpm run smoke:litellm -- --target deepsec-claude
+pnpm run smoke:litellm -- --target deepsec-codex
+```
+
+The smoke script uses disposable state, low/minimal effort, fixed markers where supported, and bounded redacted errors. Do not combine credential smoke testing with `--trace-agent`.
+
+For implementation details and bug diagnosis, see [`docs/litellm-integration.md`](./litellm-integration.md).
 
 ### MCPServerConfig fields
 

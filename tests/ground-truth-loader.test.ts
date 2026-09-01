@@ -81,11 +81,11 @@ test("task loading defaults V1 and opts attacker-reachable tasks into V2", () =>
   );
 
   assert.equal(v1?.groundTruth, "v1");
-  assert.equal(v2Tasks.length, 18);
+  assert.equal(v2Tasks.length, 20);
   assert.ok(v2Tasks.every((task) => task.groundTruth === "attacker-reachable"));
   assert.deepEqual(
     v2Tasks.map((task) => task.knownVulns.length).sort((a, b) => a - b),
-    [2, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 10],
+    [2, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 7, 7, 7, 10],
   );
 });
 

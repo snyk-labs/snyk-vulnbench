@@ -14,6 +14,7 @@
     "benchmark:v2:snyk": "tsx src/index.ts --category attacker-reachable-find-vulns --config snyk-code --repetitions 1",
     "benchmark:v2:codex-security": "tsx src/index.ts --category attacker-reachable-find-vulns --config codex-security-sol-xhigh --repetitions 1",
     "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
+    "smoke:litellm": "tsx scripts/smoke-litellm.ts",
     "test": "tsx --test tests/*.test.ts",
     "report:serve": "serve",
     "//report:serve example": "pnpm report:serve public/2026-05-14-wpq2k",

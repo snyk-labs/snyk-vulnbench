@@ -1190,7 +1190,7 @@ DeepSec exports `vulnSlug`, `filePath`, and `lineNumbers`, but not source/sink r
 
 The `codex-security-cli` adapter invokes pinned `@openai/codex-security` in standard, report-only, full-repository mode. This is the same opinionated scanner distributed through the Codex Security plugin, exposed through a repeatable CLI contract rather than probabilistic plugin invocation by the general Codex agent.
 
-Before any paid request, the adapter creates a Git snapshot, proves Landlock containment, and runs the scanner's model-free dry run. The paid process receives a reduced environment with only canonical `OPENAI_API_KEY`; Codex homes, scanner history, temporary files, and output all live in the disposable run workspace. The original fixture and its answer keys are never exposed.
+Before any paid request, the adapter creates a Git snapshot, proves Landlock containment, and runs the scanner's model-free dry run. Canonical profiles configure a named LiteLLM Responses provider at `<ANTHROPIC_BASE_URL>/v1` using `ANTHROPIC_AUTH_TOKEN`; a child-only compatibility alias satisfies Codex Security's outer auth gate. Codex homes, scanner history, temporary files, and output all live in the disposable run workspace. The original fixture and its answer keys are never exposed.
 
 The parser consumes only the sealed current-scan `findings` document. It maps rule/category/CWE identifiers to conservative vulnerability types and maps documented `entrypoint`/`source` roles to sources and `sink`/`root_control`/`concrete_implementation` roles to sinks. Unknown roles remain intermediate evidence. Therefore V2 uses the standard attacker-reachable scorer and produces the same endpoint diagnostics and score suite as other endpoint-capable participants.
 
@@ -1204,6 +1204,14 @@ Raw run metrics additionally retain:
 A sealed partial scan is scored and labeled `coverage: partial`; a missing, unsealed, or incompatible findings/coverage contract is a run error. Codex Security is find-only and intentionally excludes deep mode, custom prompts, scan history, patching, publication, and MCP variants from the baseline configuration. Canonical Luna, Terra, and Sol xhigh profiles omit cost and paid-scan wall-time ceilings; model-free preflight remains bounded.
 
 The initial end-to-end validation on 2026-08-30 used Codex Security 0.1.24 (bundled plugin 0.1.79), GPT-5.6 Sol xhigh, and the Goxygen V2 fixture. After pruning git-ignored dependencies from the disposable scan copy, coverage was complete with no deferred or excluded surfaces. The run found 5 of 6 curated vulnerabilities (83% attacker-reachable recall, 50% precision), consumed 18,654,114 logical-plus-output tokens, cost $13.2155, and completed in 797.6 seconds. That validation used a temporary $50 fail-safe ceiling; canonical production profiles now rely on monitoring without a hard stop.
+
+### LiteLLM routing for canonical V2 agents
+
+Canonical Claude Code, Codex Security, and DeepSec profiles use one validated gateway contract from the ignored root `.env`: `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, and optional `ENABLE_TOOL_SEARCH`. The configured URL is an HTTPS origin. Claude-shaped clients use its Messages route; Codex-shaped clients use the derived `/v1/responses` route.
+
+Each runner constructs a reduced child environment and removes direct Anthropic/OpenAI credentials and stored Claude OAuth fallback. Provider configuration contains only the proxy origin and token environment-variable name—never the token value. Snyk credentials are resolved separately only for MCP-enabled configs. `pnpm run smoke:litellm` validates the four runtime paths without running benchmark tasks or retaining session artifacts.
+
+See [`docs/litellm-integration.md`](./litellm-integration.md) for the complete environment flow, per-runner provider configuration, smoke-test behavior, security constraints, troubleshooting, and change checklist.
 
 ---
 
@@ -2100,7 +2108,7 @@ pnpm run benchmark -- --category fix-vulns
 
 # Shorthand scripts for common categories
 pnpm run benchmark:find    # equivalent to --category find-vulns
-pnpm run benchmark:v2      # canonical V2 matrix: 18 tasks × 11 configs × 1 rep
+pnpm run benchmark:v2      # canonical V2 matrix: 20 tasks × 11 configs × 1 rep
 pnpm run benchmark:v2:snyk # VulnBench 2.0 tasks with Snyk Code only
 pnpm benchmark -- --config-group default --dry-run
 pnpm benchmark -- --all-configs --dry-run

@@ -7,6 +7,12 @@ import {
   findingsOutputSchema,
   serializeFindingsToFinalText,
 } from "./findings-output.js";
+import {
+  createClaudeLiteLlmEnvironment,
+  redactLiteLlmError,
+  resolveLiteLlmConnection,
+  type LiteLlmConnection,
+} from "./runners/litellm.js";
 import { resolvePromptTemplate } from "./prompt-templates.js";
 import type {
   EvalTask,
@@ -192,6 +198,7 @@ export async function runTask(
   let finalText = "";
   let findings: FindingRecord[] | undefined;
   let trace: { path: string; write: TraceWriter } | null = null;
+  let liteLlmConnection: LiteLlmConnection | undefined;
 
   // PreToolUse hook: record start time
   const preToolHook: HookCallback = async (input) => {
@@ -260,8 +267,17 @@ export async function runTask(
       ? undefined
       : config.effort ?? "high";
     const thinking = config.thinking ?? { type: "adaptive" as const };
-    const benchmarkEnv = process.env;
-    const mcpServers = resolveMcpServers(config.mcpServers, benchmarkEnv);
+    const sourceEnvironment = process.env;
+    const mcpServers = resolveMcpServers(config.mcpServers, sourceEnvironment);
+    liteLlmConnection = config.gateway === "litellm"
+      ? resolveLiteLlmConnection(sourceEnvironment)
+      : undefined;
+    const benchmarkEnv = config.gateway === "litellm"
+      ? createClaudeLiteLlmEnvironment(
+          sourceEnvironment,
+          join(dirname(cwd), "state", "claude-config"),
+        )
+      : sourceEnvironment;
     const prompt = resolvePromptTemplate(
       task.prompt,
       config.promptTemplateId,
@@ -321,7 +337,7 @@ export async function runTask(
           debug: true,
           stderr: (data: string) => activeTrace.write({
             type: "sdk_stderr",
-            data,
+            data: redactLiteLlmError(data, liteLlmConnection),
           }),
         }),
         hooks: {
@@ -446,12 +462,13 @@ export async function runTask(
     }
     trace?.write({ type: "trace_end", status: "success", finalText });
   } catch (err) {
-    trace?.write({ type: "trace_end", status: "error", error: String(err), finalText });
+    const error = redactLiteLlmError(err, liteLlmConnection);
+    trace?.write({ type: "trace_end", status: "error", error, finalText });
     return {
       finalText,
       ...(findings && { findings }),
       metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
-      error: String(err),
+      error,
     };
   }
 

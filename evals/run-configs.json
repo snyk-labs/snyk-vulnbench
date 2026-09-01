@@ -32,6 +32,7 @@
     "name": "Claude Sonnet 5 Medium + Security Review",
     "model": "claude-sonnet-5",
     "effort": "medium",
+    "gateway": "litellm",
     "promptTemplateId": "security-review",
     "maxTurns": 30,
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -41,6 +42,7 @@
     "name": "Claude Sonnet 5 XHigh + Security Review",
     "model": "claude-sonnet-5",
     "effort": "xhigh",
+    "gateway": "litellm",
     "promptTemplateId": "security-review",
     "maxTurns": 30,
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -50,6 +52,7 @@
     "name": "Claude Opus 5 Medium + Security Review",
     "model": "claude-opus-5",
     "effort": "medium",
+    "gateway": "litellm",
     "promptTemplateId": "security-review",
     "maxTurns": 30,
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -59,6 +62,7 @@
     "name": "Claude Opus 5 XHigh + Security Review",
     "model": "claude-opus-5",
     "effort": "xhigh",
+    "gateway": "litellm",
     "promptTemplateId": "security-review",
     "maxTurns": 30,
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -68,6 +72,7 @@
     "name": "Claude Opus 5 Medium + Security Review + Snyk MCP",
     "model": "claude-opus-5",
     "effort": "medium",
+    "gateway": "litellm",
     "promptTemplateId": "security-review",
     "requiredToolPolicyId": "snyk-code-once",
     "maxTurns": 30,
@@ -141,6 +146,7 @@
     "name": "Codex Security GPT-5.6 Luna XHigh",
     "model": "gpt-5.6-luna",
     "effort": "xhigh",
+    "gateway": "litellm",
     "mode": "standard",
     "auth": "api-key",
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -151,6 +157,7 @@
     "name": "Codex Security GPT-5.6 Terra XHigh",
     "model": "gpt-5.6-terra",
     "effort": "xhigh",
+    "gateway": "litellm",
     "mode": "standard",
     "auth": "api-key",
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -161,6 +168,7 @@
     "name": "Codex Security GPT-5.6 Sol XHigh",
     "model": "gpt-5.6-sol",
     "effort": "xhigh",
+    "gateway": "litellm",
     "mode": "standard",
     "auth": "api-key",
     "supportedCategories": ["attacker-reachable-find-vulns"]
@@ -184,6 +192,7 @@
     "agent": "claude",
     "model": "claude-opus-5",
     "thinkingLevel": "xhigh",
+    "gateway": "litellm",
     "maxTurns": 30,
     "batchSize": 5,
     "concurrency": 1,
@@ -196,6 +205,7 @@
     "agent": "codex",
     "model": "gpt-5.6-sol",
     "thinkingLevel": "xhigh",
+    "gateway": "litellm",
     "maxTurns": 30,
     "batchSize": 5,
     "concurrency": 1,
