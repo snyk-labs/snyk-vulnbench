@@ -39,8 +39,9 @@ export function isIsolatedBenchmarkWorker(
  * exit status. The current process is intentionally only a bootstrapper.
  */
 export async function runInIsolatedBenchmarkWorker(): Promise<void> {
-  const child = spawn("pnpm", [
-    "exec",
+  const detached = process.platform !== "win32";
+  const child = spawn(process.execPath, [
+    "--import",
     "tsx",
     process.argv[1],
     ...process.argv.slice(2),
@@ -50,14 +51,33 @@ export async function runInIsolatedBenchmarkWorker(): Promise<void> {
       ...createBenchmarkEnvironment(),
       [ISOLATED_WORKER_ENV]: "1",
     },
+    detached,
     stdio: "inherit",
   });
+  const forwardSignal = (signal: NodeJS.Signals) => {
+    if (!child.pid) return;
+    try {
+      if (detached) process.kill(-child.pid, signal);
+      else child.kill(signal);
+    } catch {
+      // Worker already exited.
+    }
+  };
+  const onSigint = () => forwardSignal("SIGINT");
+  const onSigterm = () => forwardSignal("SIGTERM");
+  process.on("SIGINT", onSigint);
+  process.on("SIGTERM", onSigterm);
 
-  const exitCode = await new Promise<number>((resolveExit, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code, signal) => {
-      resolveExit(code ?? (signal ? 1 : 0));
+  try {
+    const exitCode = await new Promise<number>((resolveExit, reject) => {
+      child.once("error", reject);
+      child.once("exit", (code, signal) => {
+        resolveExit(code ?? (signal ? 1 : 0));
+      });
     });
-  });
-  process.exitCode = exitCode;
+    process.exitCode = exitCode;
+  } finally {
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
+  }
 }
