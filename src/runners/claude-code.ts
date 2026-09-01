@@ -24,7 +24,7 @@ export const claudeCodeRunner: BenchmarkRunner = {
     const prompt = modelConfig.promptTemplateId ?? DEFAULT_PROMPT_TEMPLATE_ID;
     return `${modelConfig.model} (effort: ${effort}, thinking: ${thinking}, prompt: ${prompt})`;
   },
-  run({ task, config, cwd }: RunnerContext) {
-    return runTask(task, config as ModelRunConfig, cwd);
+  run({ task, config, cwd, abortController }: RunnerContext) {
+    return runTask(task, config as ModelRunConfig, cwd, abortController);
   },
 };

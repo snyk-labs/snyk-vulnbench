@@ -14,6 +14,7 @@ import {
   type LiteLlmConnection,
 } from "./runners/litellm.js";
 import { resolvePromptTemplate } from "./prompt-templates.js";
+import { classifyRunFailure } from "./run-failure.js";
 import type {
   EvalTask,
   FindingRecord,
@@ -175,6 +176,7 @@ export async function runTask(
   task: EvalTask,
   config: ModelRunConfig,
   cwd: string,
+  abortController = new AbortController(),
 ): Promise<RunOutput> {
   const toolCalls: ToolCallRecord[] = [];
   const toolStartTimes = new Map<string, number>();
@@ -304,6 +306,7 @@ export async function runTask(
     for await (const message of query({
       prompt,
       options: {
+        abortController,
         cwd,
         model: config.model,
         env: benchmarkEnv,
@@ -464,10 +467,12 @@ export async function runTask(
   } catch (err) {
     const error = redactLiteLlmError(err, liteLlmConnection);
     trace?.write({ type: "trace_end", status: "error", error, finalText });
+    const metrics = buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry });
     return {
       finalText,
       ...(findings && { findings }),
-      metrics: buildMetrics({ sessionStart, accInputTokens, accOutputTokens, accCacheReadTokens, accCacheCreationTokens, accTurns, resultUsage, resultCostUsd, resultNumTurns, toolCalls, filesScannedSet, mcpTelemetry }),
+      metrics,
+      failure: classifyRunFailure(error, metrics),
       error,
     };
   }

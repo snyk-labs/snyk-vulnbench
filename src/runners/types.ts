@@ -13,6 +13,7 @@ export interface RunnerContext {
   config: RunConfig;
   cwd: string;
   workspace: IsolatedWorkspace;
+  abortController: AbortController;
 }
 
 /**

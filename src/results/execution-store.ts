@@ -14,6 +14,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
 import type {
   ExecutionManifest,
+  ExecutionBudgets,
   ExecutionProgress,
   ExecutionRunRecord,
   ExecutionRunStatus,
@@ -48,6 +49,7 @@ export interface BuildExecutionManifestInput {
   configSnapshots: Record<string, unknown>;
   now?: Date;
   shortId?: string;
+  budgets?: ExecutionBudgets;
 }
 
 export function buildExecutionManifest(
@@ -60,9 +62,11 @@ export function buildExecutionManifest(
   const executionId = `${createdAt.slice(0, 10).replaceAll("-", "")}-${codename}-${shortId}`;
   const taskSnapshots = redactSecrets(input.taskSnapshots) as Record<string, unknown>;
   const configSnapshots = redactSecrets(input.configSnapshots) as Record<string, unknown>;
+  const budgets = input.budgets ?? {};
   const planMaterial = {
     selection: input.selection,
     source: input.source,
+    budgets,
     plannedRuns: input.plannedRuns,
     taskSnapshots,
     configSnapshots,
@@ -88,6 +92,7 @@ export function buildExecutionManifest(
     argv: redactArgv(input.argv),
     selection: input.selection,
     source: input.source,
+    budgets,
     planFingerprint,
     plannedRuns,
     taskSnapshots,

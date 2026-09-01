@@ -57,6 +57,7 @@ export async function runDeepSecTask({
   config,
   cwd,
   workspace,
+  abortController,
 }: RunnerContext): Promise<RunOutput> {
   const deepsec = config as DeepSecRunConfig;
   const sessionStart = Date.now();
@@ -154,6 +155,7 @@ export async function runDeepSecTask({
       },
       timeoutMs,
       maxOutputBytes: 50 * 1024 * 1024,
+      signal: abortController.signal,
     });
     recordStage(toolCalls, tool, result, args);
     if (result.exitCode !== 0) {

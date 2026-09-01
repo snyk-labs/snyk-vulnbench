@@ -13,6 +13,7 @@ export interface ProcessExecutionOptions {
   maxOutputBytes?: number;
   terminationGraceMs?: number;
   onStdoutChunk?: (chunk: string, receivedAt: number) => void;
+  signal?: AbortSignal;
 }
 
 export interface ProcessExecutionResult {
@@ -69,6 +70,17 @@ export function executeProcess(
       );
       killTimer.unref();
     };
+    const abort = () => {
+      if (terminalError) return;
+      terminalError = new ProcessExecutionError(
+        "Process aborted by benchmark controller",
+        stdout,
+        stderr,
+      );
+      terminate();
+    };
+    options.signal?.addEventListener("abort", abort, { once: true });
+    if (options.signal?.aborted) abort();
 
     const capture = (target: "stdout" | "stderr", chunk: Buffer) => {
       if (terminalError) return;
@@ -107,6 +119,7 @@ export function executeProcess(
     timeout?.unref();
 
     child.once("error", (error) => {
+      options.signal?.removeEventListener("abort", abort);
       if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       reject(
@@ -119,6 +132,7 @@ export function executeProcess(
     });
 
     child.once("exit", (exitCode, signal) => {
+      options.signal?.removeEventListener("abort", abort);
       if (timeout) clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       if (terminalError) {

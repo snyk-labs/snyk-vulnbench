@@ -20,7 +20,12 @@ export const snykCommandRunner: BenchmarkRunner = {
       : commandConfig.command;
     return `[sast] ${invocation}`;
   },
-  run({ task, config, cwd }: RunnerContext) {
-    return runCommandTask(task, config as CommandRunConfig, cwd);
+  run({ task, config, cwd, abortController }: RunnerContext) {
+    return runCommandTask(
+      task,
+      config as CommandRunConfig,
+      cwd,
+      abortController.signal,
+    );
   },
 };

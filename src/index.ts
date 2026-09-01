@@ -38,9 +38,10 @@ import {
   readExecutionManifest,
   resolveExecutionDirectory,
 } from "./results/execution-store.js";
+import { classifyRunFailure, shouldPauseAfterFailure } from "./run-failure.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
-import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, RunConfigGroup, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
+import type { BenchmarkMetrics, EvalCategoryId, EvalResult, EvalTask, RunConfig, RunConfigGroup, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, FixVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
@@ -67,6 +68,10 @@ function parseArgs() {
     status?: string;
     retryFailed: boolean;
     retryInterrupted: boolean;
+    continueOnError: boolean;
+    maxCostUsd?: number;
+    maxTokens?: number;
+    maxRunTimeMs?: number;
   } = {
     allConfigs: false,
     dryRun: false,
@@ -74,6 +79,7 @@ function parseArgs() {
     traceAgent: false,
     retryFailed: false,
     retryInterrupted: false,
+    continueOnError: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -103,6 +109,16 @@ function parseArgs() {
     else if (args[i] === "--status" && args[i + 1]) opts.status = args[++i];
     else if (args[i] === "--retry-failed") opts.retryFailed = true;
     else if (args[i] === "--retry-interrupted") opts.retryInterrupted = true;
+    else if (args[i] === "--continue-on-error") opts.continueOnError = true;
+    else if (args[i] === "--max-execution-cost-usd" && args[i + 1]) {
+      opts.maxCostUsd = positiveNumber(args[++i], "--max-execution-cost-usd");
+    }
+    else if (args[i] === "--max-execution-tokens" && args[i + 1]) {
+      opts.maxTokens = positiveNumber(args[++i], "--max-execution-tokens");
+    }
+    else if (args[i] === "--max-run-time-ms" && args[i + 1]) {
+      opts.maxRunTimeMs = positiveNumber(args[++i], "--max-run-time-ms");
+    }
   }
   const selectors = Number(Boolean(opts.configs))
     + Number(Boolean(opts.configGroup))
@@ -115,8 +131,18 @@ function parseArgs() {
     console.error("--resume cannot be combined with config selectors");
     process.exit(1);
   }
-  if (opts.resume && (opts.category || opts.tasks || opts.repetitions)) {
-    console.error("--resume uses the frozen manifest and cannot change tasks, category, or repetitions");
+  if (
+    opts.resume
+    && (
+      opts.category
+      || opts.tasks
+      || opts.repetitions
+      || opts.maxCostUsd
+      || opts.maxTokens
+      || opts.maxRunTimeMs
+    )
+  ) {
+    console.error("--resume uses the frozen manifest and cannot change selection or budgets");
     process.exit(1);
   }
   if (opts.status && process.argv.slice(2).some((arg) => arg !== "--status" && arg !== opts.status)) {
@@ -128,6 +154,15 @@ function parseArgs() {
     process.exit(1);
   }
   return opts;
+}
+
+function positiveNumber(value: string, flag: string): number {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) {
+    console.error(`${flag} must be a positive number, got "${value}"`);
+    process.exit(1);
+  }
+  return number;
 }
 
 // ─── Task Runner ──────────────────────────────────────────────────────────────
@@ -143,6 +178,38 @@ function emptyFindVulnsDetails(task: EvalTask): FindVulnsDetails {
     bySeverity[v.severity].total++;
   }
   return { agentFindings: [], truePositives: [], falsePositives: [], falseNegatives, precision: 0, recall: 0, byType, bySeverity };
+}
+
+function emptyMetrics(): BenchmarkMetrics {
+  return {
+    sessionDurationMs: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalCacheReadTokens: 0,
+    totalCacheCreationTokens: 0,
+    totalLogicalInputTokens: 0,
+    totalCostUsd: null,
+    totalTurns: 0,
+    toolCalls: [],
+    toolStats: {},
+    filesScanned: [],
+    mcp: {
+      configuredServers: [],
+      serverStatuses: [],
+      advertisedToolCount: 0,
+      toolStats: {},
+    },
+  };
+}
+
+function emptyDetails(task: EvalTask): FindVulnsDetails | FixVulnsDetails {
+  return task.category.id === EVAL_CATEGORIES.FIX_VULNS.id
+    ? {
+      vulnsAttempted: task.knownVulns.length,
+      vulnsFixed: 0,
+      judgeNotes: "Execution failed before fix judging completed",
+    }
+    : emptyFindVulnsDetails(task);
 }
 
 function primaryMetricForTask(
@@ -161,7 +228,11 @@ function primaryMetricForTask(
     : "f1";
 }
 
-async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
+async function runEval(
+  task: EvalTask,
+  config: RunConfig,
+  abortController: AbortController,
+): Promise<EvalResult> {
   const timestamp = new Date().toISOString();
   const runner = getRunner(config);
   const isCommand = runner.kind === "command";
@@ -212,17 +283,22 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
   };
 
   if (!runner.capabilities.fixVulns && task.category.id === EVAL_CATEGORIES.FIX_VULNS.id) {
+    const failure = classifyRunFailure(
+      `Runner "${runner.id}" does not support fix-vulns tasks`,
+    );
     return {
       ...base,
       score: 0,
-      metrics: { sessionDurationMs: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCacheReadTokens: 0, totalCacheCreationTokens: 0, totalLogicalInputTokens: 0, totalCostUsd: null, totalTurns: 0, toolCalls: [], toolStats: {}, filesScanned: [], mcp: { configuredServers: [], serverStatuses: [], advertisedToolCount: 0, toolStats: {} } },
-      details: emptyFindVulnsDetails(task),
-      error: `Runner "${runner.id}" does not support fix-vulns tasks`,
+      metrics: emptyMetrics(),
+      details: emptyDetails(task),
+      failure,
+      error: failure.message,
     };
   }
 
   const workspace = createIsolatedWorkspace(task.fixture);
   const cwd = workspace.projectDir;
+  let latestMetrics = emptyMetrics();
 
   try {
     if (
@@ -231,20 +307,24 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
     ) {
       prepareSecurityReviewGitWorkspace(cwd);
     }
-    const { finalText, findings, metrics, error } = await runner.run({
+    const { finalText, findings, metrics, failure, error } = await runner.run({
       task,
       config,
       cwd,
       workspace,
+      abortController,
     });
+    latestMetrics = metrics;
 
-    if (error) {
+    if (failure || error) {
+      const normalizedFailure = failure ?? classifyRunFailure(error, metrics);
       return {
         ...base,
         score: 0,
         metrics,
-        details: emptyFindVulnsDetails(task),
-        error,
+        details: emptyDetails(task),
+        failure: normalizedFailure,
+        error: normalizedFailure.message,
       };
     }
 
@@ -262,6 +342,16 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
       const score = fixVulnsScore(details);
       return { ...base, score, metrics, details };
     }
+  } catch (error) {
+    const failure = classifyRunFailure(error, latestMetrics);
+    return {
+      ...base,
+      score: 0,
+      metrics: latestMetrics,
+      details: emptyDetails(task),
+      failure,
+      error: failure.message,
+    };
   } finally {
     workspace.cleanup();
   }
@@ -413,8 +503,34 @@ async function main() {
       repetitions,
       selectedGroup,
       selectedCategory,
+      budgets: {
+        ...(opts.maxCostUsd !== undefined && { maxCostUsd: opts.maxCostUsd }),
+        ...(opts.maxTokens !== undefined && { maxTokens: opts.maxTokens }),
+        ...(opts.maxRunTimeMs !== undefined && { maxRunTimeMs: opts.maxRunTimeMs }),
+      },
     });
   const lock = acquireExecutionLock(execution.executionDir);
+  let pauseRequested = false;
+  let pauseReason: string | undefined;
+  let interruptCount = 0;
+  let activeAbortController: AbortController | undefined;
+  const onSigint = () => {
+    interruptCount++;
+    pauseRequested = true;
+    pauseReason = interruptCount === 1
+      ? "SIGINT received; pausing after the active run"
+      : "Second SIGINT received; aborting the active run";
+    console.log(`\n${pauseReason}`);
+    if (interruptCount > 1) activeAbortController?.abort();
+  };
+  const onSigterm = () => {
+    pauseRequested = true;
+    pauseReason = "SIGTERM received; aborting the active run";
+    console.log(`\n${pauseReason}`);
+    activeAbortController?.abort();
+  };
+  process.on("SIGINT", onSigint);
+  process.on("SIGTERM", onSigterm);
   try {
     if (opts.resume) {
       reconcileInterruptedRuns(execution.executionDir);
@@ -427,17 +543,18 @@ async function main() {
         compatibleTasks,
         repetitions,
         selectedCategory,
+        budgets: execution.manifest.budgets,
       });
       execution = checkpointExecution(execution.executionDir, RESULTS_DIR);
     }
     console.log(`\nExecution bundle: ${execution.executionDir}`);
     if (opts.traceAgent || execution.manifest.argv.includes("--trace-agent")) {
-    process.env[AGENT_TRACE_DIR_ENV] = resolve(
-      execution.executionDir,
-      "artifacts",
-      "traces",
-    );
-    console.log(`Agent tracing enabled: ${process.env[AGENT_TRACE_DIR_ENV]}`);
+      process.env[AGENT_TRACE_DIR_ENV] = resolve(
+        execution.executionDir,
+        "artifacts",
+        "traces",
+      );
+      console.log(`Agent tracing enabled: ${process.env[AGENT_TRACE_DIR_ENV]}`);
     }
 
     const records = new Map(
@@ -445,6 +562,14 @@ async function main() {
     );
     let activeConfigId: string | undefined;
     for (const spec of execution.manifest.plannedRuns) {
+      const beforeRunBudget = executionBudgetReason(
+        execution.progress,
+        execution.manifest.budgets,
+      );
+      if (pauseRequested || beforeRunBudget) {
+        pauseReason ??= beforeRunBudget;
+        break;
+      }
       const existing = records.get(spec.runKey);
       const runnable = !existing
         || (existing.status === "failed" && opts.retryFailed)
@@ -473,13 +598,42 @@ async function main() {
         execution.manifest.plannedRuns.length,
       );
       const record = beginExecutionRun(execution.executionDir, spec);
-      const result = await runEval(task, config);
+      activeAbortController = new AbortController();
+      const runTimeLimit = minimumDefined(
+        execution.manifest.budgets.maxRunTimeMs,
+        "timeoutMs" in config ? config.timeoutMs : undefined,
+      );
+      const timeout = runTimeLimit === undefined
+        ? undefined
+        : setTimeout(() => {
+          pauseRequested = true;
+          pauseReason = `Run exceeded ${runTimeLimit}ms time budget`;
+          activeAbortController?.abort();
+        }, runTimeLimit);
+      timeout?.unref();
+      const result = await runEval(task, config, activeAbortController);
+      if (timeout) clearTimeout(timeout);
+      activeAbortController = undefined;
       result.repetition = spec.repetition;
       result.totalRepetitions = spec.totalRepetitions;
       printResult(result);
       const finished = finishExecutionRun(execution.executionDir, record, result);
       records.set(spec.runKey, finished);
       execution = checkpointExecution(execution.executionDir, RESULTS_DIR);
+      const failure = finished.attempts.at(-1)?.failure;
+      if (
+        failure
+        && !opts.continueOnError
+        && shouldPauseAfterFailure(failure)
+      ) {
+        pauseRequested = true;
+        pauseReason = `${failure.kind} failure: ${failure.message}`;
+      }
+      pauseReason ??= executionBudgetReason(
+        execution.progress,
+        execution.manifest.budgets,
+      );
+      if (pauseReason) pauseRequested = true;
     }
 
     const taskAggregates = aggregateByTask(execution.results);
@@ -487,10 +641,17 @@ async function main() {
 
     printSummaryTable(execution.results, taskAggregates, configAggregates);
     printExecutionStatus(execution.progress);
+    if (pauseRequested) {
+      console.log(`  Paused: ${pauseReason ?? "operator request"}`);
+      console.log(`  Resume: pnpm tsx src/index.ts --resume ${execution.manifest.executionId}`);
+    }
 
     console.log(`Results saved to: ${execution.executionDir}`);
     console.log(`Compatibility JSONL: ${execution.compatibilityJsonlPath}\n`);
   } finally {
+    process.off("SIGINT", onSigint);
+    process.off("SIGTERM", onSigterm);
+    activeAbortController?.abort();
     lock.release();
   }
 }
@@ -520,6 +681,28 @@ function compatibleTasksFromManifest(
     )];
     return [config.id, resolveIds(taskIds, tasks, "task")];
   }));
+}
+
+function executionBudgetReason(
+  progress: ReturnType<typeof checkpointExecution>["progress"],
+  budgets: ReturnType<typeof readExecutionManifest>["budgets"],
+): string | undefined {
+  const observedTokens = progress.observedUsage.logicalInputTokens
+    + progress.observedUsage.outputTokens;
+  if (budgets.maxCostUsd !== undefined && progress.observedUsage.costUsd >= budgets.maxCostUsd) {
+    return `Execution reached the $${budgets.maxCostUsd.toFixed(2)} observed cost budget`;
+  }
+  if (budgets.maxTokens !== undefined && observedTokens >= budgets.maxTokens) {
+    return `Execution reached the ${budgets.maxTokens.toLocaleString()} observed token budget`;
+  }
+  return undefined;
+}
+
+function minimumDefined(
+  ...values: Array<number | undefined>
+): number | undefined {
+  const defined = values.filter((value): value is number => value !== undefined);
+  return defined.length > 0 ? Math.min(...defined) : undefined;
 }
 
 if (isIsolatedBenchmarkWorker()) {

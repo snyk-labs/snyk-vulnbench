@@ -3,6 +3,7 @@ import type {
   AggregatedTaskResult,
   BenchmarkMetrics,
   EvalResult,
+  RunFailure,
 } from "../types.js";
 
 export const EXECUTION_SCHEMA_VERSION = 1 as const;
@@ -26,25 +27,6 @@ export type AttemptStatus =
   | "succeeded"
   | "failed"
   | "interrupted-uncertain";
-
-export type FailureKind =
-  | "quota"
-  | "rate-limit"
-  | "authentication"
-  | "gateway"
-  | "timeout"
-  | "interrupted"
-  | "invalid-output"
-  | "scoring"
-  | "runner"
-  | "unknown";
-
-export interface ExecutionFailure {
-  kind: FailureKind;
-  message: string;
-  retryable: boolean;
-  systemic: boolean;
-}
 
 export interface PlannedExecutionRun {
   runKey: string;
@@ -74,6 +56,12 @@ export interface ExecutionSelectionSnapshot {
   repetitions: number;
 }
 
+export interface ExecutionBudgets {
+  maxCostUsd?: number;
+  maxTokens?: number;
+  maxRunTimeMs?: number;
+}
+
 export interface ExecutionManifest {
   schemaVersion: typeof EXECUTION_SCHEMA_VERSION;
   executionId: string;
@@ -82,6 +70,7 @@ export interface ExecutionManifest {
   argv: string[];
   selection: ExecutionSelectionSnapshot;
   source: ExecutionSourceSnapshot;
+  budgets: ExecutionBudgets;
   planFingerprint: string;
   plannedRuns: PlannedExecutionRun[];
   taskSnapshots: Record<string, unknown>;
@@ -94,7 +83,7 @@ export interface ExecutionAttempt {
   startedAt: string;
   completedAt?: string;
   metrics?: BenchmarkMetrics;
-  failure?: ExecutionFailure;
+  failure?: RunFailure;
 }
 
 export interface ExecutionRunRecord {

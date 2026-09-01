@@ -59,6 +59,7 @@ export async function runCodexSecurityTask({
   config,
   cwd,
   workspace,
+  abortController,
 }: RunnerContext): Promise<RunOutput> {
   const security = config as CodexSecurityRunConfig;
   const sessionStart = Date.now();
@@ -100,6 +101,7 @@ export async function runCodexSecurityTask({
       security.timeoutMs === undefined
         ? 2 * 60_000
         : Math.min(security.timeoutMs, 2 * 60_000),
+      abortController.signal,
     );
     recordToolCall(toolCalls, "CodexSecurityDryRun", dryRun);
     if (dryRun.exitCode !== 0) {
@@ -113,6 +115,7 @@ export async function runCodexSecurityTask({
       environment,
       baseArgs,
       security.timeoutMs,
+      abortController.signal,
     );
     recordToolCall(toolCalls, "CodexSecurityScan", scan);
     if (scan.exitCode !== 0 && scan.exitCode !== 2) {
@@ -243,6 +246,7 @@ async function executeContained(
   environment: NodeJS.ProcessEnv,
   args: string[],
   timeoutMs?: number,
+  signal?: AbortSignal,
 ): Promise<ProcessExecutionResult> {
   const invocation = await buildLandlockInvocation(
     workspace,
@@ -258,6 +262,7 @@ async function executeContained(
     env: invocation.environment,
     timeoutMs,
     maxOutputBytes: 50 * 1024 * 1024,
+    signal,
   });
 }
 

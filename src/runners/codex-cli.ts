@@ -65,6 +65,7 @@ export async function runCodexTask({
   config,
   cwd,
   workspace,
+  abortController,
 }: RunnerContext): Promise<RunOutput> {
   const modelConfig = config as ModelRunConfig;
   const sessionStart = Date.now();
@@ -152,6 +153,7 @@ export async function runCodexTask({
       timeoutMs: modelConfig.timeoutMs ?? 30 * 60_000,
       maxOutputBytes: 50 * 1024 * 1024,
       onStdoutChunk: (chunk, receivedAt) => collector.feed(chunk, receivedAt),
+      signal: abortController.signal,
     });
     collector.finish(Date.now());
 

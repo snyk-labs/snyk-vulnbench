@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { join, relative, resolve } from "node:path";
 import { aggregateByConfig, aggregateByTask } from "../aggregator.js";
+import { classifyRunFailure } from "../run-failure.js";
 import type {
   EvalResult,
   EvalTask,
@@ -30,6 +31,7 @@ import { writeBenchmarkJsonl } from "./results-io.js";
 import {
   EXECUTION_SCHEMA_VERSION,
   type ExecutionAggregates,
+  type ExecutionBudgets,
   type ExecutionManifest,
   type ExecutionProgress,
   type ExecutionRunRecord,
@@ -46,6 +48,7 @@ export interface NewExecutionInput {
   repetitions: number;
   selectedGroup?: RunConfigGroup;
   selectedCategory?: string;
+  budgets?: ExecutionBudgets;
 }
 
 export interface ExecutionCheckpoint {
@@ -69,6 +72,7 @@ export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoi
       configIds: input.configs.map((config) => config.id),
       repetitions: input.repetitions,
     },
+    budgets: input.budgets,
     ...plan,
   });
   const executionDir = createExecutionBundle(
@@ -86,6 +90,7 @@ export function validateExecutionInputs(
     codename: manifest.codename,
     argv: manifest.argv,
     selection: manifest.selection,
+    budgets: manifest.budgets,
     ...buildPlanData(input),
     now: new Date(manifest.createdAt),
     shortId: "validation",
@@ -186,7 +191,9 @@ export function finishExecutionRun(
   if (!attempt || attempt.status !== "running") {
     throw new Error(`Run "${record.runKey}" has no active attempt`);
   }
-  const failed = Boolean(result.error);
+  const failure = result.failure
+    ?? (result.error ? classifyRunFailure(result.error, result.metrics) : undefined);
+  const failed = Boolean(failure);
   const finished: ExecutionRunRecord = {
     ...record,
     status: failed ? "failed" : "succeeded",
@@ -197,14 +204,7 @@ export function finishExecutionRun(
         status: failed ? "failed" : "succeeded",
         completedAt,
         metrics: result.metrics,
-        ...(failed && {
-          failure: {
-            kind: "unknown" as const,
-            message: result.error!,
-            retryable: false,
-            systemic: false,
-          },
-        }),
+        ...(failure && { failure }),
       },
     ],
     ...(!failed && { result }),
@@ -239,6 +239,7 @@ export function reconcileInterruptedRuns(
             message: "Previous process ended before recording a terminal result",
             retryable: true,
             systemic: false,
+            usageObserved: false,
           },
         },
       ],

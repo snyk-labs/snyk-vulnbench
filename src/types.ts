@@ -475,11 +475,34 @@ export interface BenchmarkMetrics {
   };
 }
 
+export type RunFailureKind =
+  | "quota"
+  | "rate-limit"
+  | "authentication"
+  | "gateway"
+  | "timeout"
+  | "interrupted"
+  | "invalid-output"
+  | "scoring"
+  | "runner"
+  | "unknown";
+
+export interface RunFailure {
+  kind: RunFailureKind;
+  message: string;
+  retryable: boolean;
+  systemic: boolean;
+  usageObserved: boolean;
+}
+
 export interface RunOutput {
   finalText: string;
   /** Canonical findings for find tasks. Text-only runners may omit this. */
   findings?: FindingRecord[];
   metrics: BenchmarkMetrics;
+  /** Structured execution failure. Infrastructure failures are not scored. */
+  failure?: RunFailure;
+  /** @deprecated Compatibility input for runners not yet returning `failure`. */
   error?: string;
 }
 
@@ -727,6 +750,9 @@ export interface EvalResult {
   repetition: number;
   /** Total repetitions requested for this task+config pair. */
   totalRepetitions: number;
+  /** Structured execution failure; failed attempts are excluded from aggregates. */
+  failure?: RunFailure;
+  /** Compatibility message mirrored from `failure.message`. */
   error?: string;
 }
 

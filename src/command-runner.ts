@@ -2,6 +2,7 @@ import type { EvalTask, CommandRunConfig, BenchmarkMetrics, RunOutput } from "./
 import { serializeFindingsToFinalText } from "./findings-output.js";
 import { getParser } from "./parsers/index.js";
 import { executeProcess, ProcessExecutionError } from "./process-executor.js";
+import { classifyRunFailure } from "./run-failure.js";
 
 /**
  * Runs a SAST or other CLI tool against the fixture path and returns findings
@@ -17,6 +18,7 @@ export async function runCommandTask(
   task: EvalTask,
   config: CommandRunConfig,
   fixturePath: string,
+  signal?: AbortSignal,
 ): Promise<RunOutput> {
   const parserKey = task.groundTruth === "attacker-reachable" && config.parser === "snyk-code"
     ? "snyk-code-attacker-reachable"
@@ -32,16 +34,20 @@ export async function runCommandTask(
       env: process.env,
       timeoutMs: config.timeoutMs ?? 10 * 60_000,
       maxOutputBytes: 10 * 1024 * 1024,
+      signal,
     });
     // Security scanners commonly return non-zero when findings exist. Preserve
     // the prior behavior by accepting any exit status that produced parseable
     // stdout, while treating empty non-zero runs as execution failures.
     if (result.exitCode !== 0 && !result.stdout.trim()) {
+      const metrics = emptyMetrics(sessionStart);
+      const error = result.stderr.trim()
+        || `${program} exited with code ${result.exitCode}`;
       return {
         finalText: "",
-        metrics: emptyMetrics(sessionStart),
-        error: result.stderr.trim()
-          || `${program} exited with code ${result.exitCode}`,
+        metrics,
+        failure: classifyRunFailure(error, metrics),
+        error,
       };
     }
     return buildCommandOutput(result.stdout, parserKey, sessionStart);
@@ -49,9 +55,11 @@ export async function runCommandTask(
     const message = error instanceof ProcessExecutionError
       ? `${error.message}${error.stderr.trim() ? `: ${error.stderr.trim()}` : ""}`
       : String(error);
+    const metrics = emptyMetrics(sessionStart);
     return {
       finalText: "",
-      metrics: emptyMetrics(sessionStart),
+      metrics,
+      failure: classifyRunFailure(message, metrics),
       error: message,
     };
   }

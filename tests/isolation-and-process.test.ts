@@ -147,3 +147,23 @@ test("process executor terminates timed-out process groups", async () => {
       && /timed out/.test(error.message),
   );
 });
+
+test("process executor terminates process groups when aborted", async () => {
+  const controller = new AbortController();
+  const execution = executeProcess({
+    program: process.execPath,
+    args: ["-e", "setInterval(() => {}, 1000)"],
+    cwd: process.cwd(),
+    env: process.env,
+    signal: controller.signal,
+    terminationGraceMs: 10,
+  });
+  setTimeout(() => controller.abort(), 25);
+
+  await assert.rejects(
+    execution,
+    (error: unknown) =>
+      error instanceof ProcessExecutionError
+      && /aborted/.test(error.message),
+  );
+});
