@@ -8,7 +8,7 @@ import {
   scoreFixVulns,
   fixVulnsScore,
 } from "./scorer.js";
-import { printResult, printRunProgress, printConfigHeader, printSummaryTable, saveResults } from "./reporter.js";
+import { printResult, printRunProgress, printConfigHeader, printSummaryTable } from "./reporter.js";
 import {
   loadEvalTasks,
   loadRunConfigGroups,
@@ -24,11 +24,18 @@ import {
   createIsolatedWorkspace,
   prepareSecurityReviewGitWorkspace,
 } from "./isolated-workspace.js";
+import {
+  beginExecutionRun,
+  checkpointExecution,
+  finishExecutionRun,
+  initializeExecution,
+} from "./results/execution-runtime.js";
 import { EVAL_CATEGORIES } from "./types.js";
 import { styleText } from "node:util";
 import type { EvalCategoryId, EvalResult, EvalTask, RunConfig, RunConfigGroup, ModelRunConfig, DeepSecRunConfig, CodexSecurityRunConfig, FindVulnsDetails, EffortLevel, ThinkingConfig, PrimaryMetricKind } from "./types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = resolve(__dirname, "..");
 const RESULTS_DIR = resolve(__dirname, "../results");
 const AGENT_TRACE_DIR_ENV = "VULNBENCH_AGENT_TRACE_DIR";
 
@@ -225,17 +232,7 @@ async function runEval(task: EvalTask, config: RunConfig): Promise<EvalResult> {
 
 async function main() {
   const opts = parseArgs();
-  if (opts.traceAgent) {
-    const traceRunId = new Date().toISOString().replace(/[:.]/g, "-");
-    process.env[AGENT_TRACE_DIR_ENV] = resolve(
-      RESULTS_DIR,
-      "agent-traces",
-      traceRunId,
-    );
-    console.log(`Agent tracing enabled: ${process.env[AGENT_TRACE_DIR_ENV]}`);
-  } else {
-    delete process.env[AGENT_TRACE_DIR_ENV];
-  }
+  delete process.env[AGENT_TRACE_DIR_ENV];
 
   const EVAL_TASKS = loadEvalTasks();
   const DEFAULT_RUN_CONFIGS = loadRunConfigs();
@@ -336,7 +333,27 @@ async function main() {
     runPreflight(configs);
   }
 
-  const results: EvalResult[] = [];
+  let execution = initializeExecution({
+    projectRoot: PROJECT_ROOT,
+    resultsDir: RESULTS_DIR,
+    argv: process.argv.slice(2),
+    tasks,
+    configs,
+    compatibleTasks,
+    repetitions,
+    selectedGroup,
+    selectedCategory,
+  });
+  console.log(`\nExecution bundle: ${execution.executionDir}`);
+  if (opts.traceAgent) {
+    process.env[AGENT_TRACE_DIR_ENV] = resolve(
+      execution.executionDir,
+      "artifacts",
+      "traces",
+    );
+    console.log(`Agent tracing enabled: ${process.env[AGENT_TRACE_DIR_ENV]}`);
+  }
+
   let runIndex = 0;
 
   for (let ci = 0; ci < configs.length; ci++) {
@@ -345,25 +362,31 @@ async function main() {
 
     for (const task of compatibleTasks.get(config.id) ?? []) {
       for (let rep = 0; rep < repetitions; rep++) {
+        const spec = execution.manifest.plannedRuns[runIndex];
+        if (!spec) {
+          throw new Error(`Execution plan is missing run ${runIndex + 1}`);
+        }
         runIndex++;
         const repLabel = repetitions > 1 ? ` (rep ${rep + 1}/${repetitions})` : "";
         printRunProgress(`${task.name}${repLabel}`, runIndex, totalRuns);
+        const record = beginExecutionRun(execution.executionDir, spec);
         const result = await runEval(task, config);
         result.repetition = rep + 1;
         result.totalRepetitions = repetitions;
         printResult(result);
-        results.push(result);
+        finishExecutionRun(execution.executionDir, record, result);
+        execution = checkpointExecution(execution.executionDir, RESULTS_DIR);
       }
     }
   }
 
-  const taskAggregates = aggregateByTask(results);
-  const configAggregates = aggregateByConfig(taskAggregates, results);
+  const taskAggregates = aggregateByTask(execution.results);
+  const configAggregates = aggregateByConfig(taskAggregates, execution.results);
 
-  printSummaryTable(results, taskAggregates, configAggregates);
+  printSummaryTable(execution.results, taskAggregates, configAggregates);
 
-  const outputPath = saveResults(results, RESULTS_DIR, taskAggregates, configAggregates);
-  console.log(`Results saved to: ${outputPath}\n`);
+  console.log(`Results saved to: ${execution.executionDir}`);
+  console.log(`Compatibility JSONL: ${execution.compatibilityJsonlPath}\n`);
 }
 
 if (isIsolatedBenchmarkWorker()) {

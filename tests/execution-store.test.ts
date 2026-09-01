@@ -23,6 +23,11 @@ import {
   readBenchmarkResults,
   writeBenchmarkJsonl,
 } from "../src/results/results-io.js";
+import {
+  beginExecutionRun,
+  checkpointExecution,
+  finishExecutionRun,
+} from "../src/results/execution-runtime.js";
 import type {
   ExecutionRunRecord,
   PlannedExecutionRun,
@@ -233,6 +238,80 @@ test("bundle and JSONL readers share the same successful run contract", () => {
     writeBenchmarkJsonl(jsonlPath, fromBundle);
     const fromJsonl = readBenchmarkResults(jsonlPath);
     assert.deepEqual(fromJsonl.runs, fromBundle.runs);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a completed run is checkpointed while later planned work remains pending", () => {
+  const root = mkdtempSync(join(tmpdir(), "vulnbench-checkpoint-"));
+  try {
+    const expectedManifest = buildExecutionManifest({
+      codename: "checkpoint",
+      argv: [],
+      selection: {
+        category: null,
+        configGroup: null,
+        taskIds: ["task-one", "task-two"],
+        configIds: ["config-one"],
+        repetitions: 1,
+      },
+      source: {
+        gitCommit: "abc123",
+        dirtyFingerprint: null,
+        harnessFingerprint: hashValue("harness"),
+      },
+      plannedRuns: [
+        plannedRun(),
+        {
+          ...plannedRun(),
+          taskId: "task-two",
+          taskName: "Task Two",
+          fixtureId: "fixture-two",
+          taskFingerprint: hashValue({ task: 2 }),
+        },
+      ],
+      taskSnapshots: {},
+      configSnapshots: {},
+      shortId: "partial",
+    });
+    const executionDir = createExecutionBundle(
+      join(root, "executions"),
+      expectedManifest,
+    );
+    const spec = expectedManifest.plannedRuns[0];
+    const active = beginExecutionRun(
+      executionDir,
+      spec,
+      "2026-09-01T10:01:00.000Z",
+    );
+    finishExecutionRun(
+      executionDir,
+      active,
+      successfulRecord(expectedManifest.executionId, spec).result!,
+      "2026-09-01T10:01:01.000Z",
+    );
+    const checkpoint = checkpointExecution(
+      executionDir,
+      root,
+      "2026-09-01T10:01:02.000Z",
+    );
+
+    assert.equal(checkpoint.aggregates.partial, true);
+    assert.deepEqual(checkpoint.aggregates.coverage, {
+      succeededRuns: 1,
+      plannedRuns: 2,
+      failedRuns: 0,
+      interruptedRuns: 0,
+    });
+    const progress = refreshExecutionProgress(executionDir);
+    assert.equal(progress.counts.succeeded, 1);
+    assert.equal(progress.counts.pending, 1);
+    assert.equal(readBenchmarkResults(executionDir).runs.length, 1);
+    assert.equal(
+      readBenchmarkResults(checkpoint.compatibilityJsonlPath).runs.length,
+      1,
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

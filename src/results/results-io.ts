@@ -39,16 +39,33 @@ export function writeBenchmarkJsonl(
     ParsedBenchmarkResults,
     "runs" | "taskAggregates" | "configAggregates"
   >,
+  execution?: {
+    executionId: string;
+    partial: boolean;
+    coverage: {
+      succeededRuns: number;
+      plannedRuns: number;
+      failedRuns: number;
+      interruptedRuns: number;
+    };
+  },
 ): void {
+  const metadata = execution ? {
+    executionId: execution.executionId,
+    executionPartial: execution.partial,
+    executionCoverage: execution.coverage,
+  } : {};
   const rows = [
-    ...results.runs.map((run) => ({ _type: "run", ...run })),
+    ...results.runs.map((run) => ({ _type: "run", ...run, ...metadata })),
     ...results.taskAggregates.map((aggregate) => ({
       _type: "task-aggregate",
       ...aggregate,
+      ...metadata,
     })),
     ...results.configAggregates.map((aggregate) => ({
       _type: "config-aggregate",
       ...aggregate,
+      ...metadata,
     })),
   ];
   atomicWriteText(
