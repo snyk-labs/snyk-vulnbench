@@ -26,8 +26,6 @@ test("run config groups load safe defaults and the V2 profile", () => {
     "snyk-code",
     "opus-5-medium-security-review-with-snyk-mcp",
     "opus-5-xhigh-security-review",
-    "opus-5-medium-security-review",
-    "sonnet-5-medium-security-review",
     "sonnet-5-xhigh-security-review",
     "codex-security-luna-xhigh",
     "codex-security-terra-xhigh",
@@ -47,7 +45,7 @@ test("run config groups load safe defaults and the V2 profile", () => {
     0,
   );
   assert.equal(v2Tasks.length, 20);
-  assert.equal(compatibleRuns, 220);
+  assert.equal(compatibleRuns, 180);
 });
 
 test("run config group validation rejects unknown and duplicate config IDs", () => {

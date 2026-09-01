@@ -637,7 +637,17 @@ export function loadRunConfigGroups(
 ): RunConfigGroup[] {
   let raw: Array<Record<string, unknown>>;
   try {
-    raw = JSON.parse(readFileSync(file, "utf-8"));
+    const errors: ParseError[] = [];
+    raw = parse(readFileSync(file, "utf-8"), errors, {
+      allowTrailingComma: true,
+      disallowComments: false,
+    });
+    if (errors.length > 0) {
+      const details = errors
+        .map((error) => `${printParseErrorCode(error.error)} at offset ${error.offset}`)
+        .join(", ");
+      throw new SyntaxError(details);
+    }
   } catch (err) {
     throw new Error(`Failed to read run config groups at ${file}: ${err}`);
   }
