@@ -1,0 +1,56 @@
+.env
+.envrc
+.misc
+
+# Project
+app/services/sales-api/sales-api
+app/services/metrics/metrics
+app/tooling/sales-admin/sales-admin
+app/tooling/sales-admin/logfmt
+app/tooling/sales-admin/docs
+.excalidraw
+database-data/
+
+# Environment
+api/cmd/frontends/admin/.env
+
+# Mac
+.DS_Store
+
+# Backup files
+*~*
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+zarf/build/
+
+# Editor files
+.idea/
+*.iml
+*.swp
+.vscode
+CLAUDE.md
+.claude/
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+//*.test
+.vscode/tasks.json
+zarf/compose/database-data/data

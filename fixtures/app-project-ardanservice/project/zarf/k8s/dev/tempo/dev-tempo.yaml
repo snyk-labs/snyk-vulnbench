@@ -1,0 +1,130 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sales-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-conf
+  namespace: sales-system
+data:
+  tempo.yaml: |
+    usage_report:
+      reporting_enabled: false
+
+    server:
+      http_listen_port: 3200
+
+    distributor:
+      receivers: # this configuration will listen on all ports and protocols that tempo is capable of.
+        #jaeger: # the receives all come from the OpenTelemetry collector.  more configuration information can
+        #protocols: # be found there: https://github.com/open-telemetry/opentelemetry-collector/tree/main/receiver
+        #thrift_http:                   #
+        #grpc:                          # for a production deployment you should only enable the receivers you need!
+        #thrift_binary:
+        #thrift_compact:
+        #zipkin:
+        otlp:
+          protocols:
+            http:
+              endpoint: "tempo:4318"
+            grpc:
+              endpoint: "tempo:4317"
+        #opencensus:
+
+    storage:
+      trace:
+        backend: local                     # backend configuration to use
+        wal:
+          path: /tmp/tempo/wal             # where to store the the wal locally
+        local:
+          path: /tmp/tempo/blocks
+
+    overrides:
+      defaults:
+        metrics_generator:
+          processors: [ service-graphs, span-metrics ]
+
+
+#    metrics_generator:
+#      registry:
+#        external_labels:
+#          source: tempo
+#          cluster: docker-compose
+#      storage:
+#        path: /tmp/tempo/generator/wal
+#        remote_write:
+#          - url: http://prometheus:9090/api/v1/write
+#            send_exemplars: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: sales-system
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      namespace: sales-system
+      labels:
+        app: tempo
+    spec:
+      hostname: tempo
+      containers:
+        - image: grafana/tempo:3.0.3
+          name: tempo
+          ports:
+            - containerPort: 14268
+              hostPort: 14268
+            - containerPort: 3200
+              hostPort: 3200
+            - containerPort: 4317
+              hostPort: 4317
+            - containerPort: 4318
+              hostPort: 4318
+            - containerPort: 9411
+              hostPort: 9411
+          args:
+            - -config.file=/tempo-conf/tempo.yaml
+          volumeMounts:
+            - name: config-volume
+              mountPath: /tempo-conf
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 3400m
+      volumes:
+        - name: config-volume
+          configMap:
+            name: tempo-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: sales-system
+spec:
+  type: ClusterIP
+  selector:
+    app: tempo
+  ports:
+    - port: 14268
+      name: "14268"
+    - port: 3200
+      name: "3200"
+    - port: 4317
+      name: "4317"
+    - port: 4318
+      name: "4318"
+    - port: 9411
+      name: "9411"

@@ -1,0 +1,43 @@
+version: 2.1
+jobs:
+  build:
+    machine:
+      image: ubuntu-2004:current
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Install Go 1.27.0
+          command: |
+            sudo rm -rf /usr/local/go
+            wget -O go.tgz https://go.dev/dl/go1.27.0.linux-amd64.tar.gz
+            sudo tar -C /usr/local -xzf go.tgz
+            which go
+            go version
+      - run:
+          name: Start Test Database
+          command: |
+            docker run -P -d --name servicetest -e POSTGRES_PASSWORD=postgres postgres:18.6
+      - run:
+          name: Run tests
+          command: |
+            CGO_ENABLED=0 go test ./...
+      - run:
+          name: Stop Test Database
+          command: |
+            docker stop servicetest
+            docker rm servicetest -v
+      - run:
+          name: Run vet
+          command: |
+            CGO_ENABLED=0 go vet ./...
+      - run:
+          name: Run staticheck
+          command: |
+            go install honnef.co/go/tools/cmd/staticcheck@latest
+            staticcheck -checks=all ./...
+      - run:
+          name: Run govulncheck
+          command: |
+            go install golang.org/x/vuln/cmd/govulncheck@latest
+            govulncheck ./...
