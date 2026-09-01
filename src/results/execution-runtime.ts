@@ -21,6 +21,7 @@ import {
   hashValue,
   listRunRecords,
   readExecutionManifest,
+  redactSecrets,
   reconcileExecutionProgress,
   writeExecutionProgress,
   writeRunRecord,
@@ -30,6 +31,7 @@ import {
   EXECUTION_SCHEMA_VERSION,
   type ExecutionAggregates,
   type ExecutionManifest,
+  type ExecutionProgress,
   type ExecutionRunRecord,
   type PlannedExecutionRun,
 } from "./execution-types.js";
@@ -52,9 +54,50 @@ export interface ExecutionCheckpoint {
   compatibilityJsonlPath: string;
   results: EvalResult[];
   aggregates: ExecutionAggregates;
+  progress: ExecutionProgress;
 }
 
 export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoint {
+  const plan = buildPlanData(input);
+  const manifest = buildExecutionManifest({
+    codename: input.selectedGroup?.id ?? input.selectedCategory ?? "benchmark",
+    argv: input.argv,
+    selection: {
+      category: input.selectedCategory ?? null,
+      configGroup: input.selectedGroup?.id ?? null,
+      taskIds: input.tasks.map((task) => task.id),
+      configIds: input.configs.map((config) => config.id),
+      repetitions: input.repetitions,
+    },
+    ...plan,
+  });
+  const executionDir = createExecutionBundle(
+    join(input.resultsDir, "executions"),
+    manifest,
+  );
+  return checkpointExecution(executionDir, input.resultsDir);
+}
+
+export function validateExecutionInputs(
+  manifest: ExecutionManifest,
+  input: NewExecutionInput,
+): void {
+  const candidate = buildExecutionManifest({
+    codename: manifest.codename,
+    argv: manifest.argv,
+    selection: manifest.selection,
+    ...buildPlanData(input),
+    now: new Date(manifest.createdAt),
+    shortId: "validation",
+  });
+  if (candidate.planFingerprint !== manifest.planFingerprint) {
+    throw new Error(
+      "Current harness, task, fixture, or config inputs do not match the execution manifest",
+    );
+  }
+}
+
+function buildPlanData(input: NewExecutionInput) {
   const taskSnapshots: Record<string, unknown> = {};
   const taskFingerprints = new Map<string, string>();
   for (const task of input.tasks) {
@@ -96,26 +139,12 @@ export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoi
     )
   );
   const source = sourceSnapshot(input.projectRoot);
-  const manifest = buildExecutionManifest({
-    codename: input.selectedGroup?.id ?? input.selectedCategory ?? "benchmark",
-    argv: input.argv,
-    selection: {
-      category: input.selectedCategory ?? null,
-      configGroup: input.selectedGroup?.id ?? null,
-      taskIds: input.tasks.map((task) => task.id),
-      configIds: input.configs.map((config) => config.id),
-      repetitions: input.repetitions,
-    },
+  return {
     source,
     plannedRuns,
-    taskSnapshots,
-    configSnapshots,
-  });
-  const executionDir = createExecutionBundle(
-    join(input.resultsDir, "executions"),
-    manifest,
-  );
-  return checkpointExecution(executionDir, input.resultsDir);
+    taskSnapshots: redactSecrets(taskSnapshots) as Record<string, unknown>,
+    configSnapshots: redactSecrets(configSnapshots) as Record<string, unknown>,
+  };
 }
 
 export function beginExecutionRun(
@@ -123,14 +152,20 @@ export function beginExecutionRun(
   spec: PlannedExecutionRun,
   startedAt = new Date().toISOString(),
 ): ExecutionRunRecord {
+  const previous = listRunRecords(executionDir)
+    .find((record) => record.runKey === spec.runKey);
+  if (previous?.status === "succeeded" || previous?.status === "running") {
+    throw new Error(`Run "${spec.runKey}" cannot start from status "${previous.status}"`);
+  }
+  const attempts = previous?.attempts ?? [];
   const record: ExecutionRunRecord = {
     schemaVersion: EXECUTION_SCHEMA_VERSION,
     executionId: readExecutionManifest(executionDir).executionId,
     runKey: spec.runKey,
     spec,
     status: "running",
-    attempts: [{
-      attempt: 1,
+    attempts: [...attempts, {
+      attempt: attempts.length + 1,
       status: "running",
       startedAt,
     }],
@@ -177,6 +212,43 @@ export function finishExecutionRun(
   };
   writeRunRecord(executionDir, finished);
   return finished;
+}
+
+export function reconcileInterruptedRuns(
+  executionDir: string,
+  interruptedAt = new Date().toISOString(),
+): ExecutionRunRecord[] {
+  const records = listRunRecords(executionDir);
+  const reconciled = records.map((record) => {
+    if (record.status !== "running") return record;
+    const attempt = record.attempts.at(-1);
+    if (!attempt || attempt.status !== "running") {
+      throw new Error(`Running record "${record.runKey}" has no running attempt`);
+    }
+    const interrupted: ExecutionRunRecord = {
+      ...record,
+      status: "interrupted-uncertain",
+      attempts: [
+        ...record.attempts.slice(0, -1),
+        {
+          ...attempt,
+          status: "interrupted-uncertain",
+          completedAt: interruptedAt,
+          failure: {
+            kind: "interrupted",
+            message: "Previous process ended before recording a terminal result",
+            retryable: true,
+            systemic: false,
+          },
+        },
+      ],
+      updatedAt: interruptedAt,
+    };
+    writeRunRecord(executionDir, interrupted);
+    return interrupted;
+  });
+  refreshProgressOnly(executionDir, interruptedAt);
+  return reconciled;
 }
 
 export function checkpointExecution(
@@ -231,6 +303,7 @@ export function checkpointExecution(
     compatibilityJsonlPath,
     results,
     aggregates,
+    progress,
   };
 }
 

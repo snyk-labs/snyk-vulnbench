@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { styleText } from "node:util";
 import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig, AggregatedTaskResult, AggregatedConfigResult, PrimaryMetricKind } from "./types.js";
+import type { ExecutionProgress } from "./results/execution-types.js";
 
 // ─── Style Helpers ────────────────────────────────────────────────────────────
 
@@ -76,6 +77,30 @@ export function printConfigHeader(configName: string, configIndex: number, total
 
 export function printRunProgress(taskName: string, runIndex: number, totalRuns: number): void {
   console.log(`\n  ${s("bold", `▸ [${runIndex}/${totalRuns}]`)} ${s("bold", taskName)}`);
+}
+
+export function printExecutionStatus(progress: ExecutionProgress): void {
+  const completed = progress.counts.succeeded;
+  console.log(`\nExecution ${progress.executionId}`);
+  console.log(metricLine("Status", progress.status, "  "));
+  console.log(metricLine("Progress", `${completed}/${progress.totalRuns} succeeded`, "  "));
+  console.log(metricLine("Pending", String(progress.counts.pending), "  "));
+  console.log(metricLine("Failed", String(progress.counts.failed), "  "));
+  console.log(metricLine(
+    "Interrupted",
+    String(progress.counts["interrupted-uncertain"]),
+    "  ",
+  ));
+  console.log(metricLine(
+    "Tokens",
+    `${(progress.observedUsage.logicalInputTokens + progress.observedUsage.outputTokens).toLocaleString()} observed`,
+    "  ",
+  ));
+  console.log(metricLine(
+    "Cost",
+    `$${progress.observedUsage.costUsd.toFixed(4)} observed; ${progress.observedUsage.attemptsWithUnknownCost} attempt(s) unknown`,
+    "  ",
+  ));
 }
 
 // ─── Per-Run Result Block ─────────────────────────────────────────────────────

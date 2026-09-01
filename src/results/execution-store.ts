@@ -111,6 +111,23 @@ export function createExecutionBundle(
   return executionDir;
 }
 
+export function resolveExecutionDirectory(
+  resultsDir: string,
+  input: string,
+): string {
+  const candidates = [
+    resolve(input),
+    resolve(resultsDir, "executions", input),
+  ];
+  const match = candidates.find((candidate) =>
+    existsSync(join(candidate, "manifest.json"))
+  );
+  if (!match) {
+    throw new Error(`Execution "${input}" was not found`);
+  }
+  return match;
+}
+
 export function readExecutionManifest(executionDir: string): ExecutionManifest {
   const manifest = readJson<ExecutionManifest>(join(executionDir, "manifest.json"));
   validateManifest(manifest);
