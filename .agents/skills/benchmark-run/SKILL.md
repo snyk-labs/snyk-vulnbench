@@ -2,7 +2,7 @@
 name: benchmark-run
 description: Runs security benchmark evaluations from natural language. Translates requests like "run find vulns for js 1 to 3 with opus and snyk" into the correct `tsx src/index.ts` CLI invocation with `--task`, `--config`, and `--category` flags. Use when the user says "run benchmark", "benchmark js find vulns", "evaluate with sonnet", "test js-project-shadowfox with snyk code", "run with Codex Security", "run all find tasks", "dry run the benchmarks", "benchmark llm vulns with opus", or any variation asking to execute the benchmark harness. Use even if the user just says "run it" or "benchmark this" in the context of eval tasks. Do NOT use for adding new fixtures (use benchmark-add-new-fixture), writing reports (use benchmark-report-writer), or adding new categories (use benchmark-add-new-category).
 license: MIT
-compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Codex Security requires canonical `OPENAI_API_KEY` plus Python 3.10+. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
+compatibility: Repository snyk-vulnbench (pnpm, TypeScript, Node 24). Requires Claude Code CLI authenticated for model configs. Codex Security and DeepSec Codex profiles require canonical `OPENAI_API_KEY`; DeepSec Claude profiles require `ANTHROPIC_API_KEY`. Codex Security also requires Python 3.10+. Snyk Code command or MCP configs require a valid `SNYK_TOKEN` in the ignored repository-root `.env`; the isolated benchmark worker makes `.env` values authoritative over inherited values with the same name.
 metadata:
   author: snyk-vulnbench
   version: 1.0.0
@@ -22,6 +22,7 @@ Read these two sources to build the current inventory:
 
 - **Task IDs** — list `evals/tasks/*.json` filenames. Each filename minus `.json` is the task ID (e.g. `js-project-tigerteam-find-vulns`).
 - **Config IDs** — read `evals/run-configs.json`. Each object's `id` field is a config ID. For model configs, also note `mcpServers` and `promptTemplateId`, because they define the available tools and any required tool-use guidance.
+- **Config groups** — read `evals/run-config-groups.json`. With no selector the CLI uses `default`; `vulnbench-v2` is the canonical V2 matrix.
 
 This step is necessary because tasks and configs change over time — never hard-code the list.
 
@@ -63,8 +64,9 @@ When the user specifies a numeric range like "1 to 3" or "1-3", expand it into t
 | "haiku with snyk MCP" or "haiku snyk" | `--config haiku-4-5-default-with-snyk-mcp` |
 | "codex security" or "codex security sol" | `--config codex-security-sol-xhigh` |
 | "opus and snyk" | `--config opus-4-6-high,opus-4-6-medium,snyk-code` |
-| "all models" or "all configs" | omit `--config` (runs all) |
-| (not mentioned) | omit `--config` (runs all) |
+| "VulnBench 2", "V2 matrix", or "canonical V2" | `--config-group vulnbench-v2` |
+| "all models" or "all configs" | `--all-configs` |
+| (not mentioned) | omit selectors (uses safe `default` group) |
 
 Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" resolve to all matching effort-specific config IDs unless the user names an effort. If new config IDs appear in `run-configs.json` that you haven't seen before, match by substring.
 
@@ -72,6 +74,7 @@ Match model names fuzzily — "claude opus", "opus-4-6", "opus 4.6", and "opus" 
 
 - "dry run" or "preview" → add `--dry-run`
 - "skip preflight" → add `--skip-preflight`
+- "use config group X" → add `--config-group X`
 - "3 times", "repeat 3", "3 reps", "3 repetitions" → add `--repetitions 3`
 
 **Repetitions resolution rules:**
@@ -107,7 +110,7 @@ pnpm tsx src/index.ts [resolved flags]
 
 Use `pnpm tsx src/index.ts` directly rather than `pnpm run benchmark` so you can pass arbitrary flags without the `--` separator.
 
-For long benchmark runs (model configs take minutes per task), run the command in the background so you can report progress. Monitor output for errors — if preflight fails, report the failing check and suggest a fix rather than re-running blindly.
+For long benchmark runs (model configs take minutes per task and security harnesses can take hours), run the command in the background so you can report progress. Canonical Codex Security and DeepSec V2 profiles intentionally have no paid-scan wall-time or cost stop; monitor their emitted cost/progress and do not kill a healthy run merely because it is long. If preflight fails, report the failing check and suggest a fix rather than re-running blindly.
 
 **Done when:** the command exits successfully, or you've reported the error with a fix suggestion.
 
@@ -118,7 +121,7 @@ For long benchmark runs (model configs take minutes per task), run the command i
 After the benchmark completes:
 
 1. Read the summary table from the command output.
-2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time.
+2. Report key metrics with their explicit `primaryMetric`: V1 F1, V2 Attacker-Reachable Vulnerability Recall, DeepSec localized recall, or fix rate. Include V2 precision/F1 as secondary metrics, plus total runs and wall time. Never average DeepSec localized recall with endpoint-aware recall.
 3. For a model config with MCP servers, report `MCP status` and `MCP calls` from the console. In JSONL, verify `metrics.mcp.serverStatuses` and `metrics.mcp.toolStats`; a connected server with an empty `toolStats` was available but not invoked.
 4. For Codex Security, report package/plugin versions, coverage completeness, deferred/excluded counts, model/effort, tokens, estimated cost, and whether V2 endpoint evidence was present. Treat partial coverage as a scored but qualified result.
 5. Note the results file path (printed at the end of output).
