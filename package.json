@@ -17,6 +17,7 @@
     "benchmark:fix": "tsx src/index.ts --category fix-vulns --repetitions 1",
     "smoke:litellm": "tsx scripts/smoke-litellm.ts",
     "results:flatten": "tsx src/flatten-results.ts",
+    "results:fork": "tsx src/fork-execution.ts",
     "results:rescore": "tsx src/rescore-results.ts",
     "test": "tsx --test tests/*.test.ts",
     "report:serve": "serve",
