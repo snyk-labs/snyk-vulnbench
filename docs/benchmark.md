@@ -823,7 +823,7 @@ parent:
 # Read-only preview; no provider calls and no files written
 pnpm results:fork -- \
   --from 20260901-vulnbench-v2-c08730c4 \
-  --config-group vulnbench-v2-deepsec-100 \
+  --config-group vulnbench-v2-deepsec-150 \
   --reset-phase deepsec \
   --expect-imported 140 \
   --expect-pending 40
@@ -831,7 +831,7 @@ pnpm results:fork -- \
 # Create only after the preview is exactly correct
 pnpm results:fork -- \
   --from 20260901-vulnbench-v2-c08730c4 \
-  --config-group vulnbench-v2-deepsec-100 \
+  --config-group vulnbench-v2-deepsec-150 \
   --reset-phase deepsec \
   --expect-imported 140 \
   --expect-pending 40 \
@@ -845,7 +845,7 @@ them to the child plan, and publishes the child atomically. Any failed gate
 removes staging only.
 
 The revised group imports the 140 complete non-DeepSec results and resets all
-40 DeepSec slots. It uses distinct `maxTurns: 100` config IDs for Claude Opus
+40 DeepSec slots. It uses distinct `maxTurns: 150` config IDs for Claude Opus
 5 and Codex Sol; original 30-turn configs and all parent DeepSec attempts
 remain only in the parent audit record.
 
@@ -853,7 +853,7 @@ Imported rows expose parent execution/run provenance in JSONL. Child cost
 totals count imported attempts once plus new DeepSec work. Discarded parent
 DeepSec spend is audit metadata, not child result cost. A report must disclose
 that the child combines imported first-three-phase results with a revised
-DeepSec-100 phase.
+DeepSec-150 phase.
 
 After creation:
 

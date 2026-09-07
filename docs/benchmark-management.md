@@ -763,9 +763,9 @@ frozen into new execution manifests.
 The canonical V2 phases are `snyk-code` (20 runs), `claude-code` (60),
 `codex-security` (60), and `deepsec` (40).
 
-`vulnbench-v2-deepsec-100` is a revised fork target. Its first seven configs
+`vulnbench-v2-deepsec-150` is a revised fork target. Its first seven configs
 are identical to `vulnbench-v2`; its DeepSec phase uses distinct Claude Opus 5
-and Codex Sol profiles with `maxTurns: 100`. The original 30-turn profiles
+and Codex Sol profiles with `maxTurns: 150`. The original 30-turn profiles
 remain unchanged.
 
 Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
@@ -904,7 +904,7 @@ It never invokes preflight or a benchmark participant.
 ```bash
 pnpm results:fork -- \
   --from <parent-id> \
-  --config-group vulnbench-v2-deepsec-100 \
+  --config-group vulnbench-v2-deepsec-150 \
   --reset-phase deepsec \
   --expect-imported 140 \
   --expect-pending 40
@@ -923,7 +923,7 @@ pnpm tsx src/index.ts --resume <child-id> --phase deepsec
 
 The parent remains the audit record for the abandoned 30-turn DeepSec attempts.
 The child becomes the analysis source only after 180/180 completion. Published
-methodology must identify the two revised DeepSec-100 configurations and the
+methodology must identify the two revised DeepSec-150 configurations and the
 forked lineage.
 
 ### LiteLLM gateway configuration

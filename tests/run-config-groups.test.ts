@@ -64,12 +64,12 @@ test("run config groups load safe defaults and the V2 profile", () => {
   assert.equal(compatibleRuns, 180);
 });
 
-test("revised V2 fork matrix changes only DeepSec profiles to 100 turns", () => {
+test("revised V2 fork matrix changes only DeepSec profiles to 150 turns", () => {
   const configs = loadRunConfigs();
   const groups = loadRunConfigGroups(configs);
   const original = groups.find((group) => group.id === "vulnbench-v2");
   const revised = groups.find((group) =>
-    group.id === "vulnbench-v2-deepsec-100"
+    group.id === "vulnbench-v2-deepsec-150"
   );
 
   assert.ok(original);
@@ -79,8 +79,8 @@ test("revised V2 fork matrix changes only DeepSec profiles to 100 turns", () => 
     original.configIds.slice(0, 7),
   );
   assert.deepEqual(revised.configIds.slice(7), [
-    "deepsec-claude-opus-5-xhigh-turns-100",
-    "deepsec-codex-sol-xhigh-turns-100",
+    "deepsec-claude-opus-5-xhigh-turns-150",
+    "deepsec-codex-sol-xhigh-turns-150",
   ]);
   const configById = new Map(configs.map((config) => [config.id, config]));
   assert.equal(
@@ -95,11 +95,11 @@ test("revised V2 fork matrix changes only DeepSec profiles to 100 turns", () => 
   );
   assert.equal(
     (configById.get(revised.configIds[7]) as { maxTurns: number }).maxTurns,
-    100,
+    150,
   );
   assert.equal(
     (configById.get(revised.configIds[8]) as { maxTurns: number }).maxTurns,
-    100,
+    150,
   );
 });
 

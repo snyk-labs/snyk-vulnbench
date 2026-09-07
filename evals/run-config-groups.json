@@ -68,8 +68,8 @@
     "defaultRepetitions": 1
   },
   {
-    "id": "vulnbench-v2-deepsec-100",
-    "name": "VulnBench 2.0 revised matrix (DeepSec 100 turns)",
+    "id": "vulnbench-v2-deepsec-150",
+    "name": "VulnBench 2.0 revised matrix (DeepSec 150 turns)",
     "configIds": [
       "snyk-code",
       "opus-5-medium-security-review-with-snyk-mcp",
@@ -78,8 +78,8 @@
       "codex-security-luna-xhigh",
       "codex-security-terra-xhigh",
       "codex-security-sol-xhigh",
-      "deepsec-claude-opus-5-xhigh-turns-100",
-      "deepsec-codex-sol-xhigh-turns-100"
+      "deepsec-claude-opus-5-xhigh-turns-150",
+      "deepsec-codex-sol-xhigh-turns-150"
     ],
     "phases": [
       {
@@ -107,10 +107,10 @@
       },
       {
         "id": "deepsec",
-        "name": "DeepSec (100 turns)",
+        "name": "DeepSec (150 turns)",
         "configIds": [
-          "deepsec-claude-opus-5-xhigh-turns-100",
-          "deepsec-codex-sol-xhigh-turns-100"
+          "deepsec-claude-opus-5-xhigh-turns-150",
+          "deepsec-codex-sol-xhigh-turns-150"
         ]
       }
     ],

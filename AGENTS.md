@@ -147,7 +147,7 @@ pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:v2                   # canonical V2 matrix (180 runs, 1 repetition)
 pnpm run benchmark:v2:prepare           # freeze V2 plan without provider calls
 pnpm run benchmark:v2:snyk              # start full V2 bundle with Snyk phase
-pnpm results:fork -- --from <id> --config-group vulnbench-v2-deepsec-100 --reset-phase deepsec --expect-imported 140 --expect-pending 40
+pnpm results:fork -- --from <id> --config-group vulnbench-v2-deepsec-150 --reset-phase deepsec --expect-imported 140 --expect-pending 40
 pnpm tsx src/index.ts --resume <id> --phase claude-code
 pnpm tsx src/index.ts --resume <id> --phase codex-security
 pnpm tsx src/index.ts --resume <id> --phase deepsec

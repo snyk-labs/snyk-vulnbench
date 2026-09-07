@@ -122,7 +122,7 @@ execution offline. Dry-run is the default:
 ```bash
 pnpm results:fork -- \
   --from <parent-execution-id> \
-  --config-group vulnbench-v2-deepsec-100 \
+  --config-group vulnbench-v2-deepsec-150 \
   --reset-phase deepsec \
   --expect-imported 140 \
   --expect-pending 40
@@ -130,7 +130,7 @@ pnpm results:fork -- \
 # Add --create only after reviewing the exact import/discard report.
 ```
 
-The DeepSec-100 child uses distinct Claude and Codex config IDs, imports only
+The DeepSec-150 child uses distinct Claude and Codex config IDs, imports only
 the first 140 compatible successes, discards all parent DeepSec records, and
 leaves 40 fresh DeepSec runs pending. The parent bundle is never modified.
 
