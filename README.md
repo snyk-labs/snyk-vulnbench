@@ -116,6 +116,24 @@ pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
 pnpm tsx src/index.ts --status <execution-id>
 ```
 
+To revise a phase without rerunning compatible completed work, fork the
+execution offline. Dry-run is the default:
+
+```bash
+pnpm results:fork -- \
+  --from <parent-execution-id> \
+  --config-group vulnbench-v2-deepsec-100 \
+  --reset-phase deepsec \
+  --expect-imported 140 \
+  --expect-pending 40
+
+# Add --create only after reviewing the exact import/discard report.
+```
+
+The DeepSec-100 child uses distinct Claude and Codex config IDs, imports only
+the first 140 compatible successes, discards all parent DeepSec records, and
+leaves 40 fresh DeepSec runs pending. The parent bundle is never modified.
+
 See the [benchmark guide](docs/benchmark.md) for persistence, resumability, and
 scoring, and the [management guide](docs/benchmark-management.md) for adding
 tasks, fixtures, and configurations.

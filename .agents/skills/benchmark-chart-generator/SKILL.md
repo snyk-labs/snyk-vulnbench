@@ -98,6 +98,9 @@ is partial, stop and ask whether the user wants a clearly labeled partial
 analysis; never silently chart partial aggregates as final results.
 For phased bundles, also require every `progress.phases[]` entry to be
 `completed`. A completed Snyk or Claude phase is not a completed V2 matrix.
+If `manifest.lineage.kind === "fork"`, include the parent execution, imported
+run count, reset phase, and revised config names in report methodology and
+captions. Do not chart discarded parent-phase results alongside child results.
 
 Read each JSONL file. Each line is one complete JSON object. Lines have a `_type`
 field that determines what kind of row they are:

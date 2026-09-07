@@ -147,6 +147,7 @@ pnpm run benchmark:find                 # only find-vulns tasks
 pnpm run benchmark:v2                   # canonical V2 matrix (180 runs, 1 repetition)
 pnpm run benchmark:v2:prepare           # freeze V2 plan without provider calls
 pnpm run benchmark:v2:snyk              # start full V2 bundle with Snyk phase
+pnpm results:fork -- --from <id> --config-group vulnbench-v2-deepsec-100 --reset-phase deepsec --expect-imported 140 --expect-pending 40
 pnpm tsx src/index.ts --resume <id> --phase claude-code
 pnpm tsx src/index.ts --resume <id> --phase codex-security
 pnpm tsx src/index.ts --resume <id> --phase deepsec
@@ -174,6 +175,12 @@ The canonical V2 manifest has four selectable phases: `snyk-code` (20 runs),
 filters only the current invocation; all phases remain in one frozen manifest
 and one aggregate dataset. Each phase preflights only its configs. Final
 reporting requires global `completed` status and 180/180 successful runs.
+
+Execution forks are offline and dry-run-first. Never add `--create` until the
+reported import/pending counts and parent integrity hash are reviewed. Forks
+must preserve parent lineage, import only fingerprint-compatible successes,
+reset the revised phase completely, and disclose revised config IDs in final
+analysis.
 
 Generated HTML benchmark reports are saved under `public/<report-id>/`. To preview one locally, serve that directory with:
 

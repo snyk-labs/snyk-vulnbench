@@ -813,6 +813,55 @@ Omitting `--phase` retains the all-pending-runs behavior.
 Alternatively, `pnpm run benchmark:v2 -- --phase snyk-code` creates the full
 manifest and immediately runs only the first phase.
 
+#### Forking an execution after a configuration revision
+
+Never edit an existing manifest to change a runner setting. Use the offline
+fork command to create a new lineage-tracked execution while preserving the
+parent:
+
+```bash
+# Read-only preview; no provider calls and no files written
+pnpm results:fork -- \
+  --from 20260901-vulnbench-v2-c08730c4 \
+  --config-group vulnbench-v2-deepsec-100 \
+  --reset-phase deepsec \
+  --expect-imported 140 \
+  --expect-pending 40
+
+# Create only after the preview is exactly correct
+pnpm results:fork -- \
+  --from 20260901-vulnbench-v2-c08730c4 \
+  --config-group vulnbench-v2-deepsec-100 \
+  --reset-phase deepsec \
+  --expect-imported 140 \
+  --expect-pending 40 \
+  --create
+```
+
+Fork creation performs no preflight or model/scanner calls. It hashes the
+parent manifest and authoritative run ledger before and after planning,
+matches reusable runs by task/config/repetition plus fingerprints, re-keys
+them to the child plan, and publishes the child atomically. Any failed gate
+removes staging only.
+
+The revised group imports the 140 complete non-DeepSec results and resets all
+40 DeepSec slots. It uses distinct `maxTurns: 100` config IDs for Claude Opus
+5 and Codex Sol; original 30-turn configs and all parent DeepSec attempts
+remain only in the parent audit record.
+
+Imported rows expose parent execution/run provenance in JSONL. Child cost
+totals count imported attempts once plus new DeepSec work. Discarded parent
+DeepSec spend is audit metadata, not child result cost. A report must disclose
+that the child combines imported first-three-phase results with a revised
+DeepSec-100 phase.
+
+After creation:
+
+```bash
+pnpm tsx src/index.ts --resume <child-id> --phase deepsec
+pnpm tsx src/index.ts --status <child-id>
+```
+
 Resume reloads the immutable manifest and refuses changed harness, config, task,
 fixture, or ground-truth fingerprints. Successful run keys are never repeated.
 A stale `running` attempt after a crash becomes `interrupted-uncertain`; retrying

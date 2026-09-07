@@ -763,6 +763,11 @@ frozen into new execution manifests.
 The canonical V2 phases are `snyk-code` (20 runs), `claude-code` (60),
 `codex-security` (60), and `deepsec` (40).
 
+`vulnbench-v2-deepsec-100` is a revised fork target. Its first seven configs
+are identical to `vulnbench-v2`; its DeepSec phase uses distinct Claude Opus 5
+and Codex Sol profiles with `maxTurns: 100`. The original 30-turn profiles
+remain unchanged.
+
 Each entry in `evals/run-configs.json` is a general coding-agent config, a generic command scanner, or a dedicated DeepSec/Codex Security harness config.
 
 ### Model config fields (`type` absent or `"model"`)
@@ -890,6 +895,36 @@ The status output shows independent phase progress and the next command. A
 phase may be `completed` while the global execution remains `paused`. Do not
 publish final aggregates until global status is `completed`, with 180
 successful runs and no pending, failed, or interrupted items.
+
+### Forking a partial execution safely
+
+`pnpm results:fork` is dry-run-only unless `--create` is explicitly present.
+It never invokes preflight or a benchmark participant.
+
+```bash
+pnpm results:fork -- \
+  --from <parent-id> \
+  --config-group vulnbench-v2-deepsec-100 \
+  --reset-phase deepsec \
+  --expect-imported 140 \
+  --expect-pending 40
+```
+
+Review the parent hash, imported count, discarded statuses, pending count, and
+child plan. Then repeat with `--create`. Forking rewrites imported records to
+new child run keys while retaining parent provenance and attempt metrics. It
+does not copy partial, failed, or successful records from the reset phase.
+
+The child initially reports 140 successes and 40 DeepSec runs pending. Run:
+
+```bash
+pnpm tsx src/index.ts --resume <child-id> --phase deepsec
+```
+
+The parent remains the audit record for the abandoned 30-turn DeepSec attempts.
+The child becomes the analysis source only after 180/180 completion. Published
+methodology must identify the two revised DeepSec-100 configurations and the
+forked lineage.
 
 ### LiteLLM gateway configuration
 

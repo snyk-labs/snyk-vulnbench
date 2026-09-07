@@ -146,6 +146,13 @@ For a manually phased canonical V2 run, guide the user through this sequence:
 Each phase performs only its own preflight. Treat a successful phase invocation
 as phase completion, not full benchmark completion.
 
+If the user changes a frozen config after partial execution, never edit the
+manifest or merge result files manually. Use `pnpm results:fork` without
+`--create` first. Report the parent hash, import/discard counts, pending count,
+and revised config IDs; ask for explicit approval before repeating with
+`--create`. Provider execution is always a later `--resume <child-id> --phase
+<phase-id>` command.
+
 **Done when:** the command exits successfully, or you've reported the error with a fix suggestion.
 
 ---
