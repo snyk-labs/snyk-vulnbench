@@ -66,5 +66,55 @@
     ],
     "category": "attacker-reachable-find-vulns",
     "defaultRepetitions": 1
+  },
+  {
+    "id": "vulnbench-v2-deepsec-100",
+    "name": "VulnBench 2.0 revised matrix (DeepSec 100 turns)",
+    "configIds": [
+      "snyk-code",
+      "opus-5-medium-security-review-with-snyk-mcp",
+      "opus-5-xhigh-security-review",
+      "sonnet-5-xhigh-security-review",
+      "codex-security-luna-xhigh",
+      "codex-security-terra-xhigh",
+      "codex-security-sol-xhigh",
+      "deepsec-claude-opus-5-xhigh-turns-100",
+      "deepsec-codex-sol-xhigh-turns-100"
+    ],
+    "phases": [
+      {
+        "id": "snyk-code",
+        "name": "Snyk Code",
+        "configIds": ["snyk-code"]
+      },
+      {
+        "id": "claude-code",
+        "name": "Claude Code",
+        "configIds": [
+          "opus-5-medium-security-review-with-snyk-mcp",
+          "opus-5-xhigh-security-review",
+          "sonnet-5-xhigh-security-review"
+        ]
+      },
+      {
+        "id": "codex-security",
+        "name": "Codex Security",
+        "configIds": [
+          "codex-security-luna-xhigh",
+          "codex-security-terra-xhigh",
+          "codex-security-sol-xhigh"
+        ]
+      },
+      {
+        "id": "deepsec",
+        "name": "DeepSec (100 turns)",
+        "configIds": [
+          "deepsec-claude-opus-5-xhigh-turns-100",
+          "deepsec-codex-sol-xhigh-turns-100"
+        ]
+      }
+    ],
+    "category": "attacker-reachable-find-vulns",
+    "defaultRepetitions": 1
   }
 ]

@@ -33,6 +33,7 @@ import {
   type ExecutionAggregates,
   type ExecutionBudgets,
   type ExecutionPhase,
+  type ExecutionForkLineage,
   type ExecutionManifest,
   type ExecutionProgress,
   type ExecutionRunRecord,
@@ -61,11 +62,24 @@ export interface ExecutionCheckpoint {
   progress: ExecutionProgress;
 }
 
-export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoint {
+export interface PlanExecutionOptions {
+  codename?: string;
+  now?: Date;
+  shortId?: string;
+  lineage?: ExecutionForkLineage;
+}
+
+export function planExecution(
+  input: NewExecutionInput,
+  options: PlanExecutionOptions = {},
+): ExecutionManifest {
   const phases = phasesForNewExecution(input);
   const plan = buildPlanData(input, phases);
-  const manifest = buildExecutionManifest({
-    codename: input.selectedGroup?.id ?? input.selectedCategory ?? "benchmark",
+  return buildExecutionManifest({
+    codename: options.codename
+      ?? input.selectedGroup?.id
+      ?? input.selectedCategory
+      ?? "benchmark",
     argv: input.argv,
     selection: {
       category: input.selectedCategory ?? null,
@@ -76,8 +90,15 @@ export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoi
     },
     budgets: input.budgets,
     phases,
+    ...(options.lineage && { lineage: options.lineage }),
+    ...(options.now && { now: options.now }),
+    ...(options.shortId && { shortId: options.shortId }),
     ...plan,
   });
+}
+
+export function initializeExecution(input: NewExecutionInput): ExecutionCheckpoint {
+  const manifest = planExecution(input);
   const executionDir = createExecutionBundle(
     join(input.resultsDir, "executions"),
     manifest,

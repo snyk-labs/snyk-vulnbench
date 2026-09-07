@@ -64,6 +64,45 @@ test("run config groups load safe defaults and the V2 profile", () => {
   assert.equal(compatibleRuns, 180);
 });
 
+test("revised V2 fork matrix changes only DeepSec profiles to 100 turns", () => {
+  const configs = loadRunConfigs();
+  const groups = loadRunConfigGroups(configs);
+  const original = groups.find((group) => group.id === "vulnbench-v2");
+  const revised = groups.find((group) =>
+    group.id === "vulnbench-v2-deepsec-100"
+  );
+
+  assert.ok(original);
+  assert.ok(revised);
+  assert.deepEqual(
+    revised.configIds.slice(0, 7),
+    original.configIds.slice(0, 7),
+  );
+  assert.deepEqual(revised.configIds.slice(7), [
+    "deepsec-claude-opus-5-xhigh-turns-100",
+    "deepsec-codex-sol-xhigh-turns-100",
+  ]);
+  const configById = new Map(configs.map((config) => [config.id, config]));
+  assert.equal(
+    (configById.get("deepsec-claude-opus-5-xhigh") as { maxTurns: number })
+      .maxTurns,
+    30,
+  );
+  assert.equal(
+    (configById.get("deepsec-codex-sol-xhigh") as { maxTurns: number })
+      .maxTurns,
+    30,
+  );
+  assert.equal(
+    (configById.get(revised.configIds[7]) as { maxTurns: number }).maxTurns,
+    100,
+  );
+  assert.equal(
+    (configById.get(revised.configIds[8]) as { maxTurns: number }).maxTurns,
+    100,
+  );
+});
+
 test("run config group validation rejects unknown and duplicate config IDs", () => {
   const directory = mkdtempSync(join(tmpdir(), "vulnbench-groups-"));
   const file = join(directory, "groups.json");

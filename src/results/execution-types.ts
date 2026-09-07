@@ -56,6 +56,38 @@ export interface ExecutionSourceSnapshot {
   harnessFingerprint: string;
 }
 
+export interface ExecutionUsageSummary {
+  logicalInputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  attemptsWithUnknownCost: number;
+}
+
+export interface ExecutionForkLineage {
+  kind: "fork";
+  parentExecutionId: string;
+  parentPlanFingerprint: string;
+  parentSource: ExecutionSourceSnapshot;
+  parentManifestHash: string;
+  parentRunLedgerHash: string;
+  forkedAt: string;
+  resetPhaseId: string;
+  importSummary: {
+    importedRuns: number;
+    discardedRuns: number;
+    discardedByStatus: Partial<Record<ExecutionRunStatus, number>>;
+    discardedUsage: ExecutionUsageSummary;
+  };
+}
+
+export interface ImportedRunProvenance {
+  parentExecutionId: string;
+  parentRunKey: string;
+  parentPlanFingerprint: string;
+  parentSource: ExecutionSourceSnapshot;
+  importedAt: string;
+}
+
 export interface ExecutionSelectionSnapshot {
   category: string | null;
   configGroup: string | null;
@@ -85,6 +117,7 @@ export interface ExecutionManifest {
   plannedRuns: PlannedExecutionRun[];
   taskSnapshots: Record<string, unknown>;
   configSnapshots: Record<string, unknown>;
+  lineage?: ExecutionForkLineage;
 }
 
 export interface ExecutionAttempt {
@@ -104,6 +137,7 @@ export interface ExecutionRunRecord {
   status: ExecutionRunStatus;
   attempts: ExecutionAttempt[];
   result?: EvalResult;
+  importedFrom?: ImportedRunProvenance;
   updatedAt: string;
 }
 
@@ -125,12 +159,7 @@ export interface ExecutionPhaseProgress {
   totalRuns: number;
   status: ExecutionStatus;
   counts: Record<ExecutionRunStatus, number>;
-  observedUsage: {
-    logicalInputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-    attemptsWithUnknownCost: number;
-  };
+  observedUsage: ExecutionUsageSummary;
 }
 
 export interface ExecutionProgress {
@@ -141,12 +170,7 @@ export interface ExecutionProgress {
   currentRunKey: string | null;
   totalRuns: number;
   counts: Record<ExecutionRunStatus, number>;
-  observedUsage: {
-    logicalInputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-    attemptsWithUnknownCost: number;
-  };
+  observedUsage: ExecutionUsageSummary;
   items: ExecutionProgressItem[];
   phases: ExecutionPhaseProgress[];
 }

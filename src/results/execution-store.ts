@@ -16,6 +16,7 @@ import type {
   ExecutionManifest,
   ExecutionBudgets,
   ExecutionPhase,
+  ExecutionForkLineage,
   ExecutionProgress,
   ExecutionRunRecord,
   ExecutionRunStatus,
@@ -53,6 +54,7 @@ export interface BuildExecutionManifestInput {
   shortId?: string;
   budgets?: ExecutionBudgets;
   phases?: ExecutionPhase[];
+  lineage?: ExecutionForkLineage;
 }
 
 export function buildExecutionManifest(
@@ -102,6 +104,7 @@ export function buildExecutionManifest(
     plannedRuns,
     taskSnapshots,
     configSnapshots,
+    ...(input.lineage && { lineage: input.lineage }),
   };
 }
 
