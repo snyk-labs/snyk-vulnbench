@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   readdirSync,
   rmSync,
   writeFileSync,
@@ -22,9 +23,11 @@ import {
   writeRunRecord,
 } from "../src/results/execution-store.js";
 import {
+  checkpointExecution,
   planExecution,
   type NewExecutionInput,
 } from "../src/results/execution-runtime.js";
+import { readBenchmarkResults } from "../src/results/results-io.js";
 import type {
   BenchmarkMetrics,
   EvalResult,
@@ -130,6 +133,58 @@ test("fork dry-run is read-only and create atomically imports compatible success
     const progress = refreshExecutionProgress(created.childDir!);
     assert.equal(progress.counts.succeeded, 2);
     assert.equal(progress.counts.pending, 2);
+    assert.equal(progress.observedUsage.costUsd, 0.04);
+    assert.equal(
+      childManifest.lineage?.importSummary.discardedUsage.costUsd,
+      0.02,
+    );
+    const partialRows = readFileSync(
+      join(created.childDir!, "benchmark.jsonl"),
+      "utf8",
+    ).trim().split("\n").map((line) => JSON.parse(line));
+    assert.equal(
+      partialRows.filter((row) => row._type === "run").length,
+      2,
+    );
+    assert.ok(
+      partialRows
+        .filter((row) => row._type === "run")
+        .every((row) =>
+          row.executionForkedFrom === parentManifest.executionId
+          && row.executionImportedFrom?.parentRunKey
+        ),
+    );
+    const parsedImported = readBenchmarkResults(created.childDir!).runs[0] as
+      EvalResult & {
+        executionForkedFrom?: string;
+        executionImportedFrom?: { parentRunKey: string };
+      };
+    assert.equal(
+      parsedImported.executionForkedFrom,
+      parentManifest.executionId,
+    );
+    assert.ok(parsedImported.executionImportedFrom?.parentRunKey);
+
+    for (const spec of childManifest.plannedRuns.filter((run) =>
+      run.phaseId === "deepsec"
+    )) {
+      writeRunRecord(
+        created.childDir!,
+        successfulRecord(childManifest, spec),
+      );
+    }
+    const completed = checkpointExecution(created.childDir!);
+    assert.equal(completed.progress.status, "completed");
+    assert.equal(completed.results.length, 4);
+    assert.equal(completed.progress.observedUsage.costUsd, 0.08);
+    const finalRows = readFileSync(
+      join(created.childDir!, "benchmark.jsonl"),
+      "utf8",
+    ).trim().split("\n").map((line) => JSON.parse(line));
+    assert.equal(
+      finalRows.filter((row) => row._type === "run").length,
+      4,
+    );
     assert.deepEqual(authoritativeExecutionHash(parentDir), before);
   } finally {
     rmSync(root, { recursive: true, force: true });

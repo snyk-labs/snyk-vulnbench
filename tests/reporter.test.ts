@@ -84,6 +84,30 @@ test("execution status reports durable progress and uncertain cost", () => {
           attemptsWithUnknownCost: 0,
         },
       }],
+    }, {
+      kind: "fork",
+      parentExecutionId: "parent-execution",
+      parentPlanFingerprint: "parent-plan",
+      parentSource: {
+        gitCommit: "abc",
+        dirtyFingerprint: null,
+        harnessFingerprint: "harness",
+      },
+      parentManifestHash: "manifest",
+      parentRunLedgerHash: "ledger",
+      forkedAt: "2026-09-01T00:00:00.000Z",
+      resetPhaseId: "deepsec",
+      importSummary: {
+        importedRuns: 140,
+        discardedRuns: 11,
+        discardedByStatus: { succeeded: 10, failed: 1 },
+        discardedUsage: {
+          logicalInputTokens: 100,
+          outputTokens: 10,
+          costUsd: 1,
+          attemptsWithUnknownCost: 0,
+        },
+      },
     });
   } finally {
     console.log = original;
@@ -94,4 +118,5 @@ test("execution status reports durable progress and uncertain cost", () => {
   assert.match(output, /Interrupted.*1/);
   assert.match(output, /\$12\.3400 observed; 1 attempt\(s\) unknown/);
   assert.match(output, /snyk-code.*completed.*20\/20/);
+  assert.match(output, /Forked from.*parent-execution.*140 imported; 11 discarded/);
 });

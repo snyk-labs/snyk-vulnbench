@@ -394,7 +394,7 @@ async function main() {
   if (opts.status) {
     const executionDir = resolveExecutionDirectory(RESULTS_DIR, opts.status);
     const execution = checkpointExecution(executionDir, RESULTS_DIR);
-    printExecutionStatus(execution.progress);
+    printExecutionStatus(execution.progress, execution.manifest.lineage);
     console.log(`  Bundle: ${executionDir}\n`);
     return;
   }
@@ -720,7 +720,7 @@ async function main() {
     const configAggregates = aggregateByConfig(taskAggregates, execution.results);
 
     printSummaryTable(execution.results, taskAggregates, configAggregates);
-    printExecutionStatus(execution.progress);
+    printExecutionStatus(execution.progress, execution.manifest.lineage);
     if (runtimePhase) {
       const phaseProgress = execution.progress.phases.find((phase) =>
         phase.id === runtimePhase.id

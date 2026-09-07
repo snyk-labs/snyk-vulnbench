@@ -2,7 +2,10 @@ import { appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { styleText } from "node:util";
 import type { EvalResult, FindVulnsDetails, FixVulnsDetails, ThinkingConfig, AggregatedTaskResult, AggregatedConfigResult, PrimaryMetricKind } from "./types.js";
-import type { ExecutionProgress } from "./results/execution-types.js";
+import type {
+  ExecutionForkLineage,
+  ExecutionProgress,
+} from "./results/execution-types.js";
 
 // ─── Style Helpers ────────────────────────────────────────────────────────────
 
@@ -91,7 +94,10 @@ export function printRunProgress(
   console.log(`\n  ${s("bold", `▸ [${runIndex}/${totalRuns}]`)} ${s("bold", taskName)}${phase}`);
 }
 
-export function printExecutionStatus(progress: ExecutionProgress): void {
+export function printExecutionStatus(
+  progress: ExecutionProgress,
+  lineage?: ExecutionForkLineage,
+): void {
   const completed = progress.counts.succeeded;
   console.log(`\nExecution ${progress.executionId}`);
   console.log(metricLine("Status", progress.status, "  "));
@@ -113,6 +119,13 @@ export function printExecutionStatus(progress: ExecutionProgress): void {
     `$${progress.observedUsage.costUsd.toFixed(4)} observed; ${progress.observedUsage.attemptsWithUnknownCost} attempt(s) unknown`,
     "  ",
   ));
+  if (lineage) {
+    console.log(metricLine(
+      "Forked from",
+      `${lineage.parentExecutionId} (${lineage.importSummary.importedRuns} imported; ${lineage.importSummary.discardedRuns} discarded)`,
+      "  ",
+    ));
+  }
   if (progress.phases.length > 0) {
     console.log("  Phases:");
     for (const phase of progress.phases) {

@@ -335,6 +335,17 @@ export function checkpointExecution(
     executionId: manifest.executionId,
     partial: aggregates.partial,
     coverage: aggregates.coverage,
+    ...(manifest.lineage && { lineage: manifest.lineage }),
+    importedRuns: Object.fromEntries(
+      records.flatMap((record) =>
+        record.importedFrom
+          ? [[
+            `${record.spec.taskId}\u0000${record.spec.runConfigId}\u0000${record.spec.repetition}`,
+            record.importedFrom,
+          ]]
+          : []
+      ),
+    ),
   };
   writeBenchmarkJsonl(
     join(executionDir, "benchmark.jsonl"),

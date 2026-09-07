@@ -19,6 +19,8 @@ import {
 } from "./execution-store.js";
 import type {
   ExecutionAggregates,
+  ExecutionForkLineage,
+  ImportedRunProvenance,
   ParsedBenchmarkResults,
 } from "./execution-types.js";
 
@@ -55,15 +57,29 @@ export function writeBenchmarkJsonl(
         interruptedRuns: number;
       }>;
     };
+    lineage?: ExecutionForkLineage;
+    importedRuns?: Record<string, ImportedRunProvenance>;
   },
 ): void {
   const metadata = execution ? {
     executionId: execution.executionId,
     executionPartial: execution.partial,
     executionCoverage: execution.coverage,
+    ...(execution.lineage && {
+      executionForkedFrom: execution.lineage.parentExecutionId,
+      executionForkLineage: execution.lineage,
+    }),
   } : {};
   const rows = [
-    ...results.runs.map((run) => ({ _type: "run", ...run, ...metadata })),
+    ...results.runs.map((run) => ({
+      _type: "run",
+      ...run,
+      ...metadata,
+      ...(execution?.importedRuns?.[logicalResultKey(run)] && {
+        executionImportedFrom:
+          execution.importedRuns[logicalResultKey(run)],
+      }),
+    })),
     ...results.taskAggregates.map((aggregate) => ({
       _type: "task-aggregate",
       ...aggregate,
@@ -81,6 +97,12 @@ export function writeBenchmarkJsonl(
       ? ""
       : `${rows.map((row) => JSON.stringify(row)).join("\n")}\n`,
   );
+}
+
+function logicalResultKey(
+  run: Pick<EvalResult, "taskId" | "runConfigId" | "repetition">,
+): string {
+  return `${run.taskId}\u0000${run.runConfigId}\u0000${run.repetition}`;
 }
 
 export function findLatestBenchmarkResults(resultsDir: string): string | null {
@@ -111,8 +133,16 @@ function readExecutionBundle(executionDir: string): ParsedBenchmarkResults {
   const progress = existsSync(join(executionDir, "progress.json"))
     ? readExecutionProgress(executionDir)
     : undefined;
-  const runs = listRunRecords(executionDir)
-    .flatMap((record) => record.result ? [record.result] : []);
+  const runs: EvalResult[] = listRunRecords(executionDir)
+    .flatMap((record) => record.result ? [{
+      ...record.result,
+      ...(manifest.lineage && {
+        executionForkedFrom: manifest.lineage.parentExecutionId,
+      }),
+      ...(record.importedFrom && {
+        executionImportedFrom: record.importedFrom,
+      }),
+    }] : []);
   const aggregatesPath = join(executionDir, "aggregates.json");
   let taskAggregates: AggregatedTaskResult[];
   let configAggregates: AggregatedConfigResult[];
