@@ -159,6 +159,7 @@ src/        Harness runner, scoring, reporting, and CLI
 evals/      Task descriptors and model/tool run configurations
 fixtures/   Inspectable vulnerable projects and protected answer keys
 results/    Resumable execution bundles and compatible JSONL snapshots
+publications/ Versioned, checksummed archives of completed benchmark datasets
 docs/       Benchmark and fixture-management documentation
 ```
 

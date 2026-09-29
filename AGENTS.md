@@ -56,7 +56,8 @@ fixtures/
     findings.json             # VulnBench 1.0 ground truth
     findings-attacker-reachable.json  # VulnBench 2.0 ground truth
 
-results/            # Benchmark output (JSONL files)
+results/            # Ignored runtime execution bundles and JSONL snapshots
+publications/       # Versioned, checksummed completed benchmark archives
 ```
 
 ## Adding a New Eval Task (Open/Closed)
@@ -200,6 +201,10 @@ This uses the `serve` npm package and defaults to `0.0.0.0:3000`; pass standard 
 
 ## Benchmark Documentation and Guidelines
 
+- **[`publications/README.md`](publications/README.md)** — Start here to locate
+  committed benchmark datasets. Each publication identifies its authoritative
+  execution, preserves parent lineage, and provides archive and per-file
+  checksums plus extraction instructions.
 - **[`docs/vulnbench-v2-run-handoff.md`](docs/vulnbench-v2-run-handoff.md)** — Start here for the completed V2 execution: authoritative child/parent bundles, fork lineage, final config metrics, DeepSec localized-recall semantics, zero-score audit, and reporting guardrails.
 - **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add V1 and V2 eval tasks and fixtures without code changes: both ground-truth schemas, source/sink annotations, directory-scanning loader behavior, task JSON, vulnerability types, run configs, SAST commands, Snyk mappings, and troubleshooting.
 - **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, V1 type-only and V2 endpoint-aware scoring, Snyk's V1/rich SARIF parsers, aggregation, metrics, and result formats.

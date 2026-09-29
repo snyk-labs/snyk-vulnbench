@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "publicationId": "vulnbench-v2-20260907-vulnbench-v2-deepsec-150-574753a2",
+  "benchmarkGeneration": "vulnbench-v2",
+  "createdAt": "2026-09-29T09:42:11.552Z",
+  "authoritativeExecutionId": "20260907-vulnbench-v2-deepsec-150-574753a2",
+  "parentExecutionId": "20260901-vulnbench-v2-c08730c4",
+  "archives": [
+    {
+      "role": "audit-parent",
+      "executionId": "20260901-vulnbench-v2-c08730c4",
+      "status": "paused",
+      "counts": {
+        "pending": 29,
+        "running": 0,
+        "succeeded": 150,
+        "failed": 1,
+        "interrupted-uncertain": 0
+      },
+      "sourcePath": "results/executions/20260901-vulnbench-v2-c08730c4",
+      "archivePath": "bundles/20260901-vulnbench-v2-c08730c4.tar.gz",
+      "archiveBytes": 9198390,
+      "archiveSha256": "8a3ee79fec516f6d723fe5d228faf155dfa590cc209b2d3f38e9c3daee0d4bcb",
+      "unpackedBytes": 228343104,
+      "fileCount": 162,
+      "fileChecksumsPath": "checksums/20260901-vulnbench-v2-c08730c4.sha256",
+      "fileChecksumManifestSha256": "7b70052c3fe832c1f361b77b1ea5f985dd8145996e43eb88fc4ca464739612ed",
+      "planFingerprint": "be022f7d3399ba28644582c28efb25884f32ccce67549e1ae72c5091a593e634"
+    },
+    {
+      "role": "authoritative-child",
+      "executionId": "20260907-vulnbench-v2-deepsec-150-574753a2",
+      "status": "completed",
+      "counts": {
+        "pending": 0,
+        "running": 0,
+        "succeeded": 180,
+        "failed": 0,
+        "interrupted-uncertain": 0
+      },
+      "sourcePath": "results/executions/20260907-vulnbench-v2-deepsec-150-574753a2",
+      "archivePath": "bundles/20260907-vulnbench-v2-deepsec-150-574753a2.tar.gz",
+      "archiveBytes": 9362283,
+      "archiveSha256": "b29c643079c8fddc361463ca39e29204e0510d0a16300631784b59772157acd6",
+      "unpackedBytes": 228748857,
+      "fileCount": 186,
+      "fileChecksumsPath": "checksums/20260907-vulnbench-v2-deepsec-150-574753a2.sha256",
+      "fileChecksumManifestSha256": "ff780bb1818472c330958c41145c9229b8fa86eefefd203fd7c05230bb120a7a",
+      "planFingerprint": "23f6b9e03418a060fd881315b2df43f39e11a6b3b6bb06c9239f8e929882f657"
+    }
+  ]
+}

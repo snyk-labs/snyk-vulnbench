@@ -13,6 +13,17 @@ Use this bundle for final analysis:
 results/executions/20260907-vulnbench-v2-deepsec-150-574753a2/
 ```
 
+The committed publication copy, including the complete parent and child
+bundles plus integrity metadata, is:
+
+```text
+publications/vulnbench-v2/20260907-vulnbench-v2-deepsec-150-574753a2/
+```
+
+If the ignored runtime bundle is unavailable, verify and extract the child
+archive from that directory before following the file-level instructions
+below.
+
 Final reconstructed status:
 
 - Status: `completed`
