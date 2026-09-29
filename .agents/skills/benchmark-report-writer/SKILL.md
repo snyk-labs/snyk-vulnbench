@@ -55,6 +55,9 @@ lookup table where the fixture name helps the reader map back to the data.
   parent execution, imported count, reset phase, revised config IDs, and
   discarded historical spend. Use only child rows for final metrics.
 - **Recommended**: a benchmark guide document (e.g. `docs/benchmark.md`) describing goals, methodology, and task design. If it's missing, ask the user for the missing context rather than inventing it.
+- For the completed VulnBench V2 execution, read
+  `docs/vulnbench-v2-run-handoff.md` before interpreting config aggregates,
+  especially DeepSec localized recall and fork provenance.
 - **Optional**: chart-generator artifacts, either as a generated report directory or direct paths to `article-visuals.md` and `chart-manifest.json`. Treat `article-visuals.md` as the preferred visual catalog and `chart-manifest.json` as validation/detail metadata. Treat `index.html` as a human preview, not the source of chart truth.
 - **Optional**: an existing draft or a prior report to build on, and a target style ("Anthropic announcement", "FrontierSWE deep-dive", "Cursor blog", etc.).
 

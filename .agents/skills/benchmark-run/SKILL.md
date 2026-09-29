@@ -24,7 +24,10 @@ Read these two sources to build the current inventory:
 
 - **Task IDs** — list `evals/tasks/*.json` filenames. Each filename minus `.json` is the task ID (e.g. `js-project-tigerteam-find-vulns`).
 - **Config IDs** — read `evals/run-configs.json`. Each object's `id` field is a config ID. For model configs, also note `mcpServers` and `promptTemplateId`, because they define the available tools and any required tool-use guidance.
-- **Config groups** — read `evals/run-config-groups.json`. With no selector the CLI uses `default`; `vulnbench-v2` is the canonical V2 matrix.
+- **Config groups** — read `evals/run-config-groups.json`. With no selector
+  the CLI uses `default`; `vulnbench-v2` preserves the original 30-turn
+  DeepSec matrix, while `vulnbench-v2-deepsec-150` matches the completed V2
+  execution.
 
 This step is necessary because tasks and configs change over time — never hard-code the list.
 
@@ -134,9 +137,10 @@ Authentication, quota, gateway, and unknown failures pause new paid work by
 default. Never add `--continue-on-error`, `--retry-failed`, or
 `--retry-interrupted` without explicit user approval.
 
-For a manually phased canonical V2 run, guide the user through this sequence:
+For a manually phased V2 run aligned with the completed 180-run execution,
+guide the user through this sequence:
 
-1. `pnpm run benchmark:v2:prepare` and record the execution ID.
+1. Run `pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 --repetitions 1 --prepare` and record the execution ID. The `benchmark:v2:prepare` shorthand retains the historical 30-turn DeepSec group and is not equivalent.
 2. Resume `--phase snyk-code` (20 runs).
 3. Resume `--phase claude-code` (60 runs).
 4. Resume `--phase codex-security` (60 runs).

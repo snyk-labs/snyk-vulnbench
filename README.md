@@ -82,8 +82,9 @@ pnpm install
 # Run the default benchmark matrix
 pnpm run benchmark
 
-# Start a complete V2 execution by running its Snyk Code phase
-pnpm run benchmark:v2:snyk
+# Start the revised complete V2 execution by running its Snyk Code phase
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 \
+  --repetitions 1 --phase snyk-code
 ```
 
 Each invocation creates `results/executions/<date>-<codename>-<id>/`. Completed
@@ -103,8 +104,9 @@ pnpm tsx src/index.ts --resume <execution-id> --retry-failed
 For manual control over the complete 180-run VulnBench V2 execution:
 
 ```bash
-# Creates the full manifest without preflight or provider calls
-pnpm run benchmark:v2:prepare
+# Creates the revised full manifest without preflight or provider calls
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 \
+  --repetitions 1 --prepare
 
 # Run each phase when ready, using the same printed execution ID
 pnpm tsx src/index.ts --resume <execution-id> --phase snyk-code
@@ -115,6 +117,10 @@ pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
 # Must report 180/180 and status "completed" before final reporting
 pnpm tsx src/index.ts --status <execution-id>
 ```
+
+The `benchmark:v2`, `benchmark:v2:prepare`, and `benchmark:v2:snyk` package
+shorthands retain the original 30-turn DeepSec registry group for historical
+reproducibility. They do not reproduce the completed DeepSec-150 matrix.
 
 To revise a phase without rerunning compatible completed work, fork the
 execution offline. Dry-run is the default:
@@ -137,6 +143,10 @@ leaves 40 fresh DeepSec runs pending. The parent bundle is never modified.
 See the [benchmark guide](docs/benchmark.md) for persistence, resumability, and
 scoring, and the [management guide](docs/benchmark-management.md) for adding
 tasks, fixtures, and configurations.
+
+For the completed V2 execution, final bundle lineage, config headlines,
+DeepSec localized-recall interpretation, and zero-score audit, start with the
+[VulnBench V2 run handoff](docs/vulnbench-v2-run-handoff.md).
 
 ### MCP-backed model runs
 

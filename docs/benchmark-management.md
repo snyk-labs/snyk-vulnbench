@@ -2,6 +2,10 @@
 
 How to add new eval tasks, new fixtures, and new run configs — without touching source code.
 
+For the completed V2 run, final bundle lineage, DeepSec scoring interpretation,
+and analysis guardrails, see
+[`docs/vulnbench-v2-run-handoff.md`](./vulnbench-v2-run-handoff.md).
+
 ## Table of Contents
 
 1. [How the Plugin Architecture Works](#how-the-plugin-architecture-works)
@@ -364,9 +368,9 @@ Each `vulnerabilities` entry uses the following shape:
 | `codeFlowCrossFile` | Yes | `"yes"` \| `"no"` | Whether locations span multiple files. It must agree with `filesRelated`. |
 | `codeFlowCrossService` | No | `"yes"` \| `"no"` | Preserved when present, but currently out of scope for scoring |
 
-The V2 primary score is **Attacker-Reachable Vulnerability Recall**: the fraction of independently curated attacker-reachable vulnerabilities matched under the active endpoint-localization policy. Matching requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path, normalized suffix, or a bare basename; lines allow an inclusive ±2 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the headline threshold. Precision and lenient endpoint-localized F1 are retained as secondary metrics.
+For endpoint-aware runners, the V2 primary score is **Attacker-Reachable Vulnerability Recall**: the fraction of independently curated attacker-reachable vulnerabilities matched under the active endpoint-localization policy. Matching requires a type match against `type` or `typeAliases` plus endpoint evidence. Paths match by normalized relative path, normalized suffix, or a bare basename; lines allow an inclusive ±2 tolerance. For one ground-truth location, one match to its `source` or `sink` is enough. For exactly two locations, either both locations or either labeled endpoint may match. For longer flows, distinct reported locations must match both a labeled `source` and a labeled `sink`; intermediate locations are diagnostic and do not raise the headline threshold. Precision and lenient endpoint-localized F1 are retained as secondary metrics. DeepSec cannot export endpoint roles and therefore uses the separate `localized-vulnerability-recall` primary metric: compatible type plus any reported location within the same ±2-line tolerance. Do not rank or average these two primary metrics together.
 
-Each V2 run persists a complete scoring trace at `details.matchDiagnostics` and a complementary `details.scoreSuite` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, signed/absolute line deltas, compact source-and-sink/sink-only/source-only evidence classes, explicit all/available candidate ranks, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. `scoreSuite` records secondary lenient endpoint-localized F1, strict exact-line flow F1, source/sink endpoint recall, tolerant full-flow overlap, and detection-only F1. See [`docs/benchmark.md` → V2 score suite](./benchmark.md#v2-score-suite) for the complete semantics.
+Each endpoint-aware V2 run persists a complete scoring trace at `details.matchDiagnostics` and a complementary `details.scoreSuite` in its JSONL run row. The trace includes every reported-finding × ground-truth candidate, all type-label and location-pair comparisons, endpoint evidence, path match modes, signed/absolute line deltas, compact source-and-sink/sink-only/source-only evidence classes, explicit all/available candidate ranks, eligibility/selection state, and finding/vulnerability outcomes with structured failure reasons. `scoreSuite` records secondary lenient endpoint-localized F1, strict exact-line flow F1, source/sink endpoint recall, tolerant full-flow overlap, and detection-only F1. DeepSec V2 rows instead persist `details.localizedScore` and do not contain endpoint `matchDiagnostics` or `scoreSuite`. See [`docs/benchmark.md` → V2 score suite](./benchmark.md#v2-score-suite) for the complete semantics.
 
 Aggregate JSONL rows preserve `groundTruth` and `primaryMetric`. Each `config-aggregate` has `groundTruths` plus a `byGroundTruth` metric breakdown. When selected tasks mix unlike primary metrics, the top-level quality headline is null; reports must use the generation-specific breakdown rather than averaging V1 F1 with V2 recall.
 
@@ -739,7 +743,10 @@ npm run report:serve -- public/2026-05-14-wpq2k
 `evals/run-config-groups.json` defines named, validated config selections:
 
 - `default` is used when neither `--config`, `--config-group`, nor `--all-configs` is supplied. It excludes Codex Security and DeepSec to avoid accidental opinionated-harness runs.
-- `vulnbench-v2` pins the canonical 9-config matrix to `attacker-reachable-find-vulns` with one repetition.
+- `vulnbench-v2` preserves the original 9-config matrix, including its
+  30-turn DeepSec profiles, for historical reproducibility.
+- `vulnbench-v2-deepsec-150` is the revised 9-config matrix used by the
+  completed 180-run execution; its DeepSec profiles use 150 turns.
 - `--config` selects explicit IDs; `--all-configs` deliberately restores the full registry. These selectors are mutually exclusive.
 
 The V2 group contains Snyk Code; Claude Opus 5 medium with Snyk MCP,
@@ -750,7 +757,12 @@ registry but are commented out of this group. DeepSec rows retain
 localized-recall semantics, while the other model/security runners use
 endpoint-aware attacker-reachable recall.
 
-Run the canonical matrix with `pnpm run benchmark:v2`, or preview all 180 compatible runs with `pnpm run benchmark:v2 -- --dry-run`. Config-level `supportedCategories` removes incompatible pairs before preflight, so V2 security-review profiles never run against fix tasks.
+The `pnpm run benchmark:v2` shorthand still selects the original 30-turn
+group. For a new run aligned with the completed V2 execution, use
+`pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 --repetitions 1`;
+add `--dry-run` to preview all 180 compatible runs without executing them.
+Config-level `supportedCategories` removes incompatible pairs before preflight,
+so V2 security-review profiles never run against fix tasks.
 
 This remains an intentionally expensive command: three Codex Security profiles alone imply 60 full scans, and the prior Goxygen Sol validation cost $13.2155 for one fixture. Actual model and harness costs vary substantially; always inspect the dry-run matrix and confirm budget/credentials before launching all 180 runs.
 
@@ -763,7 +775,8 @@ frozen into new execution manifests.
 The canonical V2 phases are `snyk-code` (20 runs), `claude-code` (60),
 `codex-security` (60), and `deepsec` (40).
 
-`vulnbench-v2-deepsec-150` is a revised fork target. Its first seven configs
+`vulnbench-v2-deepsec-150` was introduced as the safe revised fork target and
+is the matrix used by the completed V2 execution. Its first seven configs
 are identical to `vulnbench-v2`; its DeepSec phase uses distinct Claude Opus 5
 and Codex Sol profiles with `maxTurns: 150`. The original 30-turn profiles
 remain unchanged.
@@ -871,8 +884,9 @@ execution directory.
 For a manually controlled complete V2 run:
 
 ```bash
-# Static validation and bundle creation only; no credential preflight
-pnpm run benchmark:v2:prepare
+# Static validation and revised bundle creation only; no credential preflight
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 \
+  --repetitions 1 --prepare
 
 # Execute phases independently into that same bundle
 pnpm tsx src/index.ts --resume <execution-id> --phase snyk-code
@@ -882,6 +896,10 @@ pnpm tsx src/index.ts --resume <execution-id> --phase deepsec
 
 pnpm tsx src/index.ts --status <execution-id>
 ```
+
+The `benchmark:v2:prepare` package shorthand creates the original 30-turn
+DeepSec manifest and is retained for historical reproduction; it is not the
+command used for the final DeepSec-150 matrix.
 
 Phase preflight requirements:
 

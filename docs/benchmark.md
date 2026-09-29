@@ -1,5 +1,9 @@
 # Benchmark System — How It Works
 
+For the authoritative completed VulnBench V2 execution, fork lineage, final
+metrics, and DeepSec localized-recall interpretation, see
+[`docs/vulnbench-v2-run-handoff.md`](./vulnbench-v2-run-handoff.md).
+
 ## Table of Contents
 
 1. [The Core Idea in One Sentence](#the-core-idea-in-one-sentence)
@@ -776,8 +780,10 @@ pnpm tsx src/index.ts --resume <execution-id> --retry-interrupted
 
 #### Selectable VulnBench V2 phases
 
-`vulnbench-v2` freezes all 180 planned runs into one bundle but can execute
-them through four separately controlled phases:
+Both V2 config groups freeze all 180 planned runs into one bundle and execute
+them through four separately controlled phases. The original
+`vulnbench-v2` group retains 30-turn DeepSec profiles; the revised
+`vulnbench-v2-deepsec-150` group matches the completed V2 execution:
 
 - `snyk-code`: 1 config × 20 tasks = 20 runs
 - `claude-code`: 3 configs × 20 tasks = 60 runs
@@ -787,7 +793,8 @@ them through four separately controlled phases:
 Prepare once without credentials, preflight, or provider calls:
 
 ```bash
-pnpm run benchmark:v2:prepare
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 \
+  --repetitions 1 --prepare
 ```
 
 Prepare only after the harness, configs, tasks, fixtures, and ground truth are
@@ -810,8 +817,11 @@ successfully while later phases remain pending. Only global `status:
 "completed"` with 180/180 successful runs is a complete V2 benchmark.
 Omitting `--phase` retains the all-pending-runs behavior.
 
-Alternatively, `pnpm run benchmark:v2 -- --phase snyk-code` creates the full
-manifest and immediately runs only the first phase.
+Alternatively, add `--phase snyk-code` to the revised-group command to create
+the full manifest and immediately run only the first phase. The
+`benchmark:v2*` package shorthands retain the original 30-turn DeepSec group
+for historical reproducibility and do not reproduce the final DeepSec-150
+matrix.
 
 #### Forking an execution after a configuration revision
 
@@ -936,8 +946,8 @@ For **find-vulns**:
   recall: number;                           // 0–1
   byType: Record<VulnType, BreakdownEntry>; // per-vulnerability-type precision/recall/F1
   bySeverity: Record<Severity, BreakdownEntry>; // per-severity precision/recall/F1
-  matchDiagnostics?: AttackerReachableScoringDiagnostics; // rich V2-only candidate evidence
-  scoreSuite?: AttackerReachableScoreSuite; // complementary V2-only quality metrics
+  matchDiagnostics?: AttackerReachableScoringDiagnostics; // endpoint-aware V2 evidence
+  scoreSuite?: AttackerReachableScoreSuite; // endpoint-aware V2 quality metrics
   localizedScore?: F1Metric & { lineTolerance: number }; // DeepSec V2 evidence
 }
 
@@ -1052,7 +1062,10 @@ Attacker-Reachable Vulnerability Recall = TP / (TP + FN)
 Precision and lenient endpoint-localized F1 remain prominent secondary metrics. They expose noisy reporting and prevent a high-recall system from being mistaken for a high-trust system, but they do not define the V2 headline. Every result row records `primaryMetric`, so `score` is unambiguous:
 
 - V1 find tasks: `primaryMetric: "f1"`
-- V2 find tasks: `primaryMetric: "attacker-reachable-vulnerability-recall"`
+- Endpoint-aware V2 find tasks:
+  `primaryMetric: "attacker-reachable-vulnerability-recall"`
+- DeepSec V2 find tasks:
+  `primaryMetric: "localized-vulnerability-recall"`
 - fix tasks: `primaryMetric: "fix-rate"`
 
 Because these quantities have different semantics, the harness never produces a combined quality headline for a config that mixes them.
@@ -1086,11 +1099,12 @@ A reported vulnerability is a true positive only when:
 
 Intermediate ground-truth flow locations do not increase the threshold. Each reported finding can be consumed only once, and one reported location cannot satisfy both endpoints of a longer flow. When multiple unmatched ground-truth vulnerabilities share a type, the scorer chooses the qualifying candidate with the strongest endpoint and location overlap rather than relying on JSON order. Matching remains binary per vulnerability; the existing precision, recall, F1, per-type, and per-severity calculations are reused.
 
-The primary V2 `score` is **Attacker-Reachable Vulnerability Recall** (`details.recall`) under the endpoint-localized matching policy above. If a ground-truth flow lists multiple `source` or `sink` locations, they are alternative anchors for that endpoint role; one matching anchor covers the role. `details.precision` and `details.scoreSuite.lenientEndpointLocalizedF1` remain secondary metrics calculated from the same TP/FP/FN decisions.
+For endpoint-aware runners, the primary V2 `score` is **Attacker-Reachable Vulnerability Recall** (`details.recall`) under the endpoint-localized matching policy above. If a ground-truth flow lists multiple `source` or `sink` locations, they are alternative anchors for that endpoint role; one matching anchor covers the role. `details.precision` and `details.scoreSuite.lenientEndpointLocalizedF1` remain secondary metrics calculated from the same TP/FP/FN decisions. DeepSec uses the separate localized scorer described below.
 
 #### V2 score suite
 
-Every V2 run additionally records `details.scoreSuite` for post-run analysis:
+Every endpoint-aware V2 run additionally records `details.scoreSuite` for
+post-run analysis:
 
 - **`lenientEndpointLocalizedF1`** is the secondary F1 companion to the recall headline, with explicit TP/FP/FN counts.
 - **`strictFlowF1`** requires a type match and exact-line source-and-sink evidence at distinct reported locations. Path comparison remains normalized project-relative path/basename matching. A ground-truth flow with just one labelled endpoint uses an exact match to that endpoint as its strict fallback.
@@ -1144,11 +1158,14 @@ For strict and detection-only F1, findings are processed in reported order and s
 
 ##### Score-suite aggregation
 
-`aggregateByTask` averages every `scoreSuite` field across successful V2 repetitions for the same task/config pair. `aggregateByConfig` macro-averages those per-task suite values only inside the V2 `byGroundTruth.attacker-reachable` bucket. V1-only aggregates omit the suite, and mixed-metric overall config rows omit both a combined quality score and suite. Counts and denominators in aggregate rows are mean per-run/per-fixture values, not pooled corpus totals; use raw rows when a micro-aggregate is needed.
+`aggregateByTask` averages every `scoreSuite` field across successful endpoint-aware V2 repetitions for the same task/config pair. `aggregateByConfig` macro-averages those per-task suite values only inside the compatible V2 primary-metric bucket. DeepSec localized rows and V1-only aggregates omit the suite, and mixed-metric overall config rows omit both a combined quality score and suite. Counts and denominators in aggregate rows are mean per-run/per-fixture values, not pooled corpus totals; use raw rows when a micro-aggregate is needed.
 
 #### V2 match diagnostics
 
-Every successful V2 scoring pass adds `details.matchDiagnostics` with schema version `v2-endpoint-diagnostics-2`. The diagnostic payload is intentionally rich:
+Every successful endpoint-aware V2 scoring pass adds
+`details.matchDiagnostics` with schema version `v2-endpoint-diagnostics-2`.
+DeepSec's localized scorer does not emit this payload. The diagnostic payload
+is intentionally rich:
 
 - `candidateComparisons` contains the Cartesian product of reported findings and known vulnerabilities. Each candidate records every label-pair comparison, every location-pair comparison, endpoint evidence, the applicable endpoint requirement, eligibility, whether ground truth was already consumed, selection status, and structured failure reasons.
 - `findingOutcomes` provides a convenient finding-centric view: matched vulnerability, best candidate, every eligible candidate, or a false-positive reason (`no-type-match`, `endpoint-requirement-not-met`, or `duplicate-finding`).
@@ -1318,7 +1335,7 @@ Operational checklist, example `jq` invocations, and the distinction between “
 
 ### DeepSec and localized V2 scoring
 
-The `deepsec-cli` adapter generates a minimal ephemeral DeepSec config, then runs pinned DeepSec 2.3.7 through `scan`, `process`, and `export --format json --out`. It does not pass the benchmark prompt: this intentionally measures DeepSec's opinionated security workflow rather than a customizable general coding agent. Codex profiles use direct OpenAI authentication; Claude profiles use direct Anthropic authentication. Canonical V2 profiles omit paid-stage wall-time limits.
+The `deepsec-cli` adapter generates a minimal ephemeral DeepSec config, then runs pinned DeepSec 2.3.7 through `scan`, `process`, and `export --format json --out`. It does not pass the benchmark prompt: this intentionally measures DeepSec's opinionated security workflow rather than a customizable general coding agent. Canonical V2 profiles route both Codex- and Claude-shaped clients through LiteLLM using the ignored repository-root `.env`; direct provider credentials are fallback behavior for noncanonical local configurations. Canonical V2 profiles omit paid-stage wall-time limits.
 
 DeepSec exports `vulnSlug`, `filePath`, and `lineNumbers`, but not source/sink roles. Therefore:
 
@@ -1541,6 +1558,7 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 |---|---|---|---|
 | **V1 F1 headline** | `F1 : X%` | `score` with `primaryMetric: "f1"` | VulnBench 1.0 type-only headline |
 | **V2 Attacker-Reachable Vulnerability Recall headline** | `AR vuln recall : X%` | `score` with `primaryMetric: "attacker-reachable-vulnerability-recall"` | Fraction of curated attacker-reachable vulnerabilities matched under the active endpoint policy |
+| **DeepSec V2 localized recall headline** | `Localized recall : X%` | `score` with `primaryMetric: "localized-vulnerability-recall"` | Fraction of curated vulnerabilities matched one-to-one by compatible type plus any reported location within ±2 lines; intentionally not comparable to endpoint-aware AR recall |
 | **Recall** | `Recall : X%` on V1; represented by the V2 headline | `details.recall` | Fraction of ground-truth vulnerabilities matched |
 | **Precision** | `Precision   :  X%  (N false positives)` | `details.precision` | Fraction of agent's findings that were real |
 | **True positives** | Implicit in recall line | `details.truePositives` | Array of `{ id, type, severity }` for correctly identified vulns |
@@ -1548,10 +1566,11 @@ Every metric the benchmark produces, at a glance. The "Report line" column shows
 | **False negatives** | `Missed      :  id1, id2` | `details.falseNegatives` | Array of `{ id, type, severity }` for missed vulns |
 | **By type** | — | `details.byType` | Per-vuln-type breakdown: `{ total, found, precision, recall, f1 }` |
 | **By severity** | — | `details.bySeverity` | Per-severity breakdown: `{ total, found, precision, recall, f1 }` |
-| **V2 candidate diagnostics** | — | `details.matchDiagnostics.candidateComparisons` | Every reported-finding × ground-truth comparison, including type and location evidence |
-| **V2 finding outcomes** | — | `details.matchDiagnostics.findingOutcomes` | Match/false-positive outcome and best/eligible ground-truth candidates for each report |
-| **V2 vulnerability outcomes** | — | `details.matchDiagnostics.vulnerabilityOutcomes` | Match/miss outcome, best reported candidate, and normalized failure reason for each known vulnerability |
-| **V2 score suite** | `Secondary F1`, `Strict flow`, `Endpoints`, `Flow overlap`, `Detection only` | `details.scoreSuite` | Secondary F1 plus complementary strict-flow, endpoint-localization, coverage, and detection metrics |
+| **Endpoint-aware V2 candidate diagnostics** | — | `details.matchDiagnostics.candidateComparisons` | Every reported-finding × ground-truth comparison, including type and location evidence |
+| **Endpoint-aware V2 finding outcomes** | — | `details.matchDiagnostics.findingOutcomes` | Match/false-positive outcome and best/eligible ground-truth candidates for each report |
+| **Endpoint-aware V2 vulnerability outcomes** | — | `details.matchDiagnostics.vulnerabilityOutcomes` | Match/miss outcome, best reported candidate, and normalized failure reason for each known vulnerability |
+| **Endpoint-aware V2 score suite** | `Secondary F1`, `Strict flow`, `Endpoints`, `Flow overlap`, `Detection only` | `details.scoreSuite` | Secondary F1 plus complementary strict-flow, endpoint-localization, coverage, and detection metrics |
+| **DeepSec V2 localized score** | `Localized recall`, `Precision`, `Secondary F1` | `details.localizedScore.{recall,precision,f1,lineTolerance}` | Localized TP/FP/FN summary and the inclusive line tolerance; DeepSec rows do not contain endpoint `matchDiagnostics` or `scoreSuite` |
 
 #### Quality metrics (fix-vulns)
 
@@ -1974,7 +1993,9 @@ Raw run rows and task-aggregate rows include `fixtureId`, the loaded `fixtureMet
 }
 ```
 
-V2 run rows additionally include rich scorer evidence under `details.matchDiagnostics`. A shortened candidate looks like:
+Endpoint-aware V2 run rows additionally include rich scorer evidence under
+`details.matchDiagnostics`. DeepSec V2 rows use `details.localizedScore`
+instead. A shortened endpoint-aware candidate looks like:
 
 ```json
 {
@@ -2250,8 +2271,9 @@ pnpm run benchmark -- --category fix-vulns
 
 # Shorthand scripts for common categories
 pnpm run benchmark:find    # equivalent to --category find-vulns
-pnpm run benchmark:v2      # canonical V2 matrix: 20 tasks × 9 configs × 1 rep
-pnpm run benchmark:v2:snyk # VulnBench 2.0 tasks with Snyk Code only
+pnpm run benchmark:v2      # original V2 matrix; DeepSec is limited to 30 turns
+pnpm run benchmark:v2:snyk # starts that original matrix with Snyk Code only
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 --repetitions 1 # revised final matrix
 pnpm benchmark -- --config-group default --dry-run
 pnpm benchmark -- --all-configs --dry-run
 pnpm run benchmark:fix     # equivalent to --category fix-vulns

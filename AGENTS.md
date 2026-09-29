@@ -129,7 +129,7 @@ Run `claude auth status` to see which is active. Either works; no special setup 
 
 Canonical V2 Claude Code, Codex Security, and DeepSec profiles route through LiteLLM using `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN` from the ignored repository-root `.env`; `ENABLE_TOOL_SEARCH=true` keeps Claude tool search available through the gateway. Claude-shaped clients use the Anthropic Messages route and Codex-shaped clients use the derived `<origin>/v1` Responses route. Runner environments strip direct provider keys, stored Claude OAuth fallback, aliases, and unrelated credentials. The pinned scanner and all descendants must remain inside the outer Landlock boundary; never bypass its containment probe.
 
-Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` is the canonical 20-task × 9-config × 1-repetition matrix; `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
+Run config groups live in `evals/run-config-groups.json`. With no explicit selector, the CLI uses the safe `default` group. `vulnbench-v2` preserves the original 20-task × 9-config × 1-repetition matrix with 30-turn DeepSec profiles; the completed V2 execution used `vulnbench-v2-deepsec-150`. `--all-configs` is an explicit opt-in to the full registry. Config-level `supportedCategories` removes incompatible task/config pairs before preflight.
 
 ## MCP Configurations and Credentials
 
@@ -144,9 +144,9 @@ The harness runs the benchmark in an isolated worker. For every key declared in 
 ```bash
 pnpm run benchmark                      # all tasks, default configs
 pnpm run benchmark:find                 # only find-vulns tasks
-pnpm run benchmark:v2                   # canonical V2 matrix (180 runs, 1 repetition)
-pnpm run benchmark:v2:prepare           # freeze V2 plan without provider calls
-pnpm run benchmark:v2:snyk              # start full V2 bundle with Snyk phase
+pnpm run benchmark:v2                   # historical V2 matrix with 30-turn DeepSec
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 --repetitions 1 --prepare
+pnpm tsx src/index.ts --config-group vulnbench-v2-deepsec-150 --repetitions 1 --phase snyk-code
 pnpm results:fork -- --from <id> --config-group vulnbench-v2-deepsec-150 --reset-phase deepsec --expect-imported 140 --expect-pending 40
 pnpm tsx src/index.ts --resume <id> --phase claude-code
 pnpm tsx src/index.ts --resume <id> --phase codex-security
@@ -200,6 +200,7 @@ This uses the `serve` npm package and defaults to `0.0.0.0:3000`; pass standard 
 
 ## Benchmark Documentation and Guidelines
 
+- **[`docs/vulnbench-v2-run-handoff.md`](docs/vulnbench-v2-run-handoff.md)** — Start here for the completed V2 execution: authoritative child/parent bundles, fork lineage, final config metrics, DeepSec localized-recall semantics, zero-score audit, and reporting guardrails.
 - **[`docs/benchmark-management.md`](docs/benchmark-management.md)** — How to add V1 and V2 eval tasks and fixtures without code changes: both ground-truth schemas, source/sink annotations, directory-scanning loader behavior, task JSON, vulnerability types, run configs, SAST commands, Snyk mappings, and troubleshooting.
 - **[`docs/benchmark.md`](docs/benchmark.md)** — Conceptual and reference guide: end-to-end pipeline, V1 type-only and V2 endpoint-aware scoring, Snyk's V1/rich SARIF parsers, aggregation, metrics, and result formats.
 - **[`docs/litellm-integration.md`](docs/litellm-integration.md)** — Complete gateway environment flow, Claude/Codex Security/DeepSec protocol configuration, secret handling, smoke tests, and troubleshooting.
