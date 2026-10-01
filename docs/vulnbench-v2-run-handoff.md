@@ -309,6 +309,19 @@ jq 'select(._type == "config-aggregate") |
 - When publishing operational cost, distinguish child observed cost from
   discarded parent DeepSec spend retained in lineage metadata.
 
+## Supplementary control runs (2026-10-01)
+
+Supplementary prompt-control and Snyk repeatability executions are published
+at:
+
+```text
+publications/vulnbench-v2/20261001-supplementary-controls/
+```
+
+They supplement the authoritative child and must not be merged into its
+aggregates. The publication also contains non-mutating Iguana
+ground-truth-fix sensitivity rescoring.
+
 ## Related implementation and methodology references
 
 - `docs/benchmark.md`

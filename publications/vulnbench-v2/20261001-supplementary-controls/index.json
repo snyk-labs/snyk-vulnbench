@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "publicationId": "vulnbench-v2-20261001-supplementary-controls",
+  "benchmarkGeneration": "vulnbench-v2",
+  "createdAt": "2026-10-01T13:17:36.549Z",
+  "relatesTo": "20260907-vulnbench-v2-deepsec-150-574753a2",
+  "archives": [
+    {
+      "role": "supplementary-control",
+      "executionId": "20261001-default-5b51e708",
+      "status": "completed-with-failures",
+      "counts": {
+        "pending": 0,
+        "running": 0,
+        "succeeded": 39,
+        "failed": 1,
+        "interrupted-uncertain": 0
+      },
+      "sourcePath": "results/executions/20261001-default-5b51e708",
+      "archivePath": "bundles/20261001-default-5b51e708.tar.gz",
+      "archiveBytes": 1666938,
+      "archiveSha256": "34f23402bd8866f3e4d6b1b620bfd5ed54245f18bab61836a69edc8bfc69a216",
+      "unpackedBytes": 41577341,
+      "fileCount": 44,
+      "fileChecksumsPath": "checksums/20261001-default-5b51e708.sha256",
+      "fileChecksumManifestSha256": "ee570f48aab83ac4d16d0f132a47b0b8ef30547cbf83f3bc5e1348558fbbaf6e",
+      "planFingerprint": "08e1aa239298f2bf2f28bd141a64e64ae3e4a532f8a9a348e81517a0dae4f0e9",
+      "harnessCommit": "3b0fd00752a4890d5fc0c3b547be889f2fe051a5",
+      "relatesTo": "20260907-vulnbench-v2-deepsec-150-574753a2"
+    },
+    {
+      "role": "supplementary-repeatability",
+      "executionId": "20261001-default-0bc94ea4",
+      "status": "completed",
+      "counts": {
+        "pending": 0,
+        "running": 0,
+        "succeeded": 40,
+        "failed": 0,
+        "interrupted-uncertain": 0
+      },
+      "sourcePath": "results/executions/20261001-default-0bc94ea4",
+      "archivePath": "bundles/20261001-default-0bc94ea4.tar.gz",
+      "archiveBytes": 2576036,
+      "archiveSha256": "aad8c2e5f0c386e5b06c97358d2170dca4e351a74947dc4100b8ad364d09f944",
+      "unpackedBytes": 92920095,
+      "fileCount": 44,
+      "fileChecksumsPath": "checksums/20261001-default-0bc94ea4.sha256",
+      "fileChecksumManifestSha256": "46b09c4a72eabf27f2746a5742e633794f25c116f3719147fa54c02e774c88a4",
+      "planFingerprint": "cee60b2345d5faf0d88aecc8cb8b6deec31d1073fb02c971753153e04b39d048",
+      "harnessCommit": "3b0fd00752a4890d5fc0c3b547be889f2fe051a5",
+      "relatesTo": "20260907-vulnbench-v2-deepsec-150-574753a2"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "role": "derived-rescore-gt-fix",
+      "sourcePath": "results/rescored-gtfix/v2-child.jsonl",
+      "path": "derived/rescored-gtfix/v2-child.jsonl",
+      "bytes": 82149499,
+      "sha256": "d67ccf020a4b9193316916721aae5826855f1707906a612a620360f9a6bf78ed",
+      "groundTruthFixCommit": "93ef5af3acb79afb0e9cebaa83b837f3e3184bf4"
+    },
+    {
+      "role": "derived-rescore-gt-fix",
+      "sourcePath": "results/rescored-gtfix/s1.jsonl",
+      "path": "derived/rescored-gtfix/s1.jsonl",
+      "bytes": 14563742,
+      "sha256": "be1fa02227c4341d3b15754d3bca8e409a882016d7138efe38e294ee431819b4",
+      "groundTruthFixCommit": "93ef5af3acb79afb0e9cebaa83b837f3e3184bf4"
+    },
+    {
+      "role": "derived-rescore-gt-fix",
+      "sourcePath": "results/rescored-gtfix/s2.jsonl",
+      "path": "derived/rescored-gtfix/s2.jsonl",
+      "bytes": 33712784,
+      "sha256": "0b9c2f6602e80a7c98983846d788b75842325d9c18fdd198ca5ce0bbca7b29ba",
+      "groundTruthFixCommit": "93ef5af3acb79afb0e9cebaa83b837f3e3184bf4"
+    }
+  ]
+}
