@@ -20,6 +20,7 @@ import { aggregateByTask, aggregateByConfig } from "./aggregator.js";
 import { isIsolatedBenchmarkWorker, runInIsolatedBenchmarkWorker } from "./benchmark-env.js";
 import { DEFAULT_PROMPT_TEMPLATE_ID } from "./prompt-templates.js";
 import { getRunner } from "./runners/registry.js";
+import { resolveRunnerVersion } from "./runner-versions.js";
 import {
   createIsolatedWorkspace,
   prepareSecurityReviewGitWorkspace,
@@ -290,7 +291,7 @@ async function runEval(
     runConfigId: config.id,
     runConfigName: config.name,
     runnerId: runner.id,
-    runnerVersion: runner.version ?? null,
+    runnerVersion: resolveRunnerVersion(runner, config),
     runnerCapabilities: runner.capabilities,
     requestedModel: runner.id === "deepsec-cli"
       ? (config as DeepSecRunConfig).model
