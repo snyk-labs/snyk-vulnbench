@@ -22,10 +22,6 @@
         },
         {
           "file": "src/gitintegration/frontend.py",
-          "line": 45
-        },
-        {
-          "file": "src/gitintegration/frontend.py",
           "line": 45,
           "type": "sink"
         }
