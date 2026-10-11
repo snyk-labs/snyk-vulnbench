@@ -1,0 +1,10 @@
+{
+  "authorName": "Scott <img src=x onerror=\"document.documentElement.dataset.pwned='sassyreg'\">",
+  "twitterLink": "https://example.test/scottsassy",
+  "authorScreenshotDescription": "plain control description",
+  "packageManifest": {
+    "name": "cli-prompts",
+    "version": "1.1.2",
+    "description": "local stub"
+  }
+}

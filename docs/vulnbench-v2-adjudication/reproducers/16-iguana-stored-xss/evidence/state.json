@@ -1,0 +1,11 @@
+{
+  "base": "http://127.0.0.1:8000",
+  "manager": "mgrx370",
+  "member": "memx370",
+  "password": "Repro-pass-19!",
+  "project": "X370",
+  "issue": "1",
+  "payload": "<img src=x onerror=alert(1)>",
+  "member_id": "8",
+  "manager_id": "7"
+}

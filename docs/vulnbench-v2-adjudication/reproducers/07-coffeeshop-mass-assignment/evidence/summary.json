@@ -1,0 +1,26 @@
+{
+  "persons_before": 403,
+  "role_before": "ROLE_CUSTOMER",
+  "role_after_profile": "ROLE_ADMIN",
+  "persons_after_relogin": 200,
+  "persons_page_has_customer": true,
+  "omitted_id_user": {
+    "id": 69,
+    "roles": "ROLE_ADMIN"
+  },
+  "omitted_id_persons": 200,
+  "old_victim_still_present": false,
+  "takeover_row": {
+    "id": 70,
+    "username": "poc-owned-victim",
+    "roles": "ROLE_CUSTOMER"
+  },
+  "takeover_profile_status": 200,
+  "takeover_profile_has_username": true,
+  "reproduced": "yes",
+  "checks": {
+    "self": true,
+    "omit_id": true,
+    "takeover": true
+  }
+}

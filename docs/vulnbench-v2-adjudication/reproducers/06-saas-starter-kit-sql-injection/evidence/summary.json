@@ -1,0 +1,28 @@
+{
+  "safe": {
+    "status": 200,
+    "elapsed_s": 0.002,
+    "contains_attacker": true,
+    "contains_victim": false,
+    "contains_victim_name": false
+  },
+  "boolean_sleep_false": {
+    "status": 200,
+    "elapsed_s": 0.001
+  },
+  "boolean_sleep_true": {
+    "status": 200,
+    "elapsed_s": 2.006
+  },
+  "cross_tenant": {
+    "status": 500,
+    "victim_name_in_error": true,
+    "victim_email_in_body": true
+  },
+  "checks": {
+    "tenant_filter": true,
+    "time_based": true,
+    "cross_tenant_error": true
+  },
+  "reproduced": "yes"
+}

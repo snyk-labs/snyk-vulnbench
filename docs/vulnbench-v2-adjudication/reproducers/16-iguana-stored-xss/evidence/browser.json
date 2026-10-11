@@ -1,0 +1,74 @@
+{
+  "reproduced": "yes",
+  "state": {
+    "member": "memx370",
+    "project": "X370",
+    "issue": "1"
+  },
+  "heatmap": {
+    "cells": 382,
+    "apiProbe": {
+      "activity": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta http-equiv=\"content-type\" content=\"text/html; charset=utf-8\">\n  <title>Page not found at /timelog/api/activity/</title>\n  <meta name=\"robots\" content=\"NONE,NOARCHIVE\">\n  <style type=\"text/css\">\n    html * { padding:0; margin:0; }\n    body * { padding:10px 20px; }\n    body * * { padding:0; }\n    body { font:small sans-serif; background:#eee; color:#000; }\n    body>div { border-bottom:1px solid #ddd; }\n    h1 { font-weight:normal; margin-bottom:.4em;",
+      "day": "[{\"model\": \"timelog.timelog\", \"pk\": 1, \"fields\": {\"number\": 1, \"user\": 8, \"issue\": 2, \"created_at\": \"2026-10-11T09:14:00.100Z\", \"updated_at\": \"2026-10-11T10:14:30.270Z\", \"time\": \"01:00:00\", \"issue_title\": \"Log this\", \"issue_short\": \"X370-1\", \"issue_project_name\": \"<img src=x onerror=alert(1)>\", \"issue_url\": \"/project/X370/issue/1/\", \"issue_proj_url\": \"/project/X370/detail\"}}]"
+    },
+    "todayCell": {
+      "count": 365,
+      "index": 344,
+      "sample": [
+        {
+          "raw": 1761955200000,
+          "key": "20251101"
+        },
+        {
+          "raw": 1762041600000,
+          "key": "20251102"
+        }
+      ],
+      "matched": {
+        "raw": 1791676800000,
+        "key": "20261011"
+      }
+    },
+    "dialogs": [
+      {
+        "type": "alert",
+        "message": "1"
+      }
+    ],
+    "img": {
+      "onerror": "alert(1)",
+      "html": "<img src=\"x\" onerror=\"alert(1)\">"
+    },
+    "placeholder": "<ul id=\"loglist\" class=\"list-group\"><li id=\"listelement0\" class=\"list-group-item listelement0\">1h on Issue <a href=\"/project/X370/issue/1/\">X370-1</a> in Project <a href=\"/project/X370/detail\"><img src=\"x\" onerror=\"alert(1)\"></a><p></p><small>2026-10-11 09:14:00</small></li></ul>"
+  },
+  "chart": {
+    "rects": 7,
+    "dialogs": [],
+    "tooltip": {
+      "html": null,
+      "onerror": null
+    }
+  },
+  "dialogs": [
+    {
+      "type": "alert",
+      "message": "1"
+    }
+  ],
+  "consoleMessages": [
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "error: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "pageerror: Cannot set properties of undefined (setting 'colors')"
+  ]
+}

