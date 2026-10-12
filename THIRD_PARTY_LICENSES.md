@@ -21,10 +21,12 @@ Each row is one fixture application. The licence is read from that fixture's `pr
 | `app-project-robs-awesome` | [github.com/tedivm/robs_awesome_python_template](https://github.com/tedivm/robs_awesome_python_template) | MIT |
 | `app-project-saas-starter-kit` | [gitlab.com/geeks-accelerator/oss/saas-starter-kit](https://gitlab.com/geeks-accelerator/oss/saas-starter-kit) | Apache-2.0 |
 | `app-project-saas-starter-lite` | [github.com/cloudrix-saas/saas-starter-lite](https://github.com/cloudrix-saas/saas-starter-lite) | MIT |
-| `app-project-sassyreg` | Authors' own earlier project | MIT |
+| `app-project-sassyreg` | [github.com/lirantal/react-suspended-vulnerable-application](https://github.com/lirantal/react-suspended-vulnerable-application) (authors' own earlier project) | MIT |
 | `app-project-slingshot` | [github.com/coryhouse/react-slingshot](https://github.com/coryhouse/react-slingshot) | MIT |
 | `app-project-vinyl-marketplace` | Created by the authors | Apache-2.0 |
 
 `app-project-vinyl-marketplace` has no licence file inside `project/`. It was created by the authors and is covered by the repository Apache License 2.0. `app-project-coffeeshop` was also created by the authors; its Apache-2.0 text is in `project/LICENSE.MD`. `app-project-keystonebank` and `app-project-sassyreg` are the authors' own earlier projects.
 
 `app-project-goxygen`, `app-project-halloween`, and `app-project-keystonebank` record the upstream text in `LICENSE-UPSTREAM` because those project trees do not include a licence file.
+
+All other fixtures (js-project-*, llm-project-*, python-project-cobalt, temp-projec-stockpilot) were created by the authors and are covered by the repository Apache License 2.0.
