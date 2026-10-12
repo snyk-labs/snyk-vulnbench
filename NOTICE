@@ -1,0 +1,1 @@
+VulnBench, Copyright 2026 Snyk Ltd. The applications under fixtures/*/project are third-party or author-created projects that keep their own licences (see THIRD_PARTY_LICENSES.md). They were modified by the VulnBench authors to seed vulnerabilities for security benchmarking and are intentionally vulnerable; do not deploy them.
