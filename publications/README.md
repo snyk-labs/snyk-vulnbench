@@ -26,3 +26,6 @@ publications/
 - [`vulnbench-v2/20261001-supplementary-controls/`](./vulnbench-v2/20261001-supplementary-controls/)
   — supplementary prompt-control and Snyk repeatability runs plus
   ground-truth-fix sensitivity rescoring; not part of authoritative aggregates.
+- [`vulnbench-v2/20261028-postfix-snyk-code/`](./vulnbench-v2/20261028-postfix-snyk-code/)
+  — post-disclosure Snyk Code re-scan after the VulnBench 2.0 rule updates;
+  a labelled execution that must not be merged into V2 aggregates.

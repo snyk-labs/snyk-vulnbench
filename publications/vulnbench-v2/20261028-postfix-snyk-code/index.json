@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "publicationId": "vulnbench-v2-20261028-postfix-snyk-code",
+  "benchmarkGeneration": "vulnbench-v2",
+  "createdAt": "2026-10-28T08:11:28.304Z",
+  "relatesTo": "20260907-vulnbench-v2-deepsec-150-574753a2",
+  "archives": [
+    {
+      "role": "post-disclosure-rescan",
+      "executionId": "20261028-default-2b4cb3f9",
+      "status": "completed",
+      "counts": {
+        "pending": 0,
+        "running": 0,
+        "succeeded": 20,
+        "failed": 0,
+        "interrupted-uncertain": 0
+      },
+      "sourcePath": "results/executions/20261028-default-2b4cb3f9",
+      "archivePath": "bundles/20261028-default-2b4cb3f9.tar.gz",
+      "archiveBytes": 1290785,
+      "archiveSha256": "09f6ea75b5d33e40616d0f050b9f9f08ee064fc0ba637e75b88571db9618d234",
+      "unpackedBytes": 45950897,
+      "fileCount": 24,
+      "fileChecksumsPath": "checksums/20261028-default-2b4cb3f9.sha256",
+      "fileChecksumManifestSha256": "80ec5e8e5e2cc34814a83d8a78e66b3992db837e41220a100a4d3c0611dc29ce",
+      "planFingerprint": "7a6296422cfa57a2a5388434d033fb113a20d01e71409029656bb747a65e1356",
+      "harnessCommit": "6f66b5aa01f1cd8fbcd6a34eec82f7da2597ae9c",
+      "relatesTo": "20260907-vulnbench-v2-deepsec-150-574753a2",
+      "snykCliVersion": "1.1309.0-preview.8314b050a0d69e4060bfc4834d0b614af9f7f5f3",
+      "snykOrgSlug": "snyk-demo-567"
+    }
+  ]
+}
